@@ -1,7 +1,7 @@
 {
   "name": "ultimatefit-mvp",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,8 @@
     "react-dom": "latest",
     "react-router-dom": "latest",
     "lucide-react": "latest",
-    "recharts": "latest"
+    "recharts": "latest",
+    "@supabase/supabase-js": "2.110.8"
   },
   "devDependencies": {}
 }

@@ -1,31 +1,29 @@
-# ULTIMATE FIT APP — MVP local
+# ULTIMATE FIT APP — MVP v0.2
 
-Primeira versão navegável para validar arquitetura e fluxos antes de criar Supabase/Vercel.
+Versão ligada ao Supabase com autenticação real e perfil Admin.
 
-## Incluído
-- Perfis Admin, Professor e Aluno (seletor no topo para teste)
-- Dashboard por perfil
-- Gestão local de alunos e professores
-- Avaliações físicas e histórico
-- Evolução com gráficos
-- Planos de treino
-- Nutrição
-- Objetivos
-- Desafios
-- Biblioteca inicial com 45 exercícios
-- Avisos
-- Relatórios demonstrativos
-- Backoffice e modo Coming Soon
-- Manifest PWA
-- Estrutura SQL planeada para Supabase
+## Já funcional
+- Login com email e palavra-passe através do Supabase Auth
+- Leitura segura do perfil em `public.profiles`
+- Reconhecimento dos papéis Admin, Professor e Aluno
+- Sessão persistente e logout
+- Interface completa do MVP anterior
+- Dados dos módulos ainda demonstrativos em `localStorage`
 
-## Testar localmente
+## Variáveis necessárias
+```env
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+## Desenvolvimento local
 ```bash
 npm install
 npm run dev
 ```
 
-Os dados são guardados no localStorage do navegador apenas para validação do MVP.
+## Estado de segurança
+O frontend usa apenas a Publishable Key. A Secret Key nunca deve ser adicionada ao projeto ou à Vercel.
 
-## Importante
-Não usar com dados reais de alunos nesta fase. A autenticação, Row Level Security, uploads privados, convites por email e PDFs reais serão ligados depois da validação funcional.
+## Próxima fase
+Substituir gradualmente os dados demonstrativos por dados reais do Supabase, começando por professores, alunos e atribuições.
