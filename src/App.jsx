@@ -1,5 +1,7 @@
 import React,{useMemo,useState} from 'react';
 import {AppProvider,useApp} from './contexts/AppContext';
+import {AuthProvider,useAuth} from './contexts/AuthContext';
+import LoginScreen from './components/LoginScreen';
 import {Activity,Apple,BarChart3,BookOpen,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,MessageSquare,Plus,Search,Settings,Target,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
@@ -13,12 +15,13 @@ function Badge({children,tone='gray'}){return <span className={`badge ${tone}`}>
 function Logo(){return <div className="logo"><div className="logoMark">UF</div><div>ULTIMATE <span>FIT</span></div></div>}
 
 function Shell(){
- const {data,currentUser,setCurrentUserId}=useApp();
+ const {currentUser}=useApp();
+ const {signOut}=useAuth();
  const [page,setPage]=useState('dashboard');
  const nav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={18}/>{label}</button>)}</div></aside>
-  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">MVP local · dados de teste</div><div className="userTools"><select value={currentUser.id} onChange={e=>{setCurrentUserId(e.target.value);setPage('dashboard')}}>{data.users.filter(u=>u.active).map(u=><option key={u.id} value={u.id}>{u.name} · {u.role}</option>)}</select><div className="avatar">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></div></header>
+  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.role}</small></div><div className="avatar">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
   <div className="content"><PageRouter page={page}/></div>
   <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
   </main>
@@ -70,4 +73,14 @@ function Input({label,...props}){return <label>{label}<input {...props}/></label
 function Select({label,options=[],...props}){return <label>{label}<select {...props}>{options.map((o,i)=>typeof o==='string'?<option key={i}>{o}</option>:<option key={o.value} value={o.value}>{o.label}</option>)}</select></label>}
 function Info({l,v}){return <div className="info"><small>{l}</small><b>{v||'—'}</b></div>}
 
-export default function App(){return <AppProvider><Shell/></AppProvider>}
+function AppGate(){
+ const {configured,loading,session,profile}=useAuth();
+ if(!configured) return <div className="appState"><Logo/><h1>Configuração em falta</h1><p>As variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY ainda não estão disponíveis neste deployment.</p></div>;
+ if(loading) return <div className="appState"><Logo/><div className="loader"/><p>A preparar a aplicação…</p></div>;
+ if(!session) return <LoginScreen/>;
+ if(!profile) return <div className="appState"><Logo/><h1>Perfil indisponível</h1><p>Não foi possível carregar o perfil associado a esta conta.</p></div>;
+ if(!profile.is_active) return <div className="appState"><Logo/><h1>Conta desativada</h1><p>Contacta a administração do ULTIMATE FIT.</p></div>;
+ return <AppProvider><Shell/></AppProvider>;
+}
+
+export default function App(){return <AuthProvider><AppGate/></AuthProvider>}
