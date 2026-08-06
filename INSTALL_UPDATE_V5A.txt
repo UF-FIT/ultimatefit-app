@@ -1,0 +1,84 @@
+ULTIMATE FIT APP — UPDATE 5A
+MÓDULO REAL DE ALUNOS
+
+IMPORTANTE
+- O Update v4 deve estar instalado e funcional antes deste update.
+- Não carregues o ZIP diretamente no GitHub; extrai primeiro.
+- Nunca coloques chaves secretas, SMTP ou ficheiros .env no GitHub.
+- Faz primeiro a migração e as Edge Functions. Só depois atualiza o GitHub.
+
+ORDEM DE INSTALAÇÃO
+
+1) MIGRAÇÃO 004
+Supabase > SQL Editor > New query
+Executar todo o conteúdo de:
+supabase/migrations/20260806_004_students_and_private_avatars.sql
+
+Resultado esperado:
+Success. No rows returned
+
+Depois, numa nova query, executar:
+supabase/migrations/20260806_004_students_and_private_avatars_verify.sql
+
+A verificação deve mostrar:
+- novas colunas em profiles, trainer_profiles e student_profiles;
+- bucket student-avatars com public = false;
+- limite 524288 bytes e MIME image/webp;
+- políticas student_avatars_*;
+- seis funções de autorização/convite.
+
+2) ATUALIZAR A EDGE FUNCTION DA EQUIPA
+Supabase > Edge Functions > manage-team-member > Edit
+Substituir todo o index.ts pelo conteúdo de:
+supabase/functions/manage-team-member/index.ts
+
+Publicar novamente a função.
+Manter Verify JWT / Enforce JWT verification = OFF, porque a função valida internamente a sessão.
+
+Esta atualização torna obrigatório o WhatsApp profissional ao criar um Professor ou Administrador.
+
+3) CRIAR A EDGE FUNCTION DOS ALUNOS
+Supabase > Edge Functions > Create new function
+Nome exato:
+manage-student
+
+Substituir o conteúdo do index.ts por:
+supabase/functions/manage-student/index.ts
+
+Publicar com Verify JWT / Enforce JWT verification = OFF.
+A função usa o segredo APP_URL já criado no Update v4.
+
+4) CONFIRMAR WHATSAPP DO PROPRIETÁRIO
+Na aplicação, abrir Professores.
+Na ficha do Rui, introduzir o número profissional de WhatsApp, preferencialmente com indicativo:
++351XXXXXXXXX
+
+Sem WhatsApp, o Rui não poderá ser definido como professor principal de um aluno.
+
+5) GITHUB / VERCEL
+Extrair o ZIP.
+No repositório UF-FIT/ultimatefit-app, branch main:
+Add file > Upload files
+Carregar todo o conteúdo que está dentro da pasta extraída, substituindo os ficheiros existentes.
+
+Mensagem sugerida:
+Update 5A — módulo real de alunos
+
+Commit directly to the main branch.
+Aguardar o deployment automático da Vercel ficar Ready.
+
+6) PRIMEIRO TESTE
+- Atualizar https://ultimatefit-app.vercel.app com Ctrl+F5.
+- Entrar como Rui.
+- Confirmar que já não aparecem Ana, João e restantes alunos fictícios.
+- Confirmar o WhatsApp do Rui em Professores.
+- Criar primeiro uma conta de teste com um email alternativo.
+- Definir Rui como professor principal.
+- Confirmar receção do convite por email.
+- Definir a palavra-passe.
+- Confirmar que a conta de aluno vê apenas o próprio perfil.
+- Confirmar que o aluno não consegue escolher nem alterar professor.
+- Testar fotografia, WhatsApp, desativar, reativar e arquivar.
+
+7) NÃO INTRODUZIR JÁ DADOS DE AVALIAÇÃO
+O perfil mostra o espaço e os botões da avaliação, treino e alimentação, mas as tabelas reais desses módulos serão instaladas no Update 5B.

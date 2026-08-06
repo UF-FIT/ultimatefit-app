@@ -1,54 +1,47 @@
-# ULTIMATE FIT APP — v0.4
+# ULTIMATE FIT APP — Update 5A
 
-Atualização de equipa, hierarquia, convites e recuperação de palavra-passe.
+Módulo real de **Alunos**, ligado ao Supabase e preparado para as fases seguintes de Avaliação Física, Planos de Treino e Plano Alimentar.
 
-## Hierarquia definitiva
+## Incluído nesta versão
 
-- **Proprietário — Rui Marques**
-  - controlo total;
-  - pode criar e gerir Administradores globais e Professores;
-  - pode desativar ou eliminar o acesso de um Administrador;
-  - conta protegida: ninguém o pode desativar, eliminar ou despromover.
-- **Administrador global — Manuel e futuros administradores**
-  - acesso operacional completo ao backoffice;
-  - pode criar, gerir, desativar e eliminar Professores;
-  - não pode criar outro Administrador global;
-  - não pode gerir o Proprietário.
-- **Professor**
-  - vê apenas alunos atribuídos;
-  - recebe permissões individuais;
-  - não acede a planos privados de outros Professores.
-- **Aluno**
-  - acede apenas aos próprios dados.
+- alunos reais no Supabase, sem dados fictícios na listagem;
+- criação de conta e convite por email;
+- fotografia automaticamente recortada, redimensionada e convertida para WebP;
+- imagem de perfil 512 × 512 e miniatura 128 × 128;
+- armazenamento privado com URLs temporários;
+- atribuição pelo estúdio a um ou vários professores;
+- professor principal obrigatório, com WhatsApp profissional registado;
+- Proprietário e Administradores veem todos os alunos;
+- Professor comum vê apenas alunos atribuídos;
+- o aluno nunca pode escolher ou alterar o professor;
+- listagem simplificada: fotografia, nome, idade e data de nascimento;
+- perfil do aluno com ações rápidas, WhatsApp, envio das instruções da app e estado de acesso;
+- edição de dados pessoais e administrativos;
+- desativação, reativação, arquivo e remoção segura com histórico preservado;
+- seleção e ações em vários alunos;
+- vista própria do aluno com Editar perfil, WhatsApp do professor, Avaliação Física, Plano de Treino e Plano Alimentar;
+- espaço reservado para o gráfico das últimas avaliações, a ligar no Update 5B.
 
-A regra é aplicada também na Edge Function e na base de dados, não apenas na interface.
+## Segurança
 
-## Funcional nesta versão
+- As políticas RLS limitam a leitura aos perfis autorizados.
+- As alterações sensíveis são feitas pela Edge Function `manage-student`.
+- O navegador não tem permissão direta para inserir, alterar ou eliminar registos em `student_profiles`.
+- As fotografias ficam no bucket privado `student-avatars`.
+- A eliminação na interface é uma remoção segura: bloqueia o acesso e retira as atribuições, sem apagar silenciosamente o histórico.
 
-- Login real pelo Supabase Auth
-- “Esqueci-me da palavra-passe”
-- Página para definir nova palavra-passe
-- Ativação de conta através de convite
-- Gestão real da equipa
-- Convite por email para Professor ou Administrador global
-- Permissões individuais de Professores
-- Desativação e reativação
-- Remoção segura de acesso, preservando autoria e histórico
-- Rotas Vercel para convite e recuperação
+## Hierarquia
 
-## Ainda demonstrativo
-
-Os módulos de alunos, avaliações, planos, nutrição, objetivos, desafios e relatórios continuam parcialmente em `localStorage`. A separação definitiva dos planos por autor será aplicada quando as tabelas reais de treino forem implementadas.
-
-## Variáveis Vercel
-
-```env
-VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-```
-
-Nunca colocar uma Secret Key no frontend, GitHub ou Vercel.
+- **Proprietário:** vê e gere tudo.
+- **Administrador global:** vê e gere todos os alunos.
+- **Professor:** vê apenas alunos atribuídos e depende das permissões concedidas.
+- **Aluno:** vê apenas o próprio perfil e não altera a atribuição de professores.
 
 ## Instalação
 
-Consultar `INSTALL_UPDATE_V4.txt`.
+Segue `INSTALL_UPDATE_V5A.txt` pela ordem indicada.
+
+## Próximas fases
+
+- **Update 5B:** avaliações físicas modulares, perimetria, dobras cutâneas, TANITA, análise postural, fotografias, gráficos e relatórios.
+- **Update 5C:** primeiro acesso, anamnese inicial, questionário de prontidão/consentimentos e documentos assinados. O conteúdo oficial PAR-Q+ só será integrado após confirmação da licença adequada.

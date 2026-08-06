@@ -84,7 +84,10 @@ export function AuthProvider({ children }) {
 
   async function acceptInvitation() {
     if (!supabase) return;
-    await supabase.rpc('accept_own_team_invitation');
+    await Promise.all([
+      supabase.rpc('accept_own_team_invitation'),
+      supabase.rpc('accept_own_student_invitation'),
+    ]);
   }
 
   async function refreshProfile() {

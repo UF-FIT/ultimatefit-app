@@ -127,15 +127,19 @@ Deno.serve(async (req) => {
     return target.role === 'trainer'
   }
 
+  let createdAuthUserId: string | null = null
+
   try {
     if (action === 'invite') {
       const email = cleanEmail(payload.email)
       const fullName = cleanName(payload.fullName)
       const requestedRole = String(payload.role ?? 'trainer') as AppRole
       const professionalTitle = cleanName(payload.professionalTitle) || 'Personal Trainer'
+      const whatsappPhone = String(payload.whatsappPhone ?? '').trim().replace(/[^0-9+]/g, '').slice(0, 20)
 
       if (!/^\S+@\S+\.\S+$/.test(email)) return json({ error: 'Indica um email válido.' }, 400)
       if (fullName.length < 2) return json({ error: 'Indica o nome completo.' }, 400)
+      if (whatsappPhone.length < 9) return json({ error: 'Indica o número de WhatsApp profissional.' }, 400)
       if (!['admin', 'trainer'].includes(requestedRole)) return json({ error: 'Tipo de acesso inválido.' }, 400)
       if (caller.role === 'admin' && requestedRole !== 'trainer') {
         return json({ error: 'Um administrador só pode convidar professores.' }, 403)
@@ -159,6 +163,7 @@ Deno.serve(async (req) => {
       if (inviteError || !invited.user) throw inviteError ?? new Error('Não foi possível criar o convite.')
 
       const authUser = invited.user
+      createdAuthUserId = authUser.id
       const appMetadata = { ...(authUser.app_metadata ?? {}), app_role: requestedRole }
       const { error: metadataError } = await admin.auth.admin.updateUserById(authUser.id, {
         app_metadata: appMetadata,
@@ -181,7 +186,7 @@ Deno.serve(async (req) => {
 
       const { data: trainerProfile, error: trainerError } = await admin
         .from('trainer_profiles')
-        .update({ professional_title: professionalTitle })
+        .update({ professional_title: professionalTitle, whatsapp_phone: whatsappPhone })
         .eq('profile_id', authUser.id)
         .select('id')
         .single()
@@ -316,6 +321,10 @@ Deno.serve(async (req) => {
     return json({ error: 'Ação desconhecida.' }, 400)
   } catch (error) {
     console.error(error)
+    if (action === 'invite' && createdAuthUserId) {
+      const { error: cleanupError } = await admin.auth.admin.deleteUser(createdAuthUserId)
+      if (cleanupError) console.error('Falha ao limpar utilizador após convite incompleto:', cleanupError)
+    }
     const message = error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'
     return json({ error: message }, 400)
   }

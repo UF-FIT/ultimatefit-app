@@ -27,7 +27,7 @@ export async function fetchTeamMembers() {
       .order('created_at', { ascending: true }),
     supabase
       .from('trainer_profiles')
-      .select('id,profile_id,professional_title,specialties,is_accepting_students'),
+      .select('id,profile_id,professional_title,specialties,is_accepting_students,whatsapp_phone'),
     supabase
       .from('trainer_permissions')
       .select('trainer_id,permission_key,is_granted'),
@@ -79,4 +79,15 @@ export async function invokeTeamAction(body) {
   }
   if (data?.error) throw new Error(data.error);
   return data;
+}
+
+
+export async function updateTrainerWhatsApp(trainerProfileId, whatsappPhone) {
+  const cleaned = String(whatsappPhone || '').trim().replace(/[^0-9+]/g, '');
+  if (cleaned.length < 9) throw new Error('Indica um número de WhatsApp válido.');
+  const { error } = await supabase
+    .from('trainer_profiles')
+    .update({ whatsapp_phone: cleaned })
+    .eq('id', trainerProfileId);
+  if (error) throw error;
 }
