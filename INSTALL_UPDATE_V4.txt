@@ -1,0 +1,102 @@
+ULTIMATE FIT APP — UPDATE V4
+HIERARQUIA, EQUIPA, CONVITES E RECUPERAÇÃO DE PASSWORD
+
+IMPORTANTE
+- Não executar 20260804_003_trainer_permissions.sql.
+- A migração correta é 20260805_003_team_access_and_invites.sql.
+- Não convidar Manuel ou Diana antes de configurar SMTP próprio.
+- Nunca colocar Secret Key no GitHub, Vercel ou frontend.
+
+REGRAS DEFINITIVAS
+- Rui = Proprietário protegido.
+- Rui pode criar e gerir Administradores globais e Professores.
+- Manuel = Administrador global + Personal Trainer.
+- Manuel pode criar, gerir, desativar e eliminar Professores, como Diana.
+- Manuel não pode criar outro Administrador global.
+- Manuel não pode alterar, desativar ou eliminar Rui.
+- Professores comuns têm permissões individuais e só acedem aos alunos atribuídos.
+
+ORDEM DE INSTALAÇÃO
+
+1) MIGRAÇÃO 003
+Supabase > SQL Editor > New query
+Executar todo o conteúdo de:
+supabase/migrations/20260805_003_team_access_and_invites.sql
+
+Resultado esperado:
+Success. No rows returned
+
+Depois executar:
+supabase/migrations/20260805_003_team_access_and_invites_verify.sql
+
+O primeiro resultado deve mostrar:
+- geral@ultimatefit.pt
+- Rui Marques
+- role = owner
+- is_active = true
+- deleted_at vazio
+- has_trainer_profile = true
+
+2) URLS DE AUTENTICAÇÃO
+Supabase > Authentication > URL Configuration
+
+Site URL:
+https://ultimatefit-app.vercel.app
+
+Redirect URLs:
+https://ultimatefit-app.vercel.app/definir-palavra-passe
+https://ultimatefit-app.vercel.app/repor-palavra-passe
+
+Mais tarde acrescentar:
+https://app.ultimatefit.pt/definir-palavra-passe
+https://app.ultimatefit.pt/repor-palavra-passe
+
+3) EDGE FUNCTION
+Supabase > Edge Functions > Create / Deploy function
+Nome exato:
+manage-team-member
+
+Usar:
+supabase/functions/manage-team-member/index.ts
+
+Desativar a verificação JWT antiga da gateway:
+Verify JWT / Enforce JWT verification = OFF
+A função valida internamente a sessão e a hierarquia.
+
+4) SECRET DA FUNÇÃO
+Supabase > Edge Functions > Secrets
+
+APP_URL=https://ultimatefit-app.vercel.app
+
+5) SMTP PRÓPRIO
+Configurar em Supabase > Authentication > Emails / SMTP.
+Fazer isto antes de convidar utilizadores reais.
+
+6) TEMPLATES DE EMAIL
+Invite user:
+supabase/email-templates/invite.html
+
+Reset password:
+supabase/email-templates/recovery.html
+
+7) GITHUB / VERCEL
+Carregar todo o conteúdo desta pasta no repositório ultimatefit-app, substituindo os ficheiros existentes.
+Não carregar .env.
+Commit diretamente em main.
+
+Mensagem sugerida:
+Update v4: hierarquia, equipa e recuperação de password
+
+Aguardar o deployment ficar Ready.
+
+8) TESTAR
+- Entrar como Rui e confirmar “Proprietário”.
+- Abrir Professores.
+- Confirmar que o formulário permite Professor ou Administrador global.
+- Confirmar que “Esqueci-me da palavra-passe” aparece no login.
+- Depois de SMTP configurado, convidar uma conta de teste.
+- Convidar Manuel como Administrador global.
+- Convidar Diana como Professora e definir permissões.
+
+ELIMINAR ACESSO
+A remoção segura bloqueia permanentemente a conta e retira-a da equipa ativa, mas preserva planos, avaliações, relatórios e autoria histórica.

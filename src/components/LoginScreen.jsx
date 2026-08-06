@@ -1,21 +1,40 @@
 import React, { useState } from 'react';
-import { ArrowRight, LockKeyhole, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginScreen() {
-  const { signIn, authError } = useAuth();
+  const { signIn, authError, requestPasswordReset } = useAuth();
+  const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  async function handleSubmit(event) {
+  async function handleLogin(event) {
     event.preventDefault();
     setLocalError('');
+    setSuccess('');
     setSubmitting(true);
 
     const { error } = await signIn(email.trim(), password);
     if (error) setLocalError('Email ou palavra-passe incorretos.');
+
+    setSubmitting(false);
+  }
+
+  async function handleRecovery(event) {
+    event.preventDefault();
+    setLocalError('');
+    setSuccess('');
+    setSubmitting(true);
+
+    const { error } = await requestPasswordReset(email.trim());
+    if (error) {
+      setLocalError('Não foi possível enviar o email agora. Confirma o endereço e tenta novamente.');
+    } else {
+      setSuccess('Caso exista uma conta associada a este email, receberás as instruções para redefinir a palavra-passe.');
+    }
 
     setSubmitting(false);
   }
@@ -33,31 +52,61 @@ export default function LoginScreen() {
       </section>
 
       <section className="loginPanel">
-        <form className="loginCard" onSubmit={handleSubmit}>
-          <div className="loginMark">UF</div>
-          <div>
-            <small>ACESSO PRIVADO</small>
-            <h2>Entrar na aplicação</h2>
-            <p>Utiliza a conta criada no ULTIMATE FIT.</p>
-          </div>
+        {mode === 'login' ? (
+          <form className="loginCard" onSubmit={handleLogin}>
+            <div className="loginMark">UF</div>
+            <div>
+              <small>ACESSO PRIVADO</small>
+              <h2>Entrar na aplicação</h2>
+              <p>Utiliza a conta criada no ULTIMATE FIT.</p>
+            </div>
 
-          <label className="loginField">
-            <span>Email</span>
-            <div><Mail size={18} /><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
-          </label>
+            <label className="loginField">
+              <span>Email</span>
+              <div><Mail size={18} /><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
+            </label>
 
-          <label className="loginField">
-            <span>Palavra-passe</span>
-            <div><LockKeyhole size={18} /><input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></div>
-          </label>
+            <label className="loginField">
+              <span>Palavra-passe</span>
+              <div><LockKeyhole size={18} /><input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></div>
+            </label>
 
-          {(localError || authError) && <div className="loginError">{localError || authError}</div>}
+            <button type="button" className="textButton forgotButton" onClick={() => { setMode('recovery'); setLocalError(''); }}>
+              Esqueci-me da palavra-passe
+            </button>
 
-          <button className="primary loginButton" disabled={submitting}>
-            {submitting ? 'A entrar…' : 'Entrar'} <ArrowRight size={18} />
-          </button>
-          <p className="loginHelp">O acesso de alunos e professores será ativado através de convite.</p>
-        </form>
+            {(localError || authError) && <div className="loginError">{localError || authError}</div>}
+
+            <button className="primary loginButton" disabled={submitting}>
+              {submitting ? 'A entrar…' : 'Entrar'} <ArrowRight size={18} />
+            </button>
+            <p className="loginHelp">O acesso de alunos e professores é ativado através de convite.</p>
+          </form>
+        ) : (
+          <form className="loginCard" onSubmit={handleRecovery}>
+            <button type="button" className="backButton" onClick={() => { setMode('login'); setLocalError(''); setSuccess(''); }}>
+              <ArrowLeft size={17} /> Voltar ao login
+            </button>
+            <div className="loginMark">UF</div>
+            <div>
+              <small>RECUPERAÇÃO DE ACESSO</small>
+              <h2>Repor palavra-passe</h2>
+              <p>Indica o email associado à tua conta.</p>
+            </div>
+
+            <label className="loginField">
+              <span>Email</span>
+              <div><Mail size={18} /><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
+            </label>
+
+            {localError && <div className="loginError">{localError}</div>}
+            {success && <div className="loginSuccess">{success}</div>}
+
+            <button className="primary loginButton" disabled={submitting || Boolean(success)}>
+              {submitting ? 'A enviar…' : 'Enviar instruções'} <ArrowRight size={18} />
+            </button>
+          </form>
+        )}
       </section>
     </main>
   );

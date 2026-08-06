@@ -1,29 +1,54 @@
-# ULTIMATE FIT APP — MVP v0.2
+# ULTIMATE FIT APP — v0.4
 
-Versão ligada ao Supabase com autenticação real e perfil Admin.
+Atualização de equipa, hierarquia, convites e recuperação de palavra-passe.
 
-## Já funcional
-- Login com email e palavra-passe através do Supabase Auth
-- Leitura segura do perfil em `public.profiles`
-- Reconhecimento dos papéis Admin, Professor e Aluno
-- Sessão persistente e logout
-- Interface completa do MVP anterior
-- Dados dos módulos ainda demonstrativos em `localStorage`
+## Hierarquia definitiva
 
-## Variáveis necessárias
+- **Proprietário — Rui Marques**
+  - controlo total;
+  - pode criar e gerir Administradores globais e Professores;
+  - pode desativar ou eliminar o acesso de um Administrador;
+  - conta protegida: ninguém o pode desativar, eliminar ou despromover.
+- **Administrador global — Manuel e futuros administradores**
+  - acesso operacional completo ao backoffice;
+  - pode criar, gerir, desativar e eliminar Professores;
+  - não pode criar outro Administrador global;
+  - não pode gerir o Proprietário.
+- **Professor**
+  - vê apenas alunos atribuídos;
+  - recebe permissões individuais;
+  - não acede a planos privados de outros Professores.
+- **Aluno**
+  - acede apenas aos próprios dados.
+
+A regra é aplicada também na Edge Function e na base de dados, não apenas na interface.
+
+## Funcional nesta versão
+
+- Login real pelo Supabase Auth
+- “Esqueci-me da palavra-passe”
+- Página para definir nova palavra-passe
+- Ativação de conta através de convite
+- Gestão real da equipa
+- Convite por email para Professor ou Administrador global
+- Permissões individuais de Professores
+- Desativação e reativação
+- Remoção segura de acesso, preservando autoria e histórico
+- Rotas Vercel para convite e recuperação
+
+## Ainda demonstrativo
+
+Os módulos de alunos, avaliações, planos, nutrição, objetivos, desafios e relatórios continuam parcialmente em `localStorage`. A separação definitiva dos planos por autor será aplicada quando as tabelas reais de treino forem implementadas.
+
+## Variáveis Vercel
+
 ```env
 VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-## Desenvolvimento local
-```bash
-npm install
-npm run dev
-```
+Nunca colocar uma Secret Key no frontend, GitHub ou Vercel.
 
-## Estado de segurança
-O frontend usa apenas a Publishable Key. A Secret Key nunca deve ser adicionada ao projeto ou à Vercel.
+## Instalação
 
-## Próxima fase
-Substituir gradualmente os dados demonstrativos por dados reais do Supabase, começando por professores, alunos e atribuições.
+Consultar `INSTALL_UPDATE_V4.txt`.

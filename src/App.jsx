@@ -1,8 +1,10 @@
-import React,{useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {AppProvider,useApp} from './contexts/AppContext';
 import {AuthProvider,useAuth} from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
-import {Activity,Apple,BarChart3,BookOpen,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,MessageSquare,Plus,Search,Settings,Target,User,UserCog,Users,X} from 'lucide-react';
+import PasswordSetupScreen from './components/PasswordSetupScreen';
+import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions} from './lib/team';
+import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
 const adminNav=[['dashboard','Dashboard',Home],['students','Alunos',Users],['trainers','Professores',UserCog],['assessments','Avaliações',ClipboardList],['evolution','Evolução',BarChart3],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['goals','Objetivos',Target],['challenges','Desafios',Flag],['exercises','Biblioteca',BookOpen],['messages','Avisos',MessageSquare],['reports','Relatórios PDF',FileText],['settings','Backoffice',Settings]];
@@ -21,7 +23,7 @@ function Shell(){
  const nav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={18}/>{label}</button>)}</div></aside>
-  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.role}</small></div><div className="avatar">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
+  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
   <div className="content"><PageRouter page={page}/></div>
   <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
   </main>
@@ -52,7 +54,112 @@ function Students(){
  function add(e){e.preventDefault();const f=new FormData(e.currentTarget);const student={id:`s-${Date.now()}`,name:f.get('name'),nif:f.get('nif'),birth:f.get('birth'),sex:f.get('sex'),phone:f.get('phone'),email:f.get('email'),objective:f.get('objective'),trainerIds:[f.get('trainer')],active:true,photo:''};update('students',x=>[...x,student]);setOpen(false)}
  return <><Heading title="Alunos" sub="Registo, dados pessoais, professor responsável e histórico." action={<button className="primary" onClick={()=>setOpen(true)}><Plus size={17}/>Novo aluno</button>}/><div className="search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Pesquisar aluno..."/></div><div className="grid three">{list.map(s=><Card className="pad studentCard" key={s.id}><div className="listRow"><div className="avatar">{s.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><h3>{s.name}</h3><small>{s.email}</small></div><Badge tone="green">Ativo</Badge></div><div className="infoGrid"><Info l="NIF" v={s.nif}/><Info l="Telemóvel" v={s.phone}/><Info l="Nascimento" v={s.birth}/><Info l="Objetivo" v={s.objective}/></div></Card>)}</div>{open&&<Modal title="Novo aluno" close={()=>setOpen(false)}><form onSubmit={add} className="formGrid"><Input name="name" label="Nome" required/><Input name="nif" label="NIF"/><Input name="birth" label="Data de nascimento" type="date"/><Select name="sex" label="Sexo" options={['Feminino','Masculino','Outro']}/><Input name="phone" label="Telemóvel"/><Input name="email" label="Email" type="email" required/><Select name="trainer" label="Professor" options={data.users.filter(u=>['admin','professor'].includes(u.role)).map(u=>({value:u.id,label:u.name}))}/><Input name="objective" label="Objetivo"/><button className="primary full">Guardar aluno</button></form></Modal>}</>;
 }
-function Trainers(){const {data,update}=useApp();const [open,setOpen]=useState(false);function add(e){e.preventDefault();const f=new FormData(e.currentTarget);update('users',x=>[...x,{id:`u-${Date.now()}`,role:'professor',name:f.get('name'),email:f.get('email'),active:true}]);setOpen(false)}function toggle(id){update('users',x=>x.map(u=>u.id===id?{...u,active:!u.active}:u))}return <><Heading title="Professores" sub="Contas, permissões e estado dos profissionais." action={<button className="primary" onClick={()=>setOpen(true)}><Plus size={17}/>Adicionar professor</button>}/><div className="grid three">{data.users.filter(u=>['admin','professor'].includes(u.role)).map(u=><Card className="pad" key={u.id}><div className="listRow"><div className="avatar">{u.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><h3>{u.name}</h3><small>{u.email}</small></div><Badge tone={u.role==='admin'?'yellow':'gray'}>{u.role}</Badge></div><button className="secondary full" onClick={()=>toggle(u.id)}>{u.active?'Desativar conta':'Reativar conta'}</button></Card>)}</div>{open&&<Modal title="Adicionar professor" close={()=>setOpen(false)}><form onSubmit={add} className="formGrid"><Input name="name" label="Nome" required/><Input name="email" label="Email" type="email" required/><button className="primary full">Criar conta e preparar convite</button></form></Modal>}</>}
+function Trainers(){
+ const {currentUser}=useApp();
+ const [members,setMembers]=useState([]);
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState('');
+ const [notice,setNotice]=useState('');
+ const [open,setOpen]=useState(false);
+ const [editing,setEditing]=useState(null);
+ const [confirming,setConfirming]=useState(null);
+ const [submitting,setSubmitting]=useState(false);
+ const [newRole,setNewRole]=useState('trainer');
+ const [permissions,setPermissions]=useState(defaultTrainerPermissions);
+
+ const isOwner=currentUser.systemRole==='owner';
+
+ async function reload(){
+  setLoading(true);setError('');
+  try{setMembers(await fetchTeamMembers())}catch(err){setError(err.message||'Não foi possível carregar a equipa. Verifica se a Migração 003 e a Edge Function já foram instaladas.')}
+  finally{setLoading(false)}
+ }
+ useEffect(()=>{reload()},[]);
+
+ function togglePermission(key,setter= setPermissions){setter(list=>list.includes(key)?list.filter(item=>item!==key):[...list,key])}
+ function canManage(member){
+  if(member.id===currentUser.id||member.role==='owner') return false;
+  if(isOwner) return ['admin','trainer'].includes(member.role);
+  return currentUser.systemRole==='admin'&&member.role==='trainer';
+ }
+
+ async function add(event){
+  event.preventDefault();setSubmitting(true);setError('');setNotice('');
+  const form=new FormData(event.currentTarget);
+  try{
+   const result=await invokeTeamAction({
+    action:'invite',
+    fullName:form.get('name'),
+    email:form.get('email'),
+    role:newRole,
+    professionalTitle:form.get('professionalTitle'),
+    permissions:newRole==='trainer'?permissions:[],
+   });
+   setNotice(result.message||'Convite enviado.');
+   setOpen(false);setNewRole('trainer');setPermissions(defaultTrainerPermissions);
+   await reload();
+  }catch(err){setError(err.message)}finally{setSubmitting(false)}
+ }
+
+ function openPermissions(member){setEditing({...member,draftPermissions:[...member.permissions]})}
+ async function savePermissions(){
+  setSubmitting(true);setError('');setNotice('');
+  try{
+   const result=await invokeTeamAction({action:'set_permissions',profileId:editing.id,permissions:editing.draftPermissions});
+   setNotice(result.message);setEditing(null);await reload();
+  }catch(err){setError(err.message)}finally{setSubmitting(false)}
+ }
+
+ async function runAction(){
+  if(!confirming)return;
+  setSubmitting(true);setError('');setNotice('');
+  try{
+   const result=await invokeTeamAction({action:confirming.action,profileId:confirming.member.id});
+   setNotice(result.message);setConfirming(null);await reload();
+  }catch(err){setError(err.message)}finally{setSubmitting(false)}
+ }
+
+ const roleName={owner:'Proprietário',admin:'Administrador global',trainer:'Professor'};
+ const statusFor=member=>member.invitation?.status==='pending'?'Convite pendente':member.is_active?'Ativa':'Desativada';
+ const statusTone=member=>member.invitation?.status==='pending'?'yellow':member.is_active?'green':'gray';
+
+ return <>
+  <Heading title="Professores" sub="Contas reais, convites, hierarquia, permissões e estado de acesso." action={<button className="primary" onClick={()=>setOpen(true)}><Plus size={17}/>{isOwner?'Adicionar membro':'Adicionar professor'}</button>}/>
+  <Card className="pad teamRules"><ShieldCheck size={30}/><div><h3>Hierarquia protegida</h3><p><b>Proprietário:</b> pode criar e gerir Administradores globais e Professores. <b>Administrador global:</b> pode criar, gerir e eliminar Professores, mas não pode criar outro Administrador nem alterar o Proprietário.</p></div></Card>
+  {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
+  {error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
+  {loading?<Card className="pad loadingCard"><div className="loader"/><p>A carregar equipa…</p></Card>:<div className="grid three section">{members.map(member=><Card className="pad teamCard" key={member.id}>
+   <div className="listRow"><div className="avatar">{member.full_name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><h3>{member.full_name}</h3><small>{member.email}</small></div><Badge tone={member.role==='owner'||member.role==='admin'?'yellow':'gray'}>{roleName[member.role]}</Badge></div>
+   <div className="teamMeta"><Badge tone={statusTone(member)}>{statusFor(member)}</Badge><span>{member.trainerProfile?.professional_title||'Personal Trainer'}</span></div>
+   {member.role==='owner'&&<div className="protectedNote"><ShieldCheck size={16}/>Conta principal protegida</div>}
+   {member.role==='trainer'&&<button className="secondary full" onClick={()=>openPermissions(member)}><SlidersHorizontal size={16}/>Editar permissões</button>}
+   {canManage(member)&&<div className="teamActions">
+    <button className="secondary" onClick={()=>setConfirming({action:member.is_active?'deactivate':'reactivate',member})}>{member.is_active?<><Power size={16}/>Desativar</>:<><RefreshCw size={16}/>Reativar</>}</button>
+    <button className="dangerButton" onClick={()=>setConfirming({action:'delete',member})}><Trash2 size={16}/>Eliminar acesso</button>
+   </div>}
+  </Card>)}</div>}
+
+  {open&&<Modal title={isOwner?'Adicionar membro da equipa':'Adicionar professor'} close={()=>setOpen(false)}><form onSubmit={add} className="formGrid">
+   <Input name="name" label="Nome completo" required/>
+   <Input name="email" label="Email" type="email" required/>
+   <Select name="role" label="Tipo de acesso" value={newRole} onChange={e=>setNewRole(e.target.value)} options={isOwner?[{value:'trainer',label:'Professor'},{value:'admin',label:'Administrador global'}]:[{value:'trainer',label:'Professor'}]}/>
+   <Input name="professionalTitle" label="Função profissional" defaultValue="Personal Trainer"/>
+   <div className="wide inviteExplanation"><Mail size={20}/><div><b>O utilizador receberá um convite por email</b><p>Ao abrir o link, define a sua própria palavra-passe. Tu nunca precisas de conhecer ou enviar a password.</p></div></div>{isOwner?<div className="wide roleCreationNote"><ShieldCheck size={19}/><p>Como Proprietário, podes criar Professores ou Administradores globais. Só o Proprietário pode atribuir acesso de Administrador global.</p></div>:<div className="wide roleCreationNote"><ShieldCheck size={19}/><p>Como Administrador global, podes criar e gerir Professores. A criação de novos Administradores globais está reservada ao Proprietário.</p></div>}
+   {newRole==='trainer'&&<PermissionEditor selected={permissions} onToggle={key=>togglePermission(key)} />}
+   {newRole==='admin'&&<div className="wide adminAccessNote"><ShieldCheck size={19}/><p>O Administrador global terá os mesmos privilégios operacionais do Manuel: poderá criar, gerir e eliminar Professores. Não poderá criar outro Administrador global nem alterar, desativar ou eliminar o Proprietário.</p></div>}
+   <button className="primary full wide" disabled={submitting}>{submitting?'A enviar convite…':'Criar conta e enviar convite'}</button>
+  </form></Modal>}
+
+  {editing&&<Modal title={`Permissões · ${editing.full_name}`} close={()=>setEditing(null)}><PermissionEditor selected={editing.draftPermissions} customSetter={fn=>setEditing(item=>({...item,draftPermissions:fn(item.draftPermissions)}))}/><div className="modalActions"><button className="secondary" onClick={()=>setEditing(null)}>Cancelar</button><button className="primary" disabled={submitting} onClick={savePermissions}>Guardar permissões</button></div></Modal>}
+
+  {confirming&&<Modal title={confirming.action==='delete'?'Eliminar acesso':'Alterar estado da conta'} close={()=>setConfirming(null)}><div className="confirmBox"><AlertTriangle size={34}/><h3>{confirming.member.full_name}</h3><p>{confirming.action==='delete'?'Esta ação remove permanentemente o acesso e retira o membro da equipa ativa. Os planos, avaliações e autoria histórica são preservados.':confirming.action==='deactivate'?'A conta deixa imediatamente de conseguir entrar. Pode ser reativada mais tarde.':'A conta volta a poder iniciar sessão.'}</p><div className="modalActions"><button className="secondary" onClick={()=>setConfirming(null)}>Cancelar</button><button className={confirming.action==='delete'?'dangerButton':'primary'} disabled={submitting} onClick={runAction}>{submitting?'A processar…':'Confirmar'}</button></div></div></Modal>}
+ </>
+}
+
+function PermissionEditor({selected,onToggle,customSetter}){
+ const toggle=key=>customSetter?customSetter(list=>list.includes(key)?list.filter(item=>item!==key):[...list,key]):onToggle(key);
+ return <div className="permissionEditor wide"><div className="permissionHeader"><div><h3>Permissões do professor</h3><p>Aplicam-se apenas aos alunos atribuídos e nunca dão acesso aos planos privados de outros professores.</p></div><Badge tone="yellow">{selected.length}/{trainerPermissionOptions.length}</Badge></div><div className="permissionGrid">{trainerPermissionOptions.map(item=><label className={selected.includes(item.key)?'permissionOption selected':'permissionOption'} key={item.key}><input type="checkbox" checked={selected.includes(item.key)} onChange={()=>toggle(item.key)}/><div><b>{item.label}</b><small>{item.description}</small></div></label>)}</div></div>
+}
 
 function Assessments(){const {data,update,currentUser}=useApp();const [studentId,setStudentId]=useState(data.students[0]?.id);const students=currentUser.role==='admin'?data.students:data.students.filter(s=>s.trainerIds?.includes(currentUser.id));function add(e){e.preventDefault();const f=new FormData(e.currentTarget);const n=k=>Number(f.get(k)||0);update('assessments',x=>[...x,{id:`a-${Date.now()}`,studentId,date:f.get('date'),weight:n('weight'),height:n('height'),fat:n('fat'),muscle:n('muscle'),visceral:n('visceral'),waist:n('waist'),abdomen:n('abdomen'),hip:n('hip'),armR:n('armR'),armL:n('armL'),thighR:n('thighR'),thighL:n('thighL'),notes:f.get('notes')}]);e.currentTarget.reset()}return <><Heading title="Avaliações físicas" sub="Bioimpedância, antropometria, anamnese e fotografia."/><div className="grid two"><Card className="pad"><h2>Nova avaliação</h2><form onSubmit={add} className="formGrid"><Select name="student" label="Aluno" value={studentId} onChange={e=>setStudentId(e.target.value)} options={students.map(s=>({value:s.id,label:s.name}))}/><Input name="date" label="Data" type="date" required/><Input name="weight" label="Peso (kg)" type="number" step="0.1"/><Input name="height" label="Altura (m)" type="number" step="0.01"/><Input name="fat" label="Massa gorda (%)" type="number" step="0.1"/><Input name="muscle" label="Massa muscular (kg)" type="number" step="0.1"/><Input name="visceral" label="Gordura visceral" type="number"/><Input name="waist" label="Cintura (cm)" type="number" step="0.1"/><Input name="abdomen" label="Abdómen (cm)" type="number" step="0.1"/><Input name="hip" label="Anca (cm)" type="number" step="0.1"/><Input name="armR" label="Braço direito" type="number" step="0.1"/><Input name="armL" label="Braço esquerdo" type="number" step="0.1"/><Input name="thighR" label="Coxa direita" type="number" step="0.1"/><Input name="thighL" label="Coxa esquerda" type="number" step="0.1"/><label className="wide">Breve anamnese<textarea name="notes"/></label><div className="upload wide">Fotografias privadas: frente · perfil · costas<br/><small>Upload real será ligado ao armazenamento privado.</small></div><button className="primary full">Guardar avaliação</button></form></Card><Card className="pad"><h2>Histórico</h2>{data.assessments.filter(a=>a.studentId===studentId).sort((a,b)=>b.date.localeCompare(a.date)).map(a=><div className="assessment" key={a.id}><div><b>{a.date}</b><small>{a.notes}</small></div><div><strong>{a.weight} kg</strong><span>{a.fat}% MG</span></div></div>)}</Card></div></>}
 
@@ -65,8 +172,8 @@ function Challenges(){const {data}=useApp();return <><Heading title="Desafios" s
 function Exercises(){const {data}=useApp();const [q,setQ]=useState('');const [group,setGroup]=useState('Todos');const groups=['Todos',...new Set(data.exercises.map(e=>e.group))];const list=data.exercises.filter(e=>(group==='Todos'||e.group===group)&&e.name.toLowerCase().includes(q.toLowerCase()));return <><Heading title="Biblioteca de exercícios" sub={`${data.exercises.length} exercícios iniciais, preparados para GIFs/vídeos próprios.`}/><div className="filters"><div className="search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Pesquisar exercício..."/></div><select value={group} onChange={e=>setGroup(e.target.value)}>{groups.map(g=><option key={g}>{g}</option>)}</select></div><div className="grid three">{list.map(e=><Card className="exerciseCard" key={e.id}><div className="exerciseMedia">GIF / VÍDEO</div><div className="pad"><Badge tone="yellow">{e.group}</Badge><h3>{e.name}</h3><small>{e.equipment} · {e.type} · {e.level}</small><p>{e.description}</p></div></Card>)}</div></>}
 function Messages(){const {data,currentUser}=useApp();const student=data.students.find(s=>s.userId===currentUser.id);const items=currentUser.role==='aluno'?data.messages.filter(m=>m.studentId===student?.id):data.messages;return <><Heading title="Avisos" sub="Comunicação assíncrona entre professor e aluno."/><div className="section">{items.map(m=><Card className="pad message" key={m.id}><MessageSquare className="yellow"/><div><h3>{m.title}</h3><p>{m.body}</p><small>{m.date}</small></div></Card>)}</div></>}
 function Reports(){const {data}=useApp();return <><Heading title="Relatórios PDF" sub="Geração automática a partir das avaliações físicas."/><Card className="pad section"><h2>Relatório de avaliação</h2><p>Seleciona um aluno e duas avaliações para criar um documento com dados, diferenças, gráficos, observações e identidade ULTIMATE FIT.</p><div className="formGrid"><Select label="Aluno" options={data.students.map(s=>s.name)}/><Select label="Avaliação inicial" options={data.assessments.map(a=>a.date)}/><Select label="Avaliação atual" options={data.assessments.map(a=>a.date)}/><button className="primary full"><FileText size={17}/>Gerar relatório demonstrativo</button></div></Card></>}
-function SettingsPage(){const {data,setData}=useApp();const s=data.settings;return <><Heading title="Backoffice" sub="Definições globais e controlo da aplicação."/><div className="grid two section"><Card className="pad"><h2>Modo público</h2><div className="setting"><div><b>Página Coming Soon</b><small>Enquanto ativa, o público vê apenas a página de lançamento.</small></div><button className={s.comingSoon?'toggle on':'toggle'} onClick={()=>setData(d=>({...d,settings:{...d.settings,comingSoon:!d.settings.comingSoon}}))}><span/></button></div></Card><Card className="pad"><h2>Permissões previstas</h2><p><b>Admin:</b> acesso total.</p><p><b>Professor:</b> apenas alunos atribuídos.</p><p><b>Aluno:</b> apenas os próprios dados.</p></Card><Card className="pad"><h2>Convites</h2><p>Fluxo final: criação no backoffice → email para definir password → instruções complementares por WhatsApp.</p></Card><Card className="pad"><h2>PWA</h2><p>Manifesto instalável já incluído. Ícone e experiência mobile serão validados antes do deploy.</p></Card></div></>}
-function Profile(){const {currentUser}=useApp();return <><Heading title="Perfil" sub="Dados da conta e preferências pessoais."/><Card className="pad section"><div className="listRow"><div className="avatar big">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div><h2>{currentUser.name}</h2><p>{currentUser.email}</p><Badge tone="yellow">{currentUser.role}</Badge></div></div></Card></>}
+function SettingsPage(){const {data,setData}=useApp();const s=data.settings;return <><Heading title="Backoffice" sub="Definições globais e controlo da aplicação."/><div className="grid two section"><Card className="pad"><h2>Modo público</h2><div className="setting"><div><b>Página Coming Soon</b><small>Enquanto ativa, o público vê apenas a página de lançamento.</small></div><button className={s.comingSoon?'toggle on':'toggle'} onClick={()=>setData(d=>({...d,settings:{...d.settings,comingSoon:!d.settings.comingSoon}}))}><span/></button></div></Card><Card className="pad"><h2>Permissões previstas</h2><p><b>Proprietário:</b> controlo total e conta protegida.</p><p><b>Administrador:</b> gestão global, exceto a conta do Proprietário.</p><p><b>Professor:</b> alunos atribuídos e permissões concedidas.</p><p><b>Aluno:</b> apenas os próprios dados.</p></Card><Card className="pad"><h2>Convites</h2><p>Fluxo final: criação no backoffice → email para definir password → instruções complementares por WhatsApp.</p></Card><Card className="pad"><h2>PWA</h2><p>Manifesto instalável já incluído. Ícone e experiência mobile serão validados antes do deploy.</p></Card></div></>}
+function Profile(){const {currentUser}=useApp();return <><Heading title="Perfil" sub="Dados da conta e preferências pessoais."/><Card className="pad section"><div className="listRow"><div className="avatar big">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div><h2>{currentUser.name}</h2><p>{currentUser.email}</p><Badge tone="yellow">{currentUser.roleLabel}</Badge></div></div></Card></>}
 
 function Modal({title,close,children}){return <div className="overlay"><div className="modal"><div className="title"><h2>{title}</h2><button className="iconButton" onClick={close}><X/></button></div>{children}</div></div>}
 function Input({label,...props}){return <label>{label}<input {...props}/></label>}
@@ -75,10 +182,14 @@ function Info({l,v}){return <div className="info"><small>{l}</small><b>{v||'—'
 
 function AppGate(){
  const {configured,loading,session,profile}=useAuth();
+ const path=window.location.pathname.replace(/\/$/,'')||'/';
  if(!configured) return <div className="appState"><Logo/><h1>Configuração em falta</h1><p>As variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY ainda não estão disponíveis neste deployment.</p></div>;
  if(loading) return <div className="appState"><Logo/><div className="loader"/><p>A preparar a aplicação…</p></div>;
+ if(path==='/repor-palavra-passe') return <PasswordSetupScreen mode="recovery"/>;
+ if(path==='/definir-palavra-passe') return <PasswordSetupScreen mode="invite"/>;
  if(!session) return <LoginScreen/>;
  if(!profile) return <div className="appState"><Logo/><h1>Perfil indisponível</h1><p>Não foi possível carregar o perfil associado a esta conta.</p></div>;
+ if(profile.deleted_at) return <div className="appState"><Logo/><h1>Acesso eliminado</h1><p>Esta conta já não faz parte da equipa ULTIMATE FIT.</p></div>;
  if(!profile.is_active) return <div className="appState"><Logo/><h1>Conta desativada</h1><p>Contacta a administração do ULTIMATE FIT.</p></div>;
  return <AppProvider><Shell/></AppProvider>;
 }
