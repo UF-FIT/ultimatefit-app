@@ -1,5 +1,7 @@
 [functions.manage-team-member]
 # The function validates the signed-in user inside its own code.
-# This avoids incompatibility between the legacy gateway JWT check and
-# Supabase's new publishable/secret API key format.
+verify_jwt = false
+
+[functions.manage-student]
+# The function validates the signed-in user inside its own code.
 verify_jwt = false

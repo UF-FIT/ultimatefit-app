@@ -54,7 +54,7 @@ async function signedUrl(path, expires = 3600) {
 export async function fetchStudents() {
   const { data: studentRows, error: studentError } = await supabase
     .from('student_profiles')
-    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,emergency_contact_phone,start_date,status,notes,citizen_card,postal_code,city,tracking_type,main_goal,archived_at,deleted_at,created_at')
+    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,start_date,status,notes,postal_code,city,tracking_type,archived_at,deleted_at,created_at')
     .order('student_number', { ascending: true });
   if (studentError) throw studentError;
   if (!studentRows?.length) return [];
@@ -153,19 +153,15 @@ export async function fetchStudents() {
       age: calculateAge(row.birth_date),
       sex: row.sex,
       nif: row.nif || '',
-      citizenCard: row.citizen_card || '',
       occupation: row.occupation || '',
       address: row.address || '',
       postalCode: row.postal_code || '',
       city: row.city || '',
       emergencyContactName: row.emergency_contact_name || '',
-      emergencyContactPhone: row.emergency_contact_phone || '',
       startDate: row.start_date,
       status: row.status,
       active: Boolean(profile.is_active && row.status === 'active' && !profile.deleted_at && !row.deleted_at),
       trackingType: row.tracking_type || '',
-      objective: row.main_goal || '',
-      mainGoal: row.main_goal || '',
       notes: row.notes || '',
       archivedAt: row.archived_at,
       deletedAt: row.deleted_at || profile.deleted_at,

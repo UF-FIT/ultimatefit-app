@@ -1,0 +1,25 @@
+ULTIMATE FIT APP — CORREÇÃO 5A.1
+
+Corrige:
+- convite aberto num navegador com sessão de Administrador já iniciada;
+- risco de alterar a palavra-passe da sessão errada;
+- validação do NIF antes do envio do convite;
+- formulário de aluno em página normal, sem popup;
+- remoção de Cartão de Cidadão, Telefone de emergência e Objetivo principal;
+- reenvio de acesso pela rota correta de recuperação;
+- configuração verify_jwt=false também para manage-student.
+
+INSTALAÇÃO
+1. No Supabase, atualizar a Edge Function manage-student com:
+   supabase/functions/manage-student/index.ts
+2. Confirmar Settings > Verify JWT with legacy secret = OFF.
+3. Carregar todo o conteúdo desta pasta no GitHub, branch main.
+4. Commit: Correção 5A.1 — convites e formulário de alunos
+5. Aguardar Vercel Ready e atualizar a app com Ctrl+F5.
+
+TESTE SEGURO
+- Não reutilizar o email antigo recebido antes desta correção.
+- Criar novamente o aluno de teste.
+- Abrir o novo convite. A página deve mostrar explicitamente o email da conta
+  cuja palavra-passe está a ser definida.
+- Se o link estiver inválido, a página não apresenta o formulário de password.

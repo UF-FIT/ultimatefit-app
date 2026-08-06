@@ -62,6 +62,12 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
     setSubmitting(true);
     setError('');
     const form = new FormData(event.currentTarget);
+    const nif = String(form.get('nif') || '').replace(/\D/g, '');
+    if (nif && nif.length !== 9) {
+      setError('O NIF, quando preenchido, deve ter exatamente 9 algarismos.');
+      setSubmitting(false);
+      return;
+    }
     try {
       if (!editing) {
         const result = await invokeStudentAction({
@@ -71,17 +77,14 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
           phone: form.get('phone'),
           birthDate: form.get('birthDate'),
           sex: form.get('sex'),
-          nif: form.get('nif'),
-          citizenCard: form.get('citizenCard'),
+          nif,
           occupation: form.get('occupation'),
           address: form.get('address'),
           postalCode: form.get('postalCode'),
           city: form.get('city'),
           emergencyContactName: form.get('emergencyContactName'),
-          emergencyContactPhone: form.get('emergencyContactPhone'),
           startDate: form.get('startDate'),
           trackingType: form.get('trackingType'),
-          mainGoal: form.get('mainGoal'),
           notes: form.get('notes'),
           trainerIds: selectedTrainers,
           primaryTrainerId,
@@ -100,17 +103,14 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
           phone: form.get('phone'),
           birthDate: form.get('birthDate'),
           sex: form.get('sex'),
-          nif: form.get('nif'),
-          citizenCard: form.get('citizenCard'),
+          nif,
           occupation: form.get('occupation'),
           address: form.get('address'),
           postalCode: form.get('postalCode'),
           city: form.get('city'),
           emergencyContactName: form.get('emergencyContactName'),
-          emergencyContactPhone: form.get('emergencyContactPhone'),
           startDate: form.get('startDate'),
           trackingType: form.get('trackingType'),
-          mainGoal: form.get('mainGoal'),
           notes: form.get('notes'),
         });
         if (canAssign) {
@@ -134,8 +134,7 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
       <Field label="Email *"><input name="email" type="email" defaultValue={student?.email || ''} required readOnly={editing} /></Field>
       {!isStudentSelf && <><Field label="Data de nascimento *"><input name="birthDate" type="date" defaultValue={student?.birth || ''} required /></Field>
       <Field label="Género"><select name="sex" defaultValue={student?.sex || ''}><option value="">Selecionar</option>{sexOptions.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
-      <Field label="NIF"><input name="nif" defaultValue={student?.nif || ''} inputMode="numeric" /></Field>
-      <Field label="Cartão de Cidadão"><input name="citizenCard" defaultValue={student?.citizenCard || ''} /></Field></>}
+      <Field label="NIF"><input name="nif" defaultValue={student?.nif || ''} inputMode="numeric" pattern="[0-9]{9}" maxLength="9" placeholder="9 algarismos" /></Field></>}
       <Field label="Profissão"><input name="occupation" defaultValue={student?.occupation || ''} /></Field>
     </div></section>
 
@@ -145,13 +144,11 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
       <Field label="Código postal"><input name="postalCode" defaultValue={student?.postalCode || ''} /></Field>
       <Field label="Localidade"><input name="city" defaultValue={student?.city || ''} /></Field>
       <Field label="Contacto de emergência"><input name="emergencyContactName" defaultValue={student?.emergencyContactName || ''} /></Field>
-      <Field label="Telefone de emergência"><input name="emergencyContactPhone" defaultValue={student?.emergencyContactPhone || ''} inputMode="tel" /></Field>
     </div></section>
 
     {!isStudentSelf && <section className="formSection wide"><h3><Dumbbell size={18} />Acompanhamento</h3><div className="formGrid">
       <Field label="Tipo de acompanhamento *"><select name="trackingType" defaultValue={student?.trackingType || ''} required><option value="">Selecionar</option>{trackingTypeOptions.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
       <Field label="Data de início"><input name="startDate" type="date" defaultValue={student?.startDate || new Date().toISOString().slice(0, 10)} /></Field>
-      <Field label="Objetivo principal" className="wide"><input name="mainGoal" defaultValue={student?.mainGoal || ''} /></Field>
       <Field label="Observações internas" className="wide"><textarea name="notes" defaultValue={student?.notes || ''} rows="4" /></Field>
     </div>
 
@@ -212,7 +209,7 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
 
     <div className="grid two profileGrid">
       <section className="card pad accessPanel"><div className="panelTitle"><div><h2>Acesso</h2><p>Convite, estado e ciclo de vida da conta.</p></div><Power size={24}/></div><div className="accessStatus"><div><small>ESTADO</small><strong>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</strong><span>{student.invitation?.status === 'pending' ? 'Convite pendente' : student.active ? 'Acesso disponível' : 'Sem acesso'}</span></div><div className="accessButtons">{isRemoved ? <span className="removedNotice">Registo removido com histórico preservado.</span> : <><button className="secondary" onClick={async()=>{setBusy('resend');try{const r=await invokeStudentAction({action:'resend_access',studentId:student.id});setMessage(r.message)}catch(e){setError(e.message)}finally{setBusy('')}}} disabled={busy==='resend'}><Mail size={16}/>Novo link</button>{student.active ? <button className="secondary" onClick={()=>action('deactivate')} disabled={busy}><Power size={16}/>Desativar</button> : <button className="primary" onClick={()=>action('reactivate')} disabled={busy}><RefreshCw size={16}/>Reativar</button>}<button className="secondary" onClick={()=>action('archive')} disabled={busy}><Archive size={16}/>Arquivar</button>{canDelete && <button className="dangerButton" onClick={()=>action('delete')} disabled={busy}><Trash2 size={16}/>Eliminar acesso</button>}</>}</div></div></section>
-      <section className="card pad studentDetails"><div className="panelTitle"><div><h2>Ficha do aluno</h2><p>Dados essenciais do acompanhamento.</p></div><UserRound size={24}/></div><div className="detailsGrid"><div><small>Tipo</small><b>{trackingLabels[student.trackingType] || '—'}</b></div><div><small>Professor principal</small><b>{student.primaryTrainer?.name || '—'}</b></div><div><small>Início</small><b>{formatDate(student.startDate)}</b></div><div><small>Objetivo</small><b>{student.mainGoal || '—'}</b></div><div><small>Email</small><b>{student.email}</b></div><div><small>Telemóvel</small><b>{student.phone || '—'}</b></div></div></section>
+      <section className="card pad studentDetails"><div className="panelTitle"><div><h2>Ficha do aluno</h2><p>Dados essenciais do acompanhamento.</p></div><UserRound size={24}/></div><div className="detailsGrid"><div><small>Tipo</small><b>{trackingLabels[student.trackingType] || '—'}</b></div><div><small>Professor principal</small><b>{student.primaryTrainer?.name || '—'}</b></div><div><small>Início</small><b>{formatDate(student.startDate)}</b></div><div><small>Email</small><b>{student.email}</b></div><div><small>Telemóvel</small><b>{student.phone || '—'}</b></div></div></section>
     </div>
 
     <section className="profileModules"><button onClick={()=>onNavigate?.('assessments')}><Activity/><div><b>Avaliação física</b><span>Histórico, métricas e evolução</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Planos ativos e histórico</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Documentos e notas</span></div><ChevronRight/></button></section>
@@ -268,6 +265,11 @@ export default function StudentDirectory({ onNavigate }) {
     await refreshStudents();
   }
 
+  if (showForm) return <div className="studentFormPage">
+    <div className="heading"><div><button className="backButton" onClick={()=>{setShowForm(false);setFormStudent(null)}}><ArrowLeft size={18}/>Voltar aos alunos</button><h1>{formStudent ? `Editar · ${formStudent.name}` : 'Novo aluno'}</h1><p>{formStudent ? 'Atualiza os dados do aluno e a respetiva atribuição.' : 'Cria o registo real e envia o convite de acesso.'}</p></div></div>
+    <div className="card pad studentFormPageCard"><StudentForm student={formStudent} trainers={trainers} currentUser={currentUser} onCancel={()=>{setShowForm(false);setFormStudent(null)}} onSaved={saved}/></div>
+  </div>;
+
   if (activeStudent) return <StudentProfile student={activeStudent} currentUser={currentUser} trainers={trainers} assessments={data.assessments.filter(item => item.studentId === activeStudent.id)} onBack={()=>setActiveStudentId('')} onEdit={()=>{setFormStudent(activeStudent);setShowForm(true)}} onRefresh={refreshStudents} onNavigate={onNavigate}/>;
 
   return <>
@@ -277,7 +279,6 @@ export default function StudentDirectory({ onNavigate }) {
     <div className="studentFilters"><div className="search"><Search size={18}/><input value={q} onChange={event=>setQ(event.target.value)} placeholder="Pesquisar nome ou número de aluno…"/></div><select value={status} onChange={event=>setStatus(event.target.value)}><option value="all">Todos os estados</option>{Object.entries(studentStatusLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><select value={tracking} onChange={event=>setTracking(event.target.value)}><option value="all">Todos os acompanhamentos</option>{trackingTypeOptions.map(item=><option key={item.value} value={item.value}>{item.label}</option>)}</select><select value={trainer} onChange={event=>setTrainer(event.target.value)}><option value="all">Todos os professores</option>{trainers.map(item=><option key={item.trainerProfileId} value={item.trainerProfileId}>{item.name}</option>)}</select></div>
     {selected.size > 0 && <div className="bulkToolbar"><b>{selected.size} selecionado(s)</b><button className="secondary" onClick={()=>bulkAction('deactivate')}><Power size={15}/>Desativar</button><button className="secondary" onClick={()=>bulkAction('reactivate')}><RefreshCw size={15}/>Reativar</button><button className="secondary" onClick={()=>bulkAction('archive')}><Archive size={15}/>Arquivar</button>{currentUser.role==='admin'&&<button className="dangerButton" onClick={()=>bulkAction('delete')}><Trash2 size={15}/>Eliminar acesso</button>}<button className="textButton" onClick={()=>setSelected(new Set())}>Limpar seleção</button></div>}
     {studentsLoading ? <div className="card pad loadingCard"><div className="loader"/><p>A carregar alunos…</p></div> : list.length ? <div className="studentDirectoryGrid">{list.map(student=><article className="studentDirectoryCard" key={student.id}><label className="studentSelect"><input type="checkbox" checked={selected.has(student.id)} onChange={()=>toggleSelected(student.id)}/><span/></label><StudentPhoto student={student}/><div className="studentCardIdentity"><h3>{student.name}</h3><p>{student.age ?? '—'} anos</p><small><CalendarDays size={14}/> {formatDate(student.birth)}</small></div><button className="secondary full" onClick={()=>setActiveStudentId(student.id)}>Entrar no perfil <ChevronRight size={16}/></button></article>)}</div> : <div className="emptyState card pad"><Users size={36}/><h2>Sem alunos</h2><p>Cria o primeiro registo real. O aluno receberá um email para definir a palavra-passe.</p><button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>Novo aluno</button></div>}
-    {showForm && <Modal title={formStudent ? `Editar · ${formStudent.name}` : 'Novo aluno'} close={()=>{setShowForm(false);setFormStudent(null)}} wide><StudentForm student={formStudent} trainers={trainers} currentUser={currentUser} onCancel={()=>{setShowForm(false);setFormStudent(null)}} onSaved={saved}/></Modal>}
   </>;
 }
 

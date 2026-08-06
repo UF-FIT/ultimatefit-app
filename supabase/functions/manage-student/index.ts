@@ -64,6 +64,10 @@ function cleanPhone(value: unknown) {
   return String(value ?? '').trim().replace(/[^0-9+]/g, '').slice(0, 20)
 }
 
+function cleanNif(value: unknown) {
+  return String(value ?? '').replace(/\D/g, '').slice(0, 9)
+}
+
 function nullable(value: string) {
   return value || null
 }
@@ -239,11 +243,15 @@ Deno.serve(async (req) => {
       const phone = cleanPhone(payload.phone)
       const birthDate = cleanText(payload.birthDate, 10)
       const trackingType = normalizeTrackingType(payload.trackingType)
+      const nif = cleanNif(payload.nif)
 
       if (!/^\S+@\S+\.\S+$/.test(email)) return json({ error: 'Indica um email válido.' }, 400)
       if (fullName.length < 2) return json({ error: 'Indica o nome completo.' }, 400)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return json({ error: 'Indica a data de nascimento.' }, 400)
       if (!trackingType) return json({ error: 'Seleciona o tipo de acompanhamento.' }, 400)
+      if (nif && !/^\d{9}$/.test(nif)) {
+        return json({ error: 'O NIF, quando preenchido, deve ter exatamente 9 algarismos.' }, 400)
+      }
 
       let trainerIds = normalizeTrainerIds(payload.trainerIds)
       let primaryTrainerId = cleanText(payload.primaryTrainerId, 64)
@@ -295,20 +303,17 @@ Deno.serve(async (req) => {
       if (profileError) throw profileError
 
       const studentUpdate = {
-        nif: nullable(cleanText(payload.nif, 20)),
+        nif: nullable(nif),
         birth_date: birthDate,
         sex: normalizeSex(payload.sex),
         occupation: nullable(cleanText(payload.occupation, 160)),
         address: nullable(cleanText(payload.address, 500)),
-        citizen_card: nullable(cleanText(payload.citizenCard, 40)),
         postal_code: nullable(cleanText(payload.postalCode, 24)),
         city: nullable(cleanText(payload.city, 120)),
         emergency_contact_name: nullable(cleanText(payload.emergencyContactName, 160)),
-        emergency_contact_phone: nullable(cleanPhone(payload.emergencyContactPhone)),
         start_date: cleanText(payload.startDate, 10) || new Date().toISOString().slice(0, 10),
         status: 'active',
         tracking_type: trackingType,
-        main_goal: nullable(cleanText(payload.mainGoal, 500)),
         notes: nullable(cleanLongText(payload.notes, 5000)),
         created_by: caller.id,
         archived_at: null,
@@ -368,18 +373,19 @@ Deno.serve(async (req) => {
         postal_code: nullable(cleanText(payload.postalCode, 24)),
         city: nullable(cleanText(payload.city, 120)),
         emergency_contact_name: nullable(cleanText(payload.emergencyContactName, 160)),
-        emergency_contact_phone: nullable(cleanPhone(payload.emergencyContactPhone)),
       }
 
       if (manager) {
+        const nif = cleanNif(payload.nif)
+        if (nif && !/^\d{9}$/.test(nif)) {
+          return json({ error: 'O NIF, quando preenchido, deve ter exatamente 9 algarismos.' }, 400)
+        }
         Object.assign(studentPatch, {
-          nif: nullable(cleanText(payload.nif, 20)),
+          nif: nullable(nif),
           birth_date: cleanText(payload.birthDate, 10) || null,
           sex: normalizeSex(payload.sex),
-          citizen_card: nullable(cleanText(payload.citizenCard, 40)),
           tracking_type: normalizeTrackingType(payload.trackingType),
           start_date: cleanText(payload.startDate, 10) || student.start_date,
-          main_goal: nullable(cleanText(payload.mainGoal, 500)),
           notes: nullable(cleanLongText(payload.notes, 5000)),
         })
       }
@@ -428,7 +434,7 @@ Deno.serve(async (req) => {
 
     if (action === 'resend_access') {
       const { error } = await publicClient.auth.resetPasswordForEmail(student.profile.email, {
-        redirectTo: `${appUrl}/definir-palavra-passe`,
+        redirectTo: `${appUrl}/repor-palavra-passe`,
       })
       if (error) throw error
       await admin.from('student_invitations').update({
