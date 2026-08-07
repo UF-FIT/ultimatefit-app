@@ -8,6 +8,7 @@ import ProfessionalProfile from './components/ProfessionalProfile';
 import BrandLogo from './components/BrandLogo';
 import ChallengesModule from './components/ChallengesModule';
 import AssessmentsModule from './components/AssessmentsModule';
+import ParqOnboarding from './components/ParqOnboarding';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
 import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
@@ -205,6 +206,7 @@ function AppGate(){
  if(!profile) return <div className="appState"><Logo/><h1>Perfil indisponível</h1><p>Não foi possível carregar o perfil associado a esta conta.</p></div>;
  if(profile.deleted_at) return <div className="appState"><Logo/><h1>Acesso eliminado</h1><p>Esta conta já não faz parte da equipa ULTIMATE FIT.</p></div>;
  if(!profile.is_active) return <div className="appState"><Logo/><h1>Conta desativada</h1><p>Contacta a administração do ULTIMATE FIT.</p></div>;
+ if(profile.role==='student') return <ParqOnboarding profile={profile}><AppProvider><Shell/></AppProvider></ParqOnboarding>;
  return <AppProvider><Shell/></AppProvider>;
 }
 

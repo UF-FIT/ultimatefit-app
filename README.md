@@ -1,30 +1,14 @@
-# ULTIMATE FIT APP — Update 5B
+# ULTIMATE FIT APP — Update 5B.1
 
-Aplicação privada do estúdio ULTIMATE FIT, com autenticação Supabase e módulos reais de alunos, equipa, desafios e avaliação física.
+Aplicação privada ULTIMATE FIT com Supabase Auth, gestão de equipa e alunos, avaliações físicas modulares, Desafios integrados e PAR-Q obrigatório/versionado.
 
-## Update 5B
+## Update 5B.1
 
-A área **Avaliações** passa a ser funcional e persistente:
+- PAR-Q obrigatório no primeiro acesso do aluno.
+- Declaração de responsabilidade com aceitação eletrónica.
+- Registo imutável de respostas, utilizador, data/hora e versão.
+- Sinalização de respostas positivas para revisão pela equipa.
+- Consulta posterior do PAR-Q no perfil.
+- A primeira avaliação só pode ser publicada depois da conclusão do PAR-Q.
 
-- avaliação por aluno;
-- rascunho / publicação;
-- anamnese inicial;
-- perimetria;
-- dobras cutâneas;
-- bioimpedância TANITA;
-- análise postural;
-- evolução fotográfica privada;
-- histórico;
-- gráficos das últimas cinco avaliações.
-
-A avaliação é modular: numa reavaliação o professor pode, por exemplo, preencher apenas **Perimetria + TANITA**.
-
-O aluno só recebe acesso a avaliações publicadas. Rascunhos permanecem visíveis apenas à equipa autorizada.
-
-## Próxima etapa
-
-**Update 5B.1**: PAR-Q obrigatório na primeira entrada, consentimento/aceitação com registo de versão/data/hora e consulta posterior no perfil.
-
-## Instalação
-
-Consultar `INSTALL_UPDATE_V5B.txt`.
+Ver `INSTALL_UPDATE_V5B1.txt` para a ordem de instalação.

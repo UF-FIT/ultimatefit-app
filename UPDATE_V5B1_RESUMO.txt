@@ -1,0 +1,12 @@
+ULTIMATE FIT APP — Update 5B.1
+
+Inclui:
+- PAR-Q obrigatório no primeiro acesso do aluno;
+- 7 perguntas Sim/Não;
+- declaração de responsabilidade com aceitação eletrónica obrigatória;
+- registo de utilizador, data/hora e versão do documento;
+- histórico imutável/versionado;
+- sinalização de respostas "Sim" sem diagnóstico automático;
+- consulta do PAR-Q no perfil do aluno por aluno e equipa autorizada;
+- bloqueio da publicação da primeira avaliação enquanto o PAR-Q estiver pendente;
+- RLS e RPCs dedicados no Supabase.

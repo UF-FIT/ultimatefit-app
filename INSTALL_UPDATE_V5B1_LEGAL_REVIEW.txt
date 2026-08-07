@@ -1,0 +1,15 @@
+ULTIMATE FIT APP — Update 5B.1.1
+
+REVISÃO JURÍDICA DO PAR-Q / DECLARAÇÃO
+
+1. Executar 20260807_008A_parq_legal_wording_review.sql no SQL Editor.
+2. Executar o ficheiro de verificação.
+3. Só depois publicar o código do Update 5B.1 no GitHub.
+4. A nova versão ativa passa a ser UF-PARQ-2026-02.
+5. A versão anterior é preservada para histórico; não é apagada.
+
+NOTA:
+A aceitação eletrónica na app é um registo de consentimento/declaração, não uma
+'assinatura digital qualificada'. A política de privacidade e a base legal para
+tratamento de dados relativos à saúde devem ser tratadas separadamente antes do
+lançamento público.

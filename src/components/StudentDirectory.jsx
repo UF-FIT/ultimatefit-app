@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../contexts/AppContext';
+import ParqStatusCard from './ParqStatusCard';
 import {
   buildStudentAccessMessage, fetchAvailableTrainers, invokeStudentAction,
   sexOptions, studentStatusLabels, trackingTypeOptions, uploadStudentAvatar,
@@ -239,6 +240,7 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
       <section className="card pad studentDetails"><div className="panelTitle"><div><h2>Ficha do aluno</h2><p>Dados essenciais do acompanhamento.</p></div><UserRound size={24}/></div><div className="detailsGrid"><div><small>Tipo</small><b>{trackingLabels[student.trackingType] || '—'}</b></div><div><small>Professor principal</small><b>{student.primaryTrainer?.name || '—'}</b></div><div><small>Início</small><b>{formatDate(student.startDate)}</b></div><div><small>Email</small><b>{student.email}</b></div><div><small>Telemóvel</small><b>{student.phone || '—'}</b></div></div></section>
     </div>
 
+    <ParqStatusCard studentId={student.id} studentName={student.name}/>
     <StudentGoalPanel student={student} editable={currentUser.role !== 'aluno'} onRefresh={onRefresh}/>
     <section className="profileModules"><button onClick={()=>onNavigate?.('assessments',{studentId:student.id})}><Activity/><div><b>Avaliação física</b><span>Histórico, métricas, evolução e fotografias</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Planos ativos e histórico</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Documentos e notas</span></div><ChevronRight/></button></section>
     <ProfileSummaryChart assessments={assessments} />
@@ -322,6 +324,7 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     <section className="studentSelfHero"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · Professor: {student.primaryTrainer?.name || 'Por definir'}</p></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
     {student.primaryTrainer && <section className="assignedTrainerCard card"><div className="assignedTrainerPhoto">{student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl?<img src={student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl} alt={student.primaryTrainer.name}/>:<span>{student.primaryTrainer.name.split(' ').map(item=>item[0]).slice(0,2).join('')}</span>}</div><div className="assignedTrainerInfo"><span className="eyebrow">PROFESSOR PRINCIPAL</span><h2>{student.primaryTrainer.name}</h2><p>{student.primaryTrainer.professionalTitle || 'Personal Trainer'}</p></div><div className="assignedTrainerActions"><button className="primary" onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle size={17}/>WhatsApp</button>{student.primaryTrainer.socialUrl&&<a className="secondary" href={student.primaryTrainer.socialUrl} target="_blank" rel="noreferrer"><ExternalLink size={17}/>Rede social</a>}</div></section>}
+    <ParqStatusCard studentId={student.id} studentName={student.name}/>
     <StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/>
     <section className="profileModules studentModules"><button onClick={()=>onNavigate?.('assessments',{studentId:student.id})}><Activity/><div><b>Avaliação física</b><span>Últimas avaliações, evolução e gráfico comparativo</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Consultar o plano atual</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Consultar documentos publicados</span></div><ChevronRight/></button></section>
     <ProfileSummaryChart assessments={assessments.slice(-5)} />

@@ -1,0 +1,53 @@
+ULTIMATE FIT APP — UPDATE 5B.1
+PAR-Q obrigatório + declaração de responsabilidade
+
+ORDEM DE INSTALAÇÃO
+
+1) SUPABASE — SQL EDITOR
+   Executar UMA vez:
+   supabase/migrations/20260807_008_parq_and_consents.sql
+
+   Resultado esperado:
+   Success. No rows returned
+
+2) SUPABASE — VERIFICAÇÃO
+   Executar:
+   supabase/migrations/20260807_008_parq_and_consents_verify.sql
+
+   Confirmar:
+   - tabelas parq_versions e student_parq_submissions
+   - 6 funções PAR-Q
+   - versão ativa UF-PARQ-2026-01 com 7 perguntas
+   - feature flag parq = true
+
+3) GITHUB
+   Carregar o conteúdo deste pacote na branch main do repositório ultimatefit-app.
+   Commit sugerido:
+   Update 5B.1 — PAR-Q e consentimento obrigatório
+
+4) VERCEL
+   Aguardar deployment Ready.
+
+TESTE RECOMENDADO
+
+- Usar uma conta de aluno de teste.
+- Ao primeiro login, o Dashboard não deve abrir imediatamente.
+- Deve aparecer o PAR-Q com 7 perguntas Sim/Não.
+- É obrigatório responder a todas as perguntas e assinalar "Li, compreendi e aceito".
+- Depois de concluir, a app abre normalmente.
+- Em logins posteriores, o PAR-Q já não bloqueia a app.
+- No perfil do aluno, professor e aluno conseguem consultar o registo.
+- Se houver respostas "Sim", o perfil mostra um aviso para revisão pelo professor.
+- O registo é append-only: não pode ser editado/sobrescrito pelo cliente.
+
+NOTA SOBRE A PRIMEIRA AVALIAÇÃO
+
+A partir deste update, uma primeira avaliação física não pode passar a "Publicada"
+sem o aluno ter concluído o PAR-Q ativo. Pode continuar a ser guardada como rascunho.
+Avaliações que já estavam publicadas antes do update não são alteradas.
+
+NOTA DE CONTEÚDO
+
+O texto da declaração foi estruturado a partir do documento fornecido pelo estúdio.
+Antes do lançamento público definitivo, recomenda-se validar juridicamente a redação
+final da declaração/consentimento e a referência legal que o estúdio pretende usar.
