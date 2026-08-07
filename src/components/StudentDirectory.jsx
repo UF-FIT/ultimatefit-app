@@ -3,7 +3,7 @@ import {
   Activity, AlertTriangle, Apple, Archive, ArrowLeft, CalendarDays, Camera,
   Check, CheckCircle2, ChevronRight, Dumbbell, Edit3, ExternalLink, FileText,
   Mail, MessageCircle, MoreVertical, Plus, Power, RefreshCw, Search, Send,
-  Target, Trash2, UserRound, Users, X,
+  Target, Trash2, UserRound, Users, X, Flag,
 } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../contexts/AppContext';
@@ -13,6 +13,7 @@ import {
   sexOptions, studentStatusLabels, trackingTypeOptions, uploadStudentAvatar,
   whatsappUrl,
 } from '../lib/students';
+import { fetchChallenges } from '../lib/challenges';
 
 const trackingLabels = Object.fromEntries(trackingTypeOptions.map(item => [item.value, item.label]));
 
@@ -168,8 +169,14 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
 }
 
 function ProfileSummaryChart({ assessments = [] }) {
-  const rows = assessments.filter(item => item.status === 'published').slice(-4);
-  return <div className="profileChart"><div className="profileChartHeader"><div><h3>Evolução · últimas 4 avaliações</h3><p>Peso, massa gorda, massa muscular e cintura. A evolução passa a fazer parte da avaliação física do aluno.</p></div></div>{rows.length ? <ResponsiveContainer width="100%" height={230}><LineChart data={rows}><XAxis dataKey="date" tick={{ fill: '#777', fontSize: 11 }} /><YAxis tick={{ fill: '#777', fontSize: 11 }} /><Tooltip contentStyle={{ background: '#111', border: '1px solid #333' }} /><Line type="monotone" dataKey="weight" stroke="#ffd908" strokeWidth={3} connectNulls /><Line type="monotone" dataKey="waist" stroke="#aaa" strokeWidth={2} connectNulls /></LineChart></ResponsiveContainer> : <div className="emptyChart"><Activity size={30}/><b>Sem avaliações publicadas</b><span>A evolução aparecerá aqui após as primeiras avaliações.</span></div>}</div>;
+  const rows = assessments
+    .filter(item => item.status === 'published')
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(-5);
+  return <section className="profileChart card">
+    <div className="profileChartHeader"><div><span className="eyebrow">EVOLUÇÃO</span><h3>Últimas 5 avaliações</h3><p>Peso e cintura em leitura rápida. A área de Avaliação Física permite comparar as restantes métricas.</p></div><Activity size={24}/></div>
+    {rows.length ? <><div className="profileChartLegend"><span><i className="weightDot"/>Peso</span><span><i className="waistDot"/>Cintura</span></div><ResponsiveContainer width="100%" height={230}><LineChart data={rows}><XAxis dataKey="date" tick={{ fill: '#777', fontSize: 11 }} /><YAxis tick={{ fill: '#777', fontSize: 11 }} /><Tooltip contentStyle={{ background: '#111', border: '1px solid #333' }} /><Line type="monotone" dataKey="weight" name="Peso" stroke="#ffd908" strokeWidth={3} connectNulls /><Line type="monotone" dataKey="waist" name="Cintura" stroke="#aaa" strokeWidth={2} connectNulls /></LineChart></ResponsiveContainer></> : <div className="emptyChart"><Activity size={30}/><b>Sem avaliações publicadas</b><span>A evolução aparecerá aqui após as primeiras avaliações.</span></div>}
+  </section>;
 }
 
 function StudentGoalPanel({ student, editable = false, onRefresh }) {
@@ -186,11 +193,72 @@ function StudentGoalPanel({ student, editable = false, onRefresh }) {
     } catch (err) { setMessage(err.message || 'Não foi possível guardar o objetivo.'); }
     finally { setBusy(false); }
   }
-  return <section className="card pad studentGoalPanel"><div className="panelTitle"><div><h2>Objetivos</h2><p>As metas do aluno ficam integradas no próprio perfil.</p></div><Target size={25}/></div>
+  return <section className="card pad studentGoalPanel"><div className="panelTitle"><div><span className="eyebrow">OBJETIVOS</span><h2>Foco do acompanhamento</h2><p>As metas ficam integradas no perfil do aluno.</p></div><Target size={25}/></div>
     {editing ? <div className="goalEditor"><textarea value={value} onChange={event => setValue(event.target.value)} rows="4" placeholder="Ex.: melhorar mobilidade, reduzir perímetro da cintura, ganhar força…"/><div className="modalActions"><button className="secondary" onClick={() => { setEditing(false); setValue(student.mainGoal || ''); }}>Cancelar</button><button className="primary" onClick={save} disabled={busy}>{busy ? 'A guardar…' : 'Guardar objetivo'}</button></div></div>
       : <div className="goalSummary"><strong>{student.mainGoal || 'Objetivo ainda não definido.'}</strong>{editable && <button className="secondary" onClick={() => setEditing(true)}><Edit3 size={16}/>{student.mainGoal ? 'Editar objetivo' : 'Definir objetivo'}</button>}</div>}
     {message && <small className="challengeInlineMessage">{message}</small>}
   </section>;
+}
+
+function useStudentChallengeSummary(studentId) {
+  const [summary, setSummary] = useState({ loading: true, active: 0, total: 0 });
+  useEffect(() => {
+    let alive = true;
+    if (!studentId) { setSummary({ loading: false, active: 0, total: 0 }); return () => {}; }
+    fetchChallenges().then(rows => {
+      if (!alive) return;
+      const assigned = (rows || []).filter(challenge => (challenge.challenge_participants || []).some(item => item.student_id === studentId && item.status === 'active'));
+      setSummary({ loading: false, active: assigned.filter(item => item.status === 'active').length, total: assigned.length });
+    }).catch(() => { if (alive) setSummary({ loading: false, active: 0, total: 0 }); });
+    return () => { alive = false; };
+  }, [studentId]);
+  return summary;
+}
+
+function AssignedTrainerProfile({ trainer, studentName }) {
+  if (!trainer) return <section className="card pad trainerProfileCard empty"><UserRound size={27}/><div><span className="eyebrow">PROFESSOR PRINCIPAL</span><h2>Por definir</h2><p>O estúdio ainda não definiu o professor principal deste aluno.</p></div></section>;
+  const contactUrl = whatsappUrl(trainer.whatsappPhone, `Olá ${trainer.name}, sou ${studentName}.`);
+  const initials = trainer.name?.split(' ').map(item => item[0]).slice(0, 2).join('') || 'PT';
+  return <section className="card pad trainerProfileCard">
+    <div className="assignedTrainerPhoto">{trainer.thumbUrl || trainer.photoUrl ? <img src={trainer.thumbUrl || trainer.photoUrl} alt={trainer.name}/> : <span>{initials}</span>}</div>
+    <div className="assignedTrainerInfo"><span className="eyebrow">PROFESSOR PRINCIPAL</span><h2>{trainer.name}</h2><p>{trainer.professionalTitle || 'Personal Trainer'}</p></div>
+    <div className="assignedTrainerActions"><button className="primary" onClick={() => contactUrl && window.open(contactUrl, '_blank', 'noopener,noreferrer')} disabled={!contactUrl}><MessageCircle size={17}/>WhatsApp</button>{trainer.socialUrl && <a className="secondary" href={trainer.socialUrl} target="_blank" rel="noreferrer"><ExternalLink size={17}/>Rede social</a>}</div>
+  </section>;
+}
+
+function StudentDetailsPanel({ student, self = false }) {
+  return <section className="card pad studentDetails profileInfoPanel"><div className="panelTitle"><div><span className="eyebrow">PERFIL</span><h2>Dados do aluno</h2><p>{self ? 'Os teus dados pessoais e de acompanhamento.' : 'Informação essencial para o acompanhamento.'}</p></div><UserRound size={24}/></div><div className="detailsGrid profileDetailsGrid">
+    <div><small>Email</small><b>{student.email || '—'}</b></div><div><small>Telemóvel</small><b>{student.phone || '—'}</b></div>
+    <div><small>Nascimento</small><b>{formatDate(student.birth)}</b></div><div><small>Idade</small><b>{student.age ?? '—'} anos</b></div>
+    <div><small>Tipo de acompanhamento</small><b>{trackingLabels[student.trackingType] || '—'}</b></div><div><small>Data de início</small><b>{formatDate(student.startDate)}</b></div>
+    {student.occupation && <div><small>Profissão</small><b>{student.occupation}</b></div>}{student.city && <div><small>Localidade</small><b>{student.city}</b></div>}
+    {student.emergencyContactPhone && <div className="wideDetail"><small>Contacto de emergência</small><b>{student.emergencyContactName ? `${student.emergencyContactName} · ` : ''}{student.emergencyContactPhone}</b></div>}
+  </div></section>;
+}
+
+function ProfileModuleHub({ student, assessments = [], onNavigate, studentView = false }) {
+  const { data } = useApp();
+  const challengeSummary = useStudentChallengeSummary(student.id);
+  const published = assessments.filter(item => item.status === 'published').sort((a,b) => String(b.date).localeCompare(String(a.date)));
+  const latest = published[0];
+  const plans = data.plans.filter(item => item.studentId === student.id);
+  const foods = data.nutrition.filter(item => item.studentId === student.id);
+  const activePlan = plans.find(item => String(item.status || '').toLowerCase() === 'ativo') || plans[0];
+  const currentFood = foods[0];
+  const modules = [
+    { key:'assessments', icon:Activity, title:'Avaliação física', caption: latest ? `Última: ${formatDate(latest.date)} · ${published.length} publicada(s)` : 'Ainda sem avaliações publicadas', context:{studentId:student.id}, status: latest ? 'Atualizada' : 'Por iniciar' },
+    { key:'plans', icon:Dumbbell, title:'Plano de treino', caption: activePlan ? activePlan.title : 'Sem plano ativo', context:{studentId:student.id}, status: activePlan ? 'Disponível' : 'A preparar' },
+    { key:'nutrition', icon:Apple, title:'Plano alimentar', caption: currentFood ? currentFood.title : 'Sem plano publicado', context:{studentId:student.id}, status: currentFood ? 'Disponível' : 'A preparar' },
+    { key:'challenges', icon:Flag, title:'Desafios', caption: challengeSummary.loading ? 'A verificar desafios…' : challengeSummary.active ? `${challengeSummary.active} desafio(s) ativo(s)` : 'Sem desafios ativos', context:{studentId:student.id}, status: challengeSummary.active ? 'Em curso' : 'Disponível' },
+  ];
+  return <section className="profileHub"><div className="profileHubHeader"><div><span className="eyebrow">ÁREA DO ALUNO</span><h2>{studentView ? 'O meu acompanhamento' : 'Acompanhamento'}</h2><p>Todos os módulos deste aluno num único perfil.</p></div></div><div className="profileHubGrid">{modules.map(({key,icon:Icon,title,caption,context,status}) => <button key={key} className="profileHubCard" onClick={() => onNavigate?.(key, context)}><div className="profileHubIcon"><Icon/></div><div className="profileHubCopy"><div><b>{title}</b><span>{status}</span></div><p>{caption}</p></div><ChevronRight/></button>)}</div></section>;
+}
+
+function AssessmentSnapshot({ assessments = [], onOpen }) {
+  const published = assessments.filter(item => item.status === 'published').sort((a,b) => String(b.date).localeCompare(String(a.date)));
+  const latest = published[0];
+  if (!latest) return <section className="card pad assessmentSnapshot empty"><div className="panelTitle"><div><span className="eyebrow">AVALIAÇÃO FÍSICA</span><h2>Sem avaliação publicada</h2><p>Quando existir uma avaliação, os indicadores principais aparecem aqui.</p></div><Activity size={24}/></div><button className="secondary" onClick={onOpen}>Abrir Avaliação Física</button></section>;
+  return <section className="card pad assessmentSnapshot"><div className="panelTitle"><div><span className="eyebrow">ÚLTIMA AVALIAÇÃO · {formatDate(latest.date)}</span><h2>Resumo físico</h2><p>Leitura rápida da avaliação mais recente.</p></div><Activity size={24}/></div><div className="snapshotMetrics"><div><small>Peso</small><b>{latest.weight ?? '—'}{latest.weight != null ? ' kg' : ''}</b></div><div><small>Massa gorda</small><b>{latest.fat ?? '—'}{latest.fat != null ? ' %' : ''}</b></div><div><small>Massa muscular</small><b>{latest.muscle ?? '—'}{latest.muscle != null ? ' kg' : ''}</b></div><div><small>Cintura</small><b>{latest.waist ?? '—'}{latest.waist != null ? ' cm' : ''}</b></div></div><button className="secondary" onClick={onOpen}>Ver histórico e evolução <ChevronRight size={16}/></button></section>;
 }
 
 function StudentProfile({ student, currentUser, trainers, assessments, onBack, onEdit, onRefresh, onNavigate }) {
@@ -206,44 +274,24 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
     const label = type === 'delete' ? 'eliminar o acesso' : type === 'archive' ? 'arquivar o aluno' : type === 'deactivate' ? 'desativar o aluno' : 'reativar o aluno';
     if (!window.confirm(`Confirmas que pretendes ${label}?`)) return;
     setBusy(type);setError('');setMessage('');
-    try {
-      const result = await invokeStudentAction({ action: type, studentId: student.id });
-      setMessage(result.message);
-      await onRefresh();
-      if (type === 'delete') onBack();
-    } catch (err) { setError(err.message); }
+    try { const result = await invokeStudentAction({ action: type, studentId: student.id }); setMessage(result.message); await onRefresh(); if (type === 'delete') onBack(); }
+    catch (err) { setError(err.message); }
     finally { setBusy(''); }
   }
-
-  function openWhatsApp(url) {
-    if (!url) return;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  function openWhatsApp(url) { if (url) window.open(url, '_blank', 'noopener,noreferrer'); }
 
   return <div className="studentProfilePage">
     <button className="backButton profileBack" onClick={onBack}><ArrowLeft size={18}/>Voltar aos alunos</button>
-    {message && <div className="successBanner"><CheckCircle2 size={18}/>{message}</div>}
-    {error && <div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
-    <section className="studentProfileHero">
-      <StudentPhoto student={student} large />
-      <div className="profileIdentity"><span className="eyebrow">{student.studentCode}</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · nascimento {formatDate(student.birth)}</p><div className="profileChips"><span>{trackingLabels[student.trackingType] || 'Acompanhamento por definir'}</span><span>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</span><span>Professor principal: {student.primaryTrainer?.name || 'Por definir'}</span></div></div>
-      <div className="profileQuickActions">
-        <button onClick={onEdit}><Edit3 size={19}/><span>Editar perfil</span></button>
-        <button onClick={() => openWhatsApp(whatsappUrl(student.phone, buildStudentAccessMessage(student)))} disabled={!canWhatsappStudent}><Send size={19}/><span>Enviar app</span></button>
-        <button onClick={() => onNavigate?.('assessments',{studentId:student.id})}><Activity size={19}/><span>Avaliação física</span></button>
-        <button onClick={() => openWhatsApp(whatsappUrl(student.phone))} disabled={!canWhatsappStudent}><MessageCircle size={19}/><span>WhatsApp</span></button>
-      </div>
-    </section>
+    {message && <div className="successBanner"><CheckCircle2 size={18}/>{message}</div>}{error && <div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
+    <section className="studentProfileHero profileHeroV2"><StudentPhoto student={student} large/><div className="profileIdentity"><span className="eyebrow">{student.studentCode}</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {formatDate(student.birth)}</p><div className="profileChips"><span>{trackingLabels[student.trackingType] || 'Acompanhamento por definir'}</span><span>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</span><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span></div></div><div className="profileQuickActions"><button onClick={onEdit}><Edit3 size={19}/><span>Editar perfil</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone, buildStudentAccessMessage(student)))} disabled={!canWhatsappStudent}><Send size={19}/><span>Enviar app</span></button><button onClick={() => onNavigate?.('assessments',{studentId:student.id})}><Activity size={19}/><span>Avaliação física</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone))} disabled={!canWhatsappStudent}><MessageCircle size={19}/><span>WhatsApp</span></button></div></section>
 
-    <div className="grid two profileGrid">
-      <section className="card pad accessPanel"><div className="panelTitle"><div><h2>Acesso</h2><p>Convite, estado e ciclo de vida da conta.</p></div><Power size={24}/></div><div className="accessStatus"><div><small>ESTADO</small><strong>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</strong><span>{student.invitation?.status === 'pending' ? 'Convite pendente' : student.active ? 'Acesso disponível' : 'Sem acesso'}</span></div><div className="accessButtons">{isRemoved ? <span className="removedNotice">Registo removido com histórico preservado.</span> : <><button className="secondary" onClick={async()=>{setBusy('resend');try{const r=await invokeStudentAction({action:'resend_access',studentId:student.id});setMessage(r.message)}catch(e){setError(e.message)}finally{setBusy('')}}} disabled={busy==='resend'}><Mail size={16}/>Novo link</button>{student.active ? <button className="secondary" onClick={()=>action('deactivate')} disabled={busy}><Power size={16}/>Desativar</button> : <button className="primary" onClick={()=>action('reactivate')} disabled={busy}><RefreshCw size={16}/>Reativar</button>}<button className="secondary" onClick={()=>action('archive')} disabled={busy}><Archive size={16}/>Arquivar</button>{canDelete && <button className="dangerButton" onClick={()=>action('delete')} disabled={busy}><Trash2 size={16}/>Eliminar acesso</button>}</>}</div></div></section>
-      <section className="card pad studentDetails"><div className="panelTitle"><div><h2>Ficha do aluno</h2><p>Dados essenciais do acompanhamento.</p></div><UserRound size={24}/></div><div className="detailsGrid"><div><small>Tipo</small><b>{trackingLabels[student.trackingType] || '—'}</b></div><div><small>Professor principal</small><b>{student.primaryTrainer?.name || '—'}</b></div><div><small>Início</small><b>{formatDate(student.startDate)}</b></div><div><small>Email</small><b>{student.email}</b></div><div><small>Telemóvel</small><b>{student.phone || '—'}</b></div></div></section>
-    </div>
-
+    <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate}/>
+    <div className="grid two profileOverviewGrid"><AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/><AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/></div>
+    <div className="grid two profileOverviewGrid"><StudentGoalPanel student={student} editable={currentUser.role !== 'aluno'} onRefresh={onRefresh}/><StudentDetailsPanel student={student}/></div>
     <ParqStatusCard studentId={student.id} studentName={student.name}/>
-    <StudentGoalPanel student={student} editable={currentUser.role !== 'aluno'} onRefresh={onRefresh}/>
-    <section className="profileModules"><button onClick={()=>onNavigate?.('assessments',{studentId:student.id})}><Activity/><div><b>Avaliação física</b><span>Histórico, métricas, evolução e fotografias</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Planos ativos e histórico</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Documentos e notas</span></div><ChevronRight/></button></section>
-    <ProfileSummaryChart assessments={assessments} />
+    <ProfileSummaryChart assessments={assessments}/>
+
+    <section className="card pad accessPanel profileAccessPanel"><div className="panelTitle"><div><span className="eyebrow">GESTÃO</span><h2>Acesso à aplicação</h2><p>Convite, estado e ciclo de vida da conta.</p></div><Power size={24}/></div><div className="accessStatus"><div><small>ESTADO</small><strong>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</strong><span>{student.invitation?.status === 'pending' ? 'Convite pendente' : student.active ? 'Acesso disponível' : 'Sem acesso'}</span></div><div className="accessButtons">{isRemoved ? <span className="removedNotice">Registo removido com histórico preservado.</span> : <><button className="secondary" onClick={async()=>{setBusy('resend');try{const r=await invokeStudentAction({action:'resend_access',studentId:student.id});setMessage(r.message)}catch(e){setError(e.message)}finally{setBusy('')}}} disabled={busy==='resend'}><Mail size={16}/>Novo link</button>{student.active ? <button className="secondary" onClick={()=>action('deactivate')} disabled={busy}><Power size={16}/>Desativar</button> : <button className="primary" onClick={()=>action('reactivate')} disabled={busy}><RefreshCw size={16}/>Reativar</button>}<button className="secondary" onClick={()=>action('archive')} disabled={busy}><Archive size={16}/>Arquivar</button>{canDelete && <button className="dangerButton" onClick={()=>action('delete')} disabled={busy}><Trash2 size={16}/>Eliminar acesso</button>}</>}</div></div></section>
   </div>;
 }
 
@@ -320,14 +368,15 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
   useEffect(()=>{fetchAvailableTrainers().then(setTrainers).catch(()=>{})},[]);
   if (!student) return <div className="emptyState card pad"><UserRound size={36}/><h2>Perfil do aluno indisponível</h2><p>Contacta a administração para concluir a associação da conta.</p></div>;
   const professorUrl = whatsappUrl(student.primaryTrainer?.whatsappPhone, `Olá ${student.primaryTrainer?.name || 'Professor'}, sou ${student.name}.`);
-  return <>
+  return <div className="studentSelfProfilePage">
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
-    <section className="studentSelfHero"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · Professor: {student.primaryTrainer?.name || 'Por definir'}</p></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
-    {student.primaryTrainer && <section className="assignedTrainerCard card"><div className="assignedTrainerPhoto">{student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl?<img src={student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl} alt={student.primaryTrainer.name}/>:<span>{student.primaryTrainer.name.split(' ').map(item=>item[0]).slice(0,2).join('')}</span>}</div><div className="assignedTrainerInfo"><span className="eyebrow">PROFESSOR PRINCIPAL</span><h2>{student.primaryTrainer.name}</h2><p>{student.primaryTrainer.professionalTitle || 'Personal Trainer'}</p></div><div className="assignedTrainerActions"><button className="primary" onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle size={17}/>WhatsApp</button>{student.primaryTrainer.socialUrl&&<a className="secondary" href={student.primaryTrainer.socialUrl} target="_blank" rel="noreferrer"><ExternalLink size={17}/>Rede social</a>}</div></section>}
+    <section className="studentSelfHero profileHeroV2"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {trackingLabels[student.trackingType] || 'Acompanhamento ULTIMATE FIT'}</p><div className="profileChips"><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span></div></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
+    <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate} studentView/>
+    <AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/>
+    <div className="grid two profileOverviewGrid"><AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/><StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/></div>
     <ParqStatusCard studentId={student.id} studentName={student.name}/>
-    <StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/>
-    <section className="profileModules studentModules"><button onClick={()=>onNavigate?.('assessments',{studentId:student.id})}><Activity/><div><b>Avaliação física</b><span>Últimas avaliações, evolução e gráfico comparativo</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Consultar o plano atual</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Consultar documentos publicados</span></div><ChevronRight/></button></section>
-    <ProfileSummaryChart assessments={assessments.slice(-5)} />
+    <ProfileSummaryChart assessments={assessments}/>
+    <StudentDetailsPanel student={student} self/>
     {editing&&<Modal title="Editar o meu perfil" close={()=>setEditing(false)} wide><StudentForm student={student} trainers={trainers} currentUser={currentUser} onCancel={()=>setEditing(false)} onSaved={async message=>{setEditing(false);setNotice(message);await onRefresh?.()}}/></Modal>}
-  </>;
+  </div>;
 }

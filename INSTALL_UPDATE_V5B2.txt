@@ -1,0 +1,34 @@
+ULTIMATE FIT APP — INSTALAÇÃO UPDATE 5B.2
+
+PRÉ-REQUISITOS
+- Update 5B.1.1 já publicado.
+- Migrações 007, 008 e 008A já executadas.
+
+NÃO É NECESSÁRIO EXECUTAR SQL PARA ESTE UPDATE.
+
+PASSOS
+1. Extrair o ZIP do Update 5B.2.
+2. GitHub > UF-FIT/ultimatefit-app > main > Add file > Upload files.
+3. Carregar todo o conteúdo de dentro da pasta extraída.
+4. Commit diretamente na branch main com:
+   Update 5B.2 — perfil completo do aluno
+5. Se a Vercel não iniciar automaticamente, usar o Deploy Hook "Deploy main" já criado.
+6. Confirmar que o deployment fica Ready / Production.
+7. Fazer Ctrl+F5 na aplicação.
+
+TESTES RECOMENDADOS
+PROFESSOR / PROPRIETÁRIO
+- Alunos > entrar no perfil da Sara.
+- Confirmar foto, nome, idade, nascimento, acompanhamento e professor.
+- Confirmar botões Editar perfil / Enviar app / Avaliação física / WhatsApp.
+- Confirmar blocos Avaliação Física / Plano de Treino / Plano Alimentar / Desafios.
+- Confirmar resumo da última avaliação e gráfico.
+- Confirmar Objetivos, PAR-Q e professor principal.
+- Abrir Desafios a partir do perfil e confirmar filtragem para a Sara.
+
+ALUNO
+- Entrar como Sara.
+- Confirmar que vê apenas a própria área.
+- Confirmar professor principal com WhatsApp/rede social.
+- Confirmar acessos Avaliação Física / Treino / Plano Alimentar / Desafios.
+- Confirmar PAR-Q consultável e evolução.

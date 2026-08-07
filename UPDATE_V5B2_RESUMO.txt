@@ -1,0 +1,19 @@
+ULTIMATE FIT APP — Update 5B.2
+PERFIL COMPLETO DO ALUNO
+
+Incluído:
+- perfil individual passa a ser o centro do acompanhamento;
+- quatro acessos principais: Avaliação Física, Plano de Treino, Plano Alimentar e Desafios;
+- resumo da última avaliação física;
+- gráfico das últimas 5 avaliações publicadas;
+- objetivos integrados no perfil;
+- PAR-Q acessível no próprio perfil;
+- professor principal com fotografia, WhatsApp e rede social;
+- ficha essencial do aluno;
+- gestão de acesso deslocada para a zona inferior do perfil do professor;
+- visão do aluno simplificada e orientada para os seus próprios módulos;
+- Desafios abertos a partir do perfil já filtrados pelo aluno, na visão da equipa;
+- Planos de treino e Nutrição recebem o contexto do aluno, preparando os Updates 5C e 5D.
+
+Esta versão não requer nova migração SQL.
+Não altera nem apaga dados existentes no Supabase.

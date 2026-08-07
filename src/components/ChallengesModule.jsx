@@ -161,7 +161,7 @@ function StaffChallengeDetail({ challenge, students, canManage, onBack, onEdit, 
   </div>;
 }
 
-export default function ChallengesModule() {
+export default function ChallengesModule({ context = {} }) {
   const { currentUser, data } = useApp();
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -171,6 +171,7 @@ export default function ChallengesModule() {
   const [creating, setCreating] = useState(false);
   const canManage = currentUser.role === 'admin';
   const student = currentUser.role === 'aluno' ? data.students.find(item => item.userId === currentUser.id) : null;
+  const profileStudent = context?.studentId ? data.students.find(item => item.id === context.studentId) : null;
 
   async function reload() {
     setLoading(true); setError('');
@@ -181,10 +182,13 @@ export default function ChallengesModule() {
   useEffect(() => { reload(); }, [currentUser.id]);
 
   const visible = useMemo(() => {
-    if (currentUser.role !== 'aluno') return challenges;
-    if (!student) return [];
-    return challenges.filter(challenge => ['active', 'completed'].includes(challenge.status) && (challenge.challenge_participants || []).some(item => item.student_id === student.id && item.status === 'active'));
-  }, [challenges, currentUser.role, student?.id]);
+    if (currentUser.role === 'aluno') {
+      if (!student) return [];
+      return challenges.filter(challenge => ['active', 'completed'].includes(challenge.status) && (challenge.challenge_participants || []).some(item => item.student_id === student.id && item.status === 'active'));
+    }
+    if (profileStudent) return challenges.filter(challenge => (challenge.challenge_participants || []).some(item => item.student_id === profileStudent.id && item.status === 'active'));
+    return challenges;
+  }, [challenges, currentUser.role, student?.id, profileStudent?.id]);
   const selected = visible.find(item => item.id === selectedId) || challenges.find(item => item.id === selectedId);
 
   if (creating || editing) return <ChallengeForm challenge={editing ? selected : null} onCancel={() => { setCreating(false); setEditing(false); }} onSaved={async saved => { await reload(); setSelectedId(saved.id); setCreating(false); setEditing(false); }}/>;
@@ -197,7 +201,7 @@ export default function ChallengesModule() {
   }
 
   return <>
-    <div className="heading"><div><h1>Desafios</h1><p>{currentUser.role === 'aluno' ? 'Regista o teu progresso, acompanha o ranking e supera-te dia após dia.' : 'Cria desafios, atribui alunos e acompanha o ranking no mesmo sistema de login.'}</p></div>{canManage && <button className="primary" onClick={() => setCreating(true)}><Plus size={17}/>Novo desafio</button>}</div>
+    <div className="heading"><div><h1>{profileStudent ? `Desafios · ${profileStudent.name}` : 'Desafios'}</h1><p>{currentUser.role === 'aluno' ? 'Regista o teu progresso, acompanha o ranking e supera-te dia após dia.' : profileStudent ? 'Desafios atualmente atribuídos a este aluno.' : 'Cria desafios, atribui alunos e acompanha o ranking no mesmo sistema de login.'}</p></div>{canManage && <button className="primary" onClick={() => setCreating(true)}><Plus size={17}/>Novo desafio</button>}</div>
     <section className="challengeSelectHero"><BrandLogo className="challengeBrand"/><span className="eyebrow">DESAFIOS</span><h2>ESCOLHE O <span>DESAFIO.</span></h2><p>Compromisso, foco e consistência. Uma única conta para toda a plataforma.</p><div className="challengeBenefits"><span><CheckCircle2/>Compromisso</span><span><Target/>Foco</span><span><RefreshCw/>Consistência</span></div></section>
     {error && <div className="errorBanner">{error}</div>}
     {loading ? <div className="card pad loadingCard"><div className="loader"/><p>A carregar desafios…</p></div> : visible.length ? <div className="challengeChoiceGrid">{visible.map(challenge => <ChallengeCard key={challenge.id} challenge={challenge} onOpen={setSelectedId}/>)}</div> : <div className="emptyState card pad"><Flag size={38}/><h2>{currentUser.role === 'aluno' ? 'Sem desafios atribuídos' : 'Ainda não existem desafios'}</h2><p>{currentUser.role === 'aluno' ? 'Quando o estúdio te atribuir um desafio, aparecerá aqui automaticamente.' : 'Cria o primeiro desafio. Já não é necessário um login ou PIN separado.'}</p>{canManage && <button className="primary" onClick={() => setCreating(true)}><Plus size={17}/>Criar primeiro desafio</button>}</div>}
