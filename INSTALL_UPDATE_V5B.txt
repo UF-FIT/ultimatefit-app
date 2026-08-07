@@ -1,0 +1,48 @@
+ULTIMATE FIT APP — UPDATE 5B · AVALIAÇÃO FÍSICA
+=================================================
+
+ORDEM DE INSTALAÇÃO
+
+1) SUPABASE — MIGRATION 007
+   SQL Editor > New query
+   Executar uma única vez:
+   supabase/migrations/20260807_007_physical_assessments.sql
+
+2) SUPABASE — VERIFICAÇÃO
+   Executar:
+   supabase/migrations/20260807_007_physical_assessments_verify.sql
+
+   Esperado:
+   - 7 tabelas de avaliação física
+   - helpers/RPC de autorização/publicação
+   - bucket privado assessment-photos
+   - feature flags physical_assessments/progress/progress_photos ativas
+
+3) GITHUB
+   Carregar todo o conteúdo deste update para a branch main.
+   Commit sugerido:
+   Update 5B — avaliação física modular
+
+4) VERCEL
+   Aguardar novo deployment ficar Ready.
+   Se der Error, abrir Build Logs antes de fazer Redeploy.
+
+O QUE ENTRA NESTA VERSÃO
+- Avaliações reais ligadas ao Supabase
+- Seleção do aluno / acesso direto a partir do perfil
+- Nova avaliação em página normal
+- Rascunho e publicação
+- Anamnese única/obrigatória na primeira avaliação publicada
+- Perimetria
+- Dobras cutâneas
+- Bioimpedância TANITA
+- Análise postural
+- Evolução fotográfica com WebP otimizado
+- Histórico de avaliações
+- Gráfico das últimas 5 avaliações
+- Aluno vê apenas avaliações publicadas
+- Professores trabalham apenas com alunos atribuídos e permissão manage_assessments
+
+NOTA PAR-Q
+O PAR-Q obrigatório + aceitação digital do aluno entra no Update 5B.1.
+Nesta versão a interface já o assinala como próxima etapa, mas não o ativa ainda.

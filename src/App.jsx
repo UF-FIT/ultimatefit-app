@@ -7,6 +7,7 @@ import StudentDirectory,{StudentSelfHome} from './components/StudentDirectory';
 import ProfessionalProfile from './components/ProfessionalProfile';
 import BrandLogo from './components/BrandLogo';
 import ChallengesModule from './components/ChallengesModule';
+import AssessmentsModule from './components/AssessmentsModule';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
 import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
@@ -29,18 +30,20 @@ function Shell(){
   const challengePath=window.location.pathname.toLowerCase().startsWith('/desafios');
   return challengeHost||challengePath?'challenges':'dashboard';
  });
+ const [pageContext,setPageContext]=useState({});
+ const navigate=(key,context={})=>{setPage(key);setPageContext(context||{})};
  const nav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
  return <div className="appShell">
-  <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={18}/>{label}</button>)}</div></aside>
-  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>setPage('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
-  <div className="content"><PageRouter page={page} onNavigate={setPage}/></div>
-  <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
+  <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
+  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>navigate('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
+  <div className="content"><PageRouter page={page} context={pageContext} onNavigate={navigate}/></div>
+  <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
   </main>
  </div>
 }
 
-function PageRouter({page,onNavigate}){
- const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<Assessments/>,plans:<Plans/>,nutrition:<Nutrition/>,challenges:<ChallengesModule/>,exercises:<Exercises/>,messages:<Messages/>,reports:<Reports/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
+function PageRouter({page,context,onNavigate}){
+ const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<Plans/>,nutrition:<Nutrition/>,challenges:<ChallengesModule/>,exercises:<Exercises/>,messages:<Messages/>,reports:<Reports/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}
@@ -53,7 +56,7 @@ function Dashboard({onNavigate}){
  const visibleStudents=currentUser.role==='admin'?data.students:data.students.filter(s=>s.trainerIds?.includes(currentUser.id));
  return <><Heading title={`Olá, ${currentUser.name.split(' ')[0]}`} sub="Visão geral da plataforma."/>
  <div className="grid four"><Kpi icon={Users} label="Alunos ativos" value={visibleStudents.filter(s=>s.active).length}/><Kpi icon={Dumbbell} label="Planos ativos" value={data.plans.filter(p=>p.status==='Ativo').length}/><Kpi icon={ClipboardList} label="Avaliações" value={data.assessments.length}/><Kpi icon={BookOpen} label="Exercícios" value={data.exercises.length}/></div>
- <div className="grid two section"><Card className="pad"><h2>Alunos recentes</h2>{visibleStudents.length?visibleStudents.slice(0,6).map(s=><div className="listRow" key={s.id}><div className="avatar small">{s.thumbUrl?<img src={s.thumbUrl} alt={s.name}/>:s.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><b>{s.name}</b><small>{s.objective||'Objetivo por definir'}</small></div><Badge tone={s.active?'green':'gray'}>{s.active?'Ativo':'Sem acesso'}</Badge></div>):<div className="notice">Ainda não existem alunos reais. Cria o primeiro registo na secção Alunos.</div>}</Card><Card className="pad"><h2>Estado da plataforma</h2><div className="notice">Módulo real de alunos ligado ao Supabase.</div><div className="notice">Avaliações físicas serão ativadas no Update 5B.</div><div className="notice">{data.settings.comingSoon?'Página Coming Soon ativa.':'Aplicação pública ativa.'}</div></Card></div></>;
+ <div className="grid two section"><Card className="pad"><h2>Alunos recentes</h2>{visibleStudents.length?visibleStudents.slice(0,6).map(s=><div className="listRow" key={s.id}><div className="avatar small">{s.thumbUrl?<img src={s.thumbUrl} alt={s.name}/>:s.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><b>{s.name}</b><small>{s.objective||'Objetivo por definir'}</small></div><Badge tone={s.active?'green':'gray'}>{s.active?'Ativo':'Sem acesso'}</Badge></div>):<div className="notice">Ainda não existem alunos reais. Cria o primeiro registo na secção Alunos.</div>}</Card><Card className="pad"><h2>Estado da plataforma</h2><div className="notice">Módulo real de alunos ligado ao Supabase.</div><div className="notice">Avaliações físicas modulares ligadas ao Supabase.</div><div className="notice">{data.settings.comingSoon?'Página Coming Soon ativa.':'Aplicação pública ativa.'}</div></Card></div></>;
 }
 function StudentDashboard({student,onNavigate}){const {data,refreshStudents}=useApp();return <StudentSelfHome student={student} assessments={data.assessments.filter(a=>a.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/>;}
 
@@ -172,12 +175,6 @@ function Trainers(){
 function PermissionEditor({selected,onToggle,customSetter}){
  const toggle=key=>customSetter?customSetter(list=>list.includes(key)?list.filter(item=>item!==key):[...list,key]):onToggle(key);
  return <div className="permissionEditor wide"><div className="permissionHeader"><div><h3>Permissões do professor</h3><p>Aplicam-se apenas aos alunos atribuídos e nunca dão acesso aos planos privados de outros professores.</p></div><Badge tone="yellow">{selected.length}/{trainerPermissionOptions.length}</Badge></div><div className="permissionGrid">{trainerPermissionOptions.map(item=><label className={selected.includes(item.key)?'permissionOption selected':'permissionOption'} key={item.key}><input type="checkbox" checked={selected.includes(item.key)} onChange={()=>toggle(item.key)}/><div><b>{item.label}</b><small>{item.description}</small></div></label>)}</div></div>
-}
-
-function Assessments(){
- const {data,currentUser}=useApp();
- const student=currentUser.role==='aluno'?data.students.find(item=>item.userId===currentUser.id):null;
- return <><Heading title="Avaliações físicas" sub="Anamnese, perimetria, dobras cutâneas, TANITA, postura, evolução fotográfica e gráficos comparativos."/><Card className="pad section moduleRoadmap"><Activity size={34}/><div><h2>{student?'Ainda não existem avaliações publicadas':'Módulo preparado para o Update 5B'}</h2><p>{student?'Quando o professor publicar uma avaliação, o histórico e os gráficos aparecerão aqui.':'A evolução deixa de ser um menu separado: ficará dentro da avaliação física de cada aluno, com histórico, fotografias e gráficos comparativos.'}</p></div></Card></>;
 }
 
 function Evolution({compact=false,studentId}){const {data,currentUser}=useApp();const sid=studentId||data.students.find(s=>s.userId===currentUser.id)?.id||data.students[0]?.id;const rows=data.assessments.filter(a=>a.studentId===sid).sort((a,b)=>a.date.localeCompare(b.date));const first=rows[0],last=rows.at(-1);const metrics=[['Peso','weight','kg'],['Massa gorda','fat','%'],['Massa muscular','muscle','kg'],['Cintura','waist','cm']];return <div className={compact?'section':''}>{!compact&&<Heading title="Evolução" sub="Comparação automática entre avaliações."/>}<div className="grid four">{metrics.map(([label,key,unit])=><Card className="metric" key={key}><small>{label}</small><strong>{last?.[key]??'—'} {unit}</strong><span>{first&&last?`${(last[key]-first[key]).toFixed(1)} ${unit} desde o início`:'Sem comparação'}</span></Card>)}</div><Card className="pad section"><h2>Evolução corporal</h2><div className="chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={rows}><CartesianGrid stroke="rgba(255,255,255,.08)" vertical={false}/><XAxis dataKey="date" tick={{fill:'#888'}}/><YAxis tick={{fill:'#888'}}/><Tooltip contentStyle={{background:'#111',border:'1px solid #333'}}/><Line dataKey="weight" stroke="#ffd908" strokeWidth={3}/><Line dataKey="waist" stroke="#aaa" strokeWidth={3}/></LineChart></ResponsiveContainer></div></Card>{!compact&&<Card className="pad section"><h2>Comparação fotográfica</h2><div className="grid two"><div className="photoBox">Avaliação inicial</div><div className="photoBox">Avaliação atual</div></div></Card>}</div>}

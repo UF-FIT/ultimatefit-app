@@ -1,0 +1,19 @@
+UPDATE 5B — AVALIAÇÃO FÍSICA MODULAR
+
+Estrutura:
+1. Anamnese — primeira avaliação apenas
+2. Perimetria
+3. Dobras cutâneas
+4. Bioimpedância TANITA
+5. Análise postural
+6. Evolução em fotografias
+7. Gráficos comparativos das últimas 5 avaliações
+
+Regras:
+- Reavaliações podem usar apenas os módulos escolhidos pelo professor.
+- A primeira avaliação só pode ser publicada depois de existir anamnese.
+- Rascunhos são privados da equipa.
+- Alunos veem apenas avaliações publicadas.
+- Fotografias ficam em bucket privado e são convertidas no browser para WebP.
+- Avaliações publicadas são arquivadas em vez de apagadas pela interface.
+- PAR-Q/consentimento obrigatório fica reservado para o Update 5B.1.

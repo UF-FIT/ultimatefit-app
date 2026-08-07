@@ -3,6 +3,7 @@ import {load, save} from '../lib/storage';
 import {useAuth} from './AuthContext';
 import {seedUsers,seedExercises} from '../data/seed';
 import {fetchStudents} from '../lib/students';
+import {fetchAssessments} from '../lib/assessments';
 
 const AppContext=createContext(null);
 const demoInitial={users:seedUsers,exercises:seedExercises,settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
@@ -28,6 +29,8 @@ export function AppProvider({children}){
  const [data,setData]=useState(buildInitial);
  const [studentsLoading,setStudentsLoading]=useState(true);
  const [studentsError,setStudentsError]=useState('');
+ const [assessmentsLoading,setAssessmentsLoading]=useState(true);
+ const [assessmentsError,setAssessmentsError]=useState('');
 
  useEffect(()=>{
   const {students,assessments,plans,nutrition,goals,messages,...safeToStore}=data;
@@ -47,7 +50,21 @@ export function AppProvider({children}){
   }finally{setStudentsLoading(false)}
  }
 
- useEffect(()=>{refreshStudents()},[profile?.id]);
+
+ async function refreshAssessments(){
+  if(!profile){setData(d=>({...d,assessments:[]}));setAssessmentsLoading(false);return []}
+  setAssessmentsLoading(true);setAssessmentsError('');
+  try{
+   const assessments=await fetchAssessments();
+   setData(d=>({...d,assessments}));
+   return assessments;
+  }catch(error){
+   setAssessmentsError(error.message||'Não foi possível carregar as avaliações.');
+   return [];
+  }finally{setAssessmentsLoading(false)}
+ }
+
+ useEffect(()=>{refreshStudents();refreshAssessments()},[profile?.id]);
 
  const currentUser=profile?{
   id:profile.id,
@@ -66,7 +83,7 @@ export function AppProvider({children}){
   deletedAt:profile.deleted_at,
  }:data.users[0];
  const update=(key,fn)=>setData(d=>({...d,[key]:typeof fn==='function'?fn(d[key]):fn}));
- const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError}),[data,currentUser,studentsLoading,studentsError]);
+ const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError]);
  return <AppContext.Provider value={api}>{children}</AppContext.Provider>
 }
 export const useApp=()=>useContext(AppContext);

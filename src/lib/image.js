@@ -68,3 +68,39 @@ export async function optimiseStudentAvatar(file) {
     if (typeof source.close === 'function') source.close();
   }
 }
+
+
+async function renderContained(source, maxWidth, maxHeight, quality) {
+  const sourceWidth = source.width || source.naturalWidth;
+  const sourceHeight = source.height || source.naturalHeight;
+  const scale = Math.min(1, maxWidth / sourceWidth, maxHeight / sourceHeight);
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d', { alpha: false });
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+  context.fillStyle = '#111';
+  context.fillRect(0, 0, width, height);
+  context.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, width, height);
+  return canvasToBlob(canvas, quality);
+}
+
+export async function optimiseAssessmentPhoto(file) {
+  if (!file) return null;
+  if (!file.type.startsWith('image/')) throw new Error('Seleciona um ficheiro de imagem.');
+  if (file.size > MAX_SOURCE_BYTES) throw new Error('A fotografia original não pode ultrapassar 15 MB.');
+
+  const source = await loadImageSource(file);
+  try {
+    const [image, thumb] = await Promise.all([
+      renderContained(source, 1600, 1800, 0.8),
+      renderContained(source, 420, 520, 0.72),
+    ]);
+    return { image, thumb };
+  } finally {
+    if (typeof source.close === 'function') source.close();
+  }
+}
