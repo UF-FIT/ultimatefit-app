@@ -6,7 +6,7 @@ import PasswordSetupScreen from './components/PasswordSetupScreen';
 import StudentDirectory,{StudentSelfHome} from './components/StudentDirectory';
 import ProfessionalProfile from './components/ProfessionalProfile';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
-import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,Instagram,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
+import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
 const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['trainers','Professores',UserCog],['assessments','Avaliações',ClipboardList],['evolution','Evolução',BarChart3],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['goals','Objetivos',Target],['challenges','Desafios',Flag],['exercises','Biblioteca',BookOpen],['messages','Avisos',MessageSquare],['reports','Relatórios PDF',FileText],['settings','Backoffice',Settings]];
@@ -132,7 +132,7 @@ function Trainers(){
    <div className="listRow"><div className="avatar">{member.thumbUrl||member.photoUrl?<img src={member.thumbUrl||member.photoUrl} alt={member.full_name}/>:member.full_name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><h3>{member.full_name}</h3><small>{member.email}</small></div><Badge tone={member.role==='owner'||member.role==='admin'?'yellow':'gray'}>{roleName[member.role]}</Badge></div>
    <div className="teamMeta"><Badge tone={statusTone(member)}>{statusFor(member)}</Badge><span>{member.trainerProfile?.professional_title||'Personal Trainer'}</span></div>
    <div className={member.trainerProfile?.whatsapp_phone?'teamWhatsapp':'teamWhatsapp missing'}><MessageSquare size={15}/><span>{member.trainerProfile?.whatsapp_phone||'WhatsApp obrigatório em falta'}</span>{(member.id===currentUser.id||canManage(member))&&<button className="textButton" onClick={()=>setWhatsappEditing(member)}>Editar</button>}</div>
-   {member.trainerProfile?.social_url&&<a className="teamSocialLink" href={member.trainerProfile.social_url} target="_blank" rel="noreferrer"><Instagram size={15}/>{member.trainerProfile.social_url}<ExternalLink size={13}/></a>}
+   {member.trainerProfile?.social_url&&<a className="teamSocialLink" href={member.trainerProfile.social_url} target="_blank" rel="noreferrer"><ExternalLink size={15}/>{member.trainerProfile.social_url}</a>}
    {member.role==='owner'&&<div className="protectedNote"><ShieldCheck size={16}/>Conta principal protegida</div>}
    {member.role==='trainer'&&<button className="secondary full" onClick={()=>openPermissions(member)}><SlidersHorizontal size={16}/>Editar permissões</button>}
    {canManage(member)&&<div className="teamActions">

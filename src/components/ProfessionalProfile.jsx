@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle, Camera, CheckCircle2, ExternalLink, Eye, EyeOff,
-  Instagram, KeyRound, Save, ShieldCheck, UserRound,
+  KeyRound, Save, ShieldCheck, UserRound,
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -109,7 +109,7 @@ export default function ProfessionalProfile() {
         <p>{profile.professionalTitle} · {currentUser.roleLabel}</p>
         <div className="professionalLinks">
           <span><ShieldCheck size={15}/>WhatsApp obrigatório</span>
-          {profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noreferrer"><Instagram size={15}/>{socialDisplay(profile.socialUrl)}<ExternalLink size={13}/></a>}
+          {profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noreferrer"><ExternalLink size={15}/>{socialDisplay(profile.socialUrl)}</a>}
         </div>
       </div>
     </section>
