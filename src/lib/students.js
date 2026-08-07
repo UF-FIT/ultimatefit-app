@@ -54,7 +54,7 @@ async function signedUrl(bucket, path, expires = 3600) {
 export async function fetchStudents() {
   const { data: studentRows, error: studentError } = await supabase
     .from('student_profiles')
-    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,emergency_contact_phone,start_date,status,notes,postal_code,city,tracking_type,archived_at,deleted_at,created_at')
+    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,emergency_contact_phone,start_date,status,notes,main_goal,postal_code,city,tracking_type,archived_at,deleted_at,created_at')
     .order('student_number', { ascending: true });
   if (studentError) throw studentError;
   if (!studentRows?.length) return [];
@@ -180,6 +180,7 @@ export async function fetchStudents() {
       active: Boolean(profile.is_active && row.status === 'active' && !profile.deleted_at && !row.deleted_at),
       trackingType: row.tracking_type || '',
       notes: row.notes || '',
+      mainGoal: row.main_goal || '',
       archivedAt: row.archived_at,
       deletedAt: row.deleted_at || profile.deleted_at,
       trainerIds: trainers.map(item => item.profileId),
@@ -276,7 +277,7 @@ export async function uploadStudentAvatar(studentId, file) {
 export function buildStudentAccessMessage(student) {
   const firstName = student.name?.split(' ')[0] || 'Olá';
   const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ultimatefit-app.vercel.app';
-  return `${firstName}, a tua conta na ULTIMATE FIT APP está preparada.\n\nAcesso: ${appUrl}\nEmail: ${student.email}\n\n1. Abre o email enviado pela ULTIMATE FIT e define a tua palavra-passe.\n2. Entra na app com o email acima.\n3. Caso não te recordes da password, usa “Esqueci-me da palavra-passe”.\n\nPara instalar no telemóvel:\n• iPhone/Safari: Partilhar → Adicionar ao ecrã principal.\n• Android/Chrome: menu ⋮ → Instalar aplicação ou Adicionar ao ecrã principal.\n\nNa app poderás consultar avaliações, plano de treino e plano alimentar.`;
+  return `${firstName}, a tua conta na ULTIMATE FIT APP está preparada.\n\nAcesso: ${appUrl}\nEmail: ${student.email}\n\n1. Abre o email enviado pela ULTIMATE FIT e define a tua palavra-passe.\n2. Entra na app com o email acima.\n3. Caso não te recordes da password, usa “Esqueci-me da palavra-passe”.\n\nPara instalar no telemóvel:\n• iPhone/Safari: Partilhar → Adicionar ao ecrã principal.\n• Android/Chrome: menu ⋮ → Instalar aplicação ou Adicionar ao ecrã principal.\n\nNa app poderás consultar avaliações, evolução, objetivos, plano de treino, plano alimentar e desafios — tudo com o mesmo acesso.`;
 }
 
 export function whatsappUrl(phone, message = '') {

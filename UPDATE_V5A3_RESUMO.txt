@@ -1,0 +1,38 @@
+ULTIMATE FIT APP — UPDATE 5A.3
+BRANDING + REORGANIZAÇÃO + DESAFIOS INTEGRADOS
+
+O QUE MUDA
+
+1. NOVO LOGOTIPO
+- O logotipo horizontal ULTIMATE FIT passa a ser usado na navegação e ecrãs de acesso.
+- Asset otimizado: WebP 720 px, aproximadamente 8 KB.
+- Novos ícones PWA 192x192 e 512x512 derivados do símbolo U.
+
+2. MENU MAIS LIMPO
+- Sai "Evolução" do menu principal.
+- Sai "Objetivos" do menu principal.
+- Evolução passa a fazer parte da Avaliação Física/perfil do aluno.
+- Objetivos passam a estar no perfil individual do aluno.
+
+3. OBJETIVOS NO PERFIL
+- Professor/Admin/Proprietário pode definir ou editar o objetivo no perfil do aluno.
+- O aluno vê o objetivo, mas não o altera.
+- Usa a coluna main_goal que já existe em student_profiles.
+
+4. DESAFIOS INTEGRADOS
+- Acaba o segundo login e o PIN dos Desafios.
+- A mesma conta Supabase Auth da ULTIMATE FIT APP dá acesso aos Desafios.
+- Novas tabelas: challenges, challenge_participants, challenge_records.
+- Criação e edição de desafios.
+- Atribuição de alunos.
+- Registo diário.
+- Progresso, melhor dia e dias preenchidos.
+- Ranking.
+- Histórico do registo do aluno.
+- RLS e permissões por perfil/aluno.
+- Não são migrados dados do antigo desafios.ultimatefit.pt: começa do zero.
+
+5. COMPATIBILIDADE COM desafios.ultimatefit.pt
+- A app deteta o hostname desafios.ultimatefit.pt ou o caminho /desafios.
+- Depois de o domínio ser apontado para o mesmo projeto Vercel, o utilizador entra diretamente no módulo Desafios.
+- Se não estiver autenticado, faz o login normal da ULTIMATE FIT APP e entra com a mesma conta.

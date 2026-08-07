@@ -1,11 +1,11 @@
 import React, {createContext, useContext, useEffect, useMemo, useState} from 'react';
 import {load, save} from '../lib/storage';
 import {useAuth} from './AuthContext';
-import {seedUsers,seedExercises,seedChallenges} from '../data/seed';
+import {seedUsers,seedExercises} from '../data/seed';
 import {fetchStudents} from '../lib/students';
 
 const AppContext=createContext(null);
-const demoInitial={users:seedUsers,exercises:seedExercises,challenges:seedChallenges,settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
+const demoInitial={users:seedUsers,exercises:seedExercises,settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
 const roleMap={owner:'admin',admin:'admin',trainer:'professor',student:'aluno'};
 const roleLabels={owner:'Proprietário',admin:'Administrador',trainer:'Professor',student:'Aluno'};
 

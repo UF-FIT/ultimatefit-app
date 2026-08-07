@@ -1,0 +1,77 @@
+ULTIMATE FIT APP — INSTALAÇÃO UPDATE 5A.3
+
+IMPORTANTE
+- O Update 5A.2 deve estar instalado.
+- Não mexer no projeto Supabase antigo dos Desafios.
+- Não carregar .env nem Secret Keys no GitHub.
+- Este update começa os Desafios do zero no Supabase da ultimatefit-app.
+
+ORDEM
+
+1) SUPABASE — MIGRAÇÃO 006
+Supabase > projeto ultimatefit-app > SQL Editor > New query
+Executar todo o ficheiro:
+  supabase/migrations/20260807_006_integrated_challenges.sql
+
+Resultado esperado:
+  Success. No rows returned
+
+Depois, numa nova query, executar:
+  supabase/migrations/20260807_006_integrated_challenges_verify.sql
+
+Confirmar que aparecem:
+- challenges
+- challenge_participants
+- challenge_records
+- políticas RLS das três tabelas
+- funções can_manage_challenges_global, can_manage_challenge_student,
+  challenge_leaderboard e validate_challenge_record_date
+- feature flag challenges = true
+
+2) SUPABASE — EDGE FUNCTION manage-student
+Edge Functions > manage-student > Code
+Substituir TODO o index.ts pelo ficheiro deste pacote:
+  supabase/functions/manage-student/index.ts
+
+Depois:
+  Deploy updates
+
+Manter:
+  Verify JWT with legacy secret = OFF
+
+Esta alteração serve para editar o objetivo do aluno dentro do respetivo perfil.
+
+3) GITHUB
+No repositório UF-FIT/ultimatefit-app, branch main:
+  Add file > Upload files
+
+Carregar TODO o conteúdo desta pasta, substituindo os ficheiros existentes.
+Não carregar ficheiros .env reais.
+
+Commit sugerido:
+  Update 5A.3 — branding, navegação e desafios integrados
+
+4) VERCEL
+Aguardar deployment automático.
+Tem de ficar:
+  Ready
+
+Abrir a aplicação e fazer Ctrl + F5.
+
+5) TESTES
+A) Confirmar novo logotipo no canto superior esquerdo e no login.
+B) Confirmar que Evolução e Objetivos desapareceram do menu lateral.
+C) Abrir um aluno > confirmar bloco Objetivos no perfil.
+D) Definir um objetivo e guardar.
+E) Abrir Desafios > Novo desafio.
+F) Criar primeiro um desafio de teste.
+G) Atribuir um aluno ao desafio.
+H) Entrar com a conta desse aluno.
+I) Confirmar que o mesmo login abre a app e o módulo Desafios.
+J) Registar um valor diário e confirmar progresso + ranking.
+
+6) SÓ DEPOIS DOS TESTES — desafios.ultimatefit.pt
+Quando o módulo estiver validado, o domínio desafios.ultimatefit.pt pode deixar o projeto antigo
+e passar a apontar para o MESMO projeto Vercel da ultimatefit-app.
+A app já reconhece esse hostname e abre diretamente Desafios.
+Faremos este passo em conjunto para não interferir com app.ultimatefit.pt.

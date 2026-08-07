@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import BrandLogo from './BrandLogo';
 
 export default function LoginScreen() {
   const { signIn, authError, requestPasswordReset } = useAuth();
@@ -42,9 +43,9 @@ export default function LoginScreen() {
   return (
     <main className="loginPage">
       <section className="loginIntro">
-        <div className="loginBrand"><span>UF</span> ULTIMATE <b>FIT</b></div>
+        <div className="loginBrand"><BrandLogo/></div>
         <div className="loginCopy">
-          <small>ULTIMATE FIT APP</small>
+          <small>APP PRIVADA</small>
           <h1>BE STRONG.<br />BE ULTIMATE.</h1>
           <p>A plataforma do estúdio para avaliações, evolução, treino, nutrição, objetivos e desafios.</p>
         </div>
@@ -54,11 +55,11 @@ export default function LoginScreen() {
       <section className="loginPanel">
         {mode === 'login' ? (
           <form className="loginCard" onSubmit={handleLogin}>
-            <div className="loginMark">UF</div>
+            <div className="loginMarkImage"><BrandLogo compact/></div>
             <div>
               <small>ACESSO PRIVADO</small>
               <h2>Entrar na aplicação</h2>
-              <p>Utiliza a conta criada no ULTIMATE FIT.</p>
+              <p>Utiliza a conta criada pelo estúdio.</p>
             </div>
 
             <label className="loginField">
@@ -87,7 +88,7 @@ export default function LoginScreen() {
             <button type="button" className="backButton" onClick={() => { setMode('login'); setLocalError(''); setSuccess(''); }}>
               <ArrowLeft size={17} /> Voltar ao login
             </button>
-            <div className="loginMark">UF</div>
+            <div className="loginMarkImage"><BrandLogo compact/></div>
             <div>
               <small>RECUPERAÇÃO DE ACESSO</small>
               <h2>Repor palavra-passe</h2>

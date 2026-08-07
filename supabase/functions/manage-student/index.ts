@@ -10,6 +10,7 @@ type AppRole = 'owner' | 'admin' | 'trainer' | 'student'
 type Action =
   | 'invite'
   | 'update_profile'
+  | 'update_goal'
   | 'assign_trainers'
   | 'set_avatar'
   | 'resend_access'
@@ -191,6 +192,13 @@ Deno.serve(async (req) => {
   async function canView(studentId: string, profileId: string) {
     if (await canManage(studentId)) return true
     return caller.role === 'student' && caller.id === profileId
+  }
+
+  async function canManageGoal(studentId: string) {
+    if (['owner', 'admin'].includes(caller.role)) return true
+    return caller.role === 'trainer'
+      && await callerHasPermission('manage_goals')
+      && await isAssigned(studentId)
   }
 
   async function requireTrainerWhatsApp(trainerProfileId: string) {
@@ -417,6 +425,24 @@ Deno.serve(async (req) => {
         action: self ? 'student_self_profile_updated' : 'student_profile_updated',
       })
       return json({ ok: true, message: 'Perfil atualizado.' })
+    }
+
+    if (action === 'update_goal') {
+      if (!await canManageGoal(studentId)) {
+        return json({ error: 'Não tens permissão para alterar os objetivos deste aluno.' }, 403)
+      }
+      const mainGoal = nullable(cleanLongText(payload.mainGoal, 1500))
+      const { error } = await admin
+        .from('student_profiles')
+        .update({ main_goal: mainGoal })
+        .eq('id', studentId)
+      if (error) throw error
+      await admin.from('student_activity_log').insert({
+        student_id: studentId,
+        actor_id: caller.id,
+        action: 'student_goal_updated',
+      })
+      return json({ ok: true, message: 'Objetivo do aluno atualizado.' })
     }
 
     if (action === 'set_avatar') {

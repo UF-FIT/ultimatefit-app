@@ -3,7 +3,7 @@ import {
   Activity, AlertTriangle, Apple, Archive, ArrowLeft, CalendarDays, Camera,
   Check, CheckCircle2, ChevronRight, Dumbbell, Edit3, ExternalLink, FileText,
   Mail, MessageCircle, MoreVertical, Plus, Power, RefreshCw, Search, Send,
-  Trash2, UserRound, Users, X,
+  Target, Trash2, UserRound, Users, X,
 } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../contexts/AppContext';
@@ -168,7 +168,28 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
 
 function ProfileSummaryChart({ assessments = [] }) {
   const rows = assessments.slice(-4);
-  return <div className="profileChart"><div className="profileChartHeader"><div><h3>Resumo das últimas 4 avaliações</h3><p>Peso, massa gorda, massa muscular e cintura.</p></div></div>{rows.length ? <ResponsiveContainer width="100%" height={230}><LineChart data={rows}><XAxis dataKey="date" tick={{ fill: '#777', fontSize: 11 }} /><YAxis tick={{ fill: '#777', fontSize: 11 }} /><Tooltip contentStyle={{ background: '#111', border: '1px solid #333' }} /><Line type="monotone" dataKey="weight" stroke="#ffd908" strokeWidth={3} connectNulls /><Line type="monotone" dataKey="waist" stroke="#aaa" strokeWidth={2} connectNulls /></LineChart></ResponsiveContainer> : <div className="emptyChart"><Activity size={30}/><b>Sem avaliações publicadas</b><span>O gráfico será preenchido no Update 5B.</span></div>}</div>;
+  return <div className="profileChart"><div className="profileChartHeader"><div><h3>Evolução · últimas 4 avaliações</h3><p>Peso, massa gorda, massa muscular e cintura. A evolução passa a fazer parte da avaliação física do aluno.</p></div></div>{rows.length ? <ResponsiveContainer width="100%" height={230}><LineChart data={rows}><XAxis dataKey="date" tick={{ fill: '#777', fontSize: 11 }} /><YAxis tick={{ fill: '#777', fontSize: 11 }} /><Tooltip contentStyle={{ background: '#111', border: '1px solid #333' }} /><Line type="monotone" dataKey="weight" stroke="#ffd908" strokeWidth={3} connectNulls /><Line type="monotone" dataKey="waist" stroke="#aaa" strokeWidth={2} connectNulls /></LineChart></ResponsiveContainer> : <div className="emptyChart"><Activity size={30}/><b>Sem avaliações publicadas</b><span>A evolução aparecerá aqui após as primeiras avaliações.</span></div>}</div>;
+}
+
+function StudentGoalPanel({ student, editable = false, onRefresh }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(student.mainGoal || '');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  useEffect(() => setValue(student.mainGoal || ''), [student.mainGoal]);
+  async function save() {
+    setBusy(true); setMessage('');
+    try {
+      const result = await invokeStudentAction({ action: 'update_goal', studentId: student.id, mainGoal: value });
+      setMessage(result.message || 'Objetivo atualizado.'); setEditing(false); await onRefresh?.();
+    } catch (err) { setMessage(err.message || 'Não foi possível guardar o objetivo.'); }
+    finally { setBusy(false); }
+  }
+  return <section className="card pad studentGoalPanel"><div className="panelTitle"><div><h2>Objetivos</h2><p>As metas do aluno ficam integradas no próprio perfil.</p></div><Target size={25}/></div>
+    {editing ? <div className="goalEditor"><textarea value={value} onChange={event => setValue(event.target.value)} rows="4" placeholder="Ex.: melhorar mobilidade, reduzir perímetro da cintura, ganhar força…"/><div className="modalActions"><button className="secondary" onClick={() => { setEditing(false); setValue(student.mainGoal || ''); }}>Cancelar</button><button className="primary" onClick={save} disabled={busy}>{busy ? 'A guardar…' : 'Guardar objetivo'}</button></div></div>
+      : <div className="goalSummary"><strong>{student.mainGoal || 'Objetivo ainda não definido.'}</strong>{editable && <button className="secondary" onClick={() => setEditing(true)}><Edit3 size={16}/>{student.mainGoal ? 'Editar objetivo' : 'Definir objetivo'}</button>}</div>}
+    {message && <small className="challengeInlineMessage">{message}</small>}
+  </section>;
 }
 
 function StudentProfile({ student, currentUser, trainers, assessments, onBack, onEdit, onRefresh, onNavigate }) {
@@ -218,7 +239,8 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
       <section className="card pad studentDetails"><div className="panelTitle"><div><h2>Ficha do aluno</h2><p>Dados essenciais do acompanhamento.</p></div><UserRound size={24}/></div><div className="detailsGrid"><div><small>Tipo</small><b>{trackingLabels[student.trackingType] || '—'}</b></div><div><small>Professor principal</small><b>{student.primaryTrainer?.name || '—'}</b></div><div><small>Início</small><b>{formatDate(student.startDate)}</b></div><div><small>Email</small><b>{student.email}</b></div><div><small>Telemóvel</small><b>{student.phone || '—'}</b></div></div></section>
     </div>
 
-    <section className="profileModules"><button onClick={()=>onNavigate?.('assessments')}><Activity/><div><b>Avaliação física</b><span>Histórico, métricas e evolução</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Planos ativos e histórico</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Documentos e notas</span></div><ChevronRight/></button></section>
+    <StudentGoalPanel student={student} editable={currentUser.role !== 'aluno'} onRefresh={onRefresh}/>
+    <section className="profileModules"><button onClick={()=>onNavigate?.('assessments')}><Activity/><div><b>Avaliação física</b><span>Histórico, métricas, evolução e fotografias</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Planos ativos e histórico</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Documentos e notas</span></div><ChevronRight/></button></section>
     <ProfileSummaryChart assessments={assessments} />
   </div>;
 }
@@ -300,7 +322,8 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     <section className="studentSelfHero"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · Professor: {student.primaryTrainer?.name || 'Por definir'}</p></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
     {student.primaryTrainer && <section className="assignedTrainerCard card"><div className="assignedTrainerPhoto">{student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl?<img src={student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl} alt={student.primaryTrainer.name}/>:<span>{student.primaryTrainer.name.split(' ').map(item=>item[0]).slice(0,2).join('')}</span>}</div><div className="assignedTrainerInfo"><span className="eyebrow">PROFESSOR PRINCIPAL</span><h2>{student.primaryTrainer.name}</h2><p>{student.primaryTrainer.professionalTitle || 'Personal Trainer'}</p></div><div className="assignedTrainerActions"><button className="primary" onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle size={17}/>WhatsApp</button>{student.primaryTrainer.socialUrl&&<a className="secondary" href={student.primaryTrainer.socialUrl} target="_blank" rel="noreferrer"><ExternalLink size={17}/>Rede social</a>}</div></section>}
-    <section className="profileModules studentModules"><button onClick={()=>onNavigate?.('assessments')}><Activity/><div><b>Avaliação física</b><span>Últimas avaliações e gráfico comparativo</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Consultar o plano atual</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Consultar documentos publicados</span></div><ChevronRight/></button></section>
+    <StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/>
+    <section className="profileModules studentModules"><button onClick={()=>onNavigate?.('assessments')}><Activity/><div><b>Avaliação física</b><span>Últimas avaliações, evolução e gráfico comparativo</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Consultar o plano atual</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Consultar documentos publicados</span></div><ChevronRight/></button></section>
     <ProfileSummaryChart assessments={assessments.slice(-5)} />
     {editing&&<Modal title="Editar o meu perfil" close={()=>setEditing(false)} wide><StudentForm student={student} trainers={trainers} currentUser={currentUser} onCancel={()=>setEditing(false)} onSaved={async message=>{setEditing(false);setNotice(message);await onRefresh?.()}}/></Modal>}
   </>;

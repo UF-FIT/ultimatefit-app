@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, LockKeyhole } from 'lucide-react';
 import { consumeAuthLink, createAuthLinkClient, supabase } from '../lib/supabase';
+import BrandLogo from './BrandLogo';
 
 export default function PasswordSetupScreen({ mode = 'recovery' }) {
   const clientRef = useRef(null);
@@ -145,7 +146,7 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
     return (
       <main className="passwordPage">
         <section className="passwordCard">
-          <div className="loginMark">UF</div>
+          <div className="loginMarkImage"><BrandLogo compact/></div>
           <small>A VALIDAR LINK</small>
           <h1>A preparar o acesso</h1>
           <div className="loader" />
@@ -158,7 +159,7 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
     return (
       <main className="passwordPage">
         <section className="passwordCard">
-          <div className="loginMark">UF</div>
+          <div className="loginMarkImage"><BrandLogo compact/></div>
           <small>LINK INVÁLIDO OU EXPIRADO</small>
           <h1>Não foi possível validar o acesso</h1>
           <p>{error || 'Solicita um novo convite ou uma nova recuperação de palavra-passe.'}</p>
@@ -171,7 +172,7 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
   return (
     <main className="passwordPage">
       <form className="passwordCard" onSubmit={handleSubmit}>
-        <div className="loginMark">UF</div>
+        <div className="loginMarkImage"><BrandLogo compact/></div>
         <small>{isInvite ? 'ATIVAR CONTA' : 'RECUPERAR ACESSO'}</small>
         <h1>{isInvite ? 'Define a tua palavra-passe' : 'Cria uma nova palavra-passe'}</h1>
         <p>
