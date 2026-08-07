@@ -4,11 +4,12 @@ import {AuthProvider,useAuth} from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
 import PasswordSetupScreen from './components/PasswordSetupScreen';
 import StudentDirectory,{StudentSelfHome} from './components/StudentDirectory';
+import ProfessionalProfile from './components/ProfessionalProfile';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
-import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
+import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,Instagram,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
-const adminNav=[['dashboard','Dashboard',Home],['students','Alunos',Users],['trainers','Professores',UserCog],['assessments','Avaliações',ClipboardList],['evolution','Evolução',BarChart3],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['goals','Objetivos',Target],['challenges','Desafios',Flag],['exercises','Biblioteca',BookOpen],['messages','Avisos',MessageSquare],['reports','Relatórios PDF',FileText],['settings','Backoffice',Settings]];
+const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['trainers','Professores',UserCog],['assessments','Avaliações',ClipboardList],['evolution','Evolução',BarChart3],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['goals','Objetivos',Target],['challenges','Desafios',Flag],['exercises','Biblioteca',BookOpen],['messages','Avisos',MessageSquare],['reports','Relatórios PDF',FileText],['settings','Backoffice',Settings]];
 const trainerNav=adminNav.filter(x=>!['trainers','settings'].includes(x[0]));
 const studentNav=[['dashboard','Início',Home],['plans','Treino',Dumbbell],['nutrition','Nutrição',Apple],['assessments','Avaliações',ClipboardList],['evolution','Evolução',BarChart3],['goals','Objetivos',Target],['challenges','Desafios',Flag],['messages','Avisos',MessageSquare],['reports','Relatórios',FileText],['profile','Perfil',User]];
 
@@ -24,7 +25,7 @@ function Shell(){
  const nav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={18}/>{label}</button>)}</div></aside>
-  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
+  <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>setPage('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
   <div className="content"><PageRouter page={page} onNavigate={setPage}/></div>
   <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>setPage(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
   </main>
@@ -86,7 +87,8 @@ function Trainers(){
   try{
    const result=await invokeTeamAction({
     action:'invite',
-    fullName:form.get('name'),
+    firstName:form.get('firstName'),
+    lastName:form.get('lastName'),
     email:form.get('email'),
     role:newRole,
     professionalTitle:form.get('professionalTitle'),
@@ -127,9 +129,10 @@ function Trainers(){
   {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
   {error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
   {loading?<Card className="pad loadingCard"><div className="loader"/><p>A carregar equipa…</p></Card>:<div className="grid three section">{members.map(member=><Card className="pad teamCard" key={member.id}>
-   <div className="listRow"><div className="avatar">{member.full_name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><h3>{member.full_name}</h3><small>{member.email}</small></div><Badge tone={member.role==='owner'||member.role==='admin'?'yellow':'gray'}>{roleName[member.role]}</Badge></div>
+   <div className="listRow"><div className="avatar">{member.thumbUrl||member.photoUrl?<img src={member.thumbUrl||member.photoUrl} alt={member.full_name}/>:member.full_name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><h3>{member.full_name}</h3><small>{member.email}</small></div><Badge tone={member.role==='owner'||member.role==='admin'?'yellow':'gray'}>{roleName[member.role]}</Badge></div>
    <div className="teamMeta"><Badge tone={statusTone(member)}>{statusFor(member)}</Badge><span>{member.trainerProfile?.professional_title||'Personal Trainer'}</span></div>
    <div className={member.trainerProfile?.whatsapp_phone?'teamWhatsapp':'teamWhatsapp missing'}><MessageSquare size={15}/><span>{member.trainerProfile?.whatsapp_phone||'WhatsApp obrigatório em falta'}</span>{(member.id===currentUser.id||canManage(member))&&<button className="textButton" onClick={()=>setWhatsappEditing(member)}>Editar</button>}</div>
+   {member.trainerProfile?.social_url&&<a className="teamSocialLink" href={member.trainerProfile.social_url} target="_blank" rel="noreferrer"><Instagram size={15}/>{member.trainerProfile.social_url}<ExternalLink size={13}/></a>}
    {member.role==='owner'&&<div className="protectedNote"><ShieldCheck size={16}/>Conta principal protegida</div>}
    {member.role==='trainer'&&<button className="secondary full" onClick={()=>openPermissions(member)}><SlidersHorizontal size={16}/>Editar permissões</button>}
    {canManage(member)&&<div className="teamActions">
@@ -139,7 +142,8 @@ function Trainers(){
   </Card>)}</div>}
 
   {open&&<Modal title={isOwner?'Adicionar membro da equipa':'Adicionar professor'} close={()=>setOpen(false)}><form onSubmit={add} className="formGrid">
-   <Input name="name" label="Nome completo" required/>
+   <Input name="firstName" label="Nome" required/>
+   <Input name="lastName" label="Apelido" required/>
    <Input name="email" label="Email" type="email" required/>
    <Select name="role" label="Tipo de acesso" value={newRole} onChange={e=>setNewRole(e.target.value)} options={isOwner?[{value:'trainer',label:'Professor'},{value:'admin',label:'Administrador global'}]:[{value:'trainer',label:'Professor'}]}/>
    <Input name="professionalTitle" label="Função profissional" defaultValue="Personal Trainer"/>
@@ -179,7 +183,7 @@ function Exercises(){const {data}=useApp();const [q,setQ]=useState('');const [gr
 function Messages(){const {data,currentUser}=useApp();const student=data.students.find(s=>s.userId===currentUser.id);const items=currentUser.role==='aluno'?data.messages.filter(m=>m.studentId===student?.id):data.messages;return <><Heading title="Avisos" sub="Comunicação assíncrona entre professor e aluno."/><div className="section">{items.map(m=><Card className="pad message" key={m.id}><MessageSquare className="yellow"/><div><h3>{m.title}</h3><p>{m.body}</p><small>{m.date}</small></div></Card>)}</div></>}
 function Reports(){const {data}=useApp();return <><Heading title="Relatórios PDF" sub="Geração automática a partir das avaliações físicas."/><Card className="pad section"><h2>Relatório de avaliação</h2><p>Seleciona um aluno e duas avaliações para criar um documento com dados, diferenças, gráficos, observações e identidade ULTIMATE FIT.</p><div className="formGrid"><Select label="Aluno" options={data.students.map(s=>s.name)}/><Select label="Avaliação inicial" options={data.assessments.map(a=>a.date)}/><Select label="Avaliação atual" options={data.assessments.map(a=>a.date)}/><button className="primary full"><FileText size={17}/>Gerar relatório demonstrativo</button></div></Card></>}
 function SettingsPage(){const {data,setData}=useApp();const s=data.settings;return <><Heading title="Backoffice" sub="Definições globais e controlo da aplicação."/><div className="grid two section"><Card className="pad"><h2>Modo público</h2><div className="setting"><div><b>Página Coming Soon</b><small>Enquanto ativa, o público vê apenas a página de lançamento.</small></div><button className={s.comingSoon?'toggle on':'toggle'} onClick={()=>setData(d=>({...d,settings:{...d.settings,comingSoon:!d.settings.comingSoon}}))}><span/></button></div></Card><Card className="pad"><h2>Permissões previstas</h2><p><b>Proprietário:</b> controlo total e conta protegida.</p><p><b>Administrador:</b> gestão global, exceto a conta do Proprietário.</p><p><b>Professor:</b> alunos atribuídos e permissões concedidas.</p><p><b>Aluno:</b> apenas os próprios dados.</p></Card><Card className="pad"><h2>Convites</h2><p>Fluxo final: criação no backoffice → email para definir password → instruções complementares por WhatsApp.</p></Card><Card className="pad"><h2>PWA</h2><p>Manifesto instalável já incluído. Ícone e experiência mobile serão validados antes do deploy.</p></Card></div></>}
-function Profile({onNavigate}){const {currentUser,data,refreshStudents}=useApp();if(currentUser.role==='aluno'){const student=data.students.find(item=>item.userId===currentUser.id);return <StudentSelfHome student={student} assessments={data.assessments.filter(item=>item.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/>;}return <><Heading title="Perfil" sub="Dados da conta e preferências pessoais."/><Card className="pad section"><div className="listRow"><div className="avatar big">{currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div><h2>{currentUser.name}</h2><p>{currentUser.email}</p><Badge tone="yellow">{currentUser.roleLabel}</Badge></div></div></Card></>}
+function Profile({onNavigate}){const {currentUser,data,refreshStudents}=useApp();if(currentUser.role==='aluno'){const student=data.students.find(item=>item.userId===currentUser.id);return <StudentSelfHome student={student} assessments={data.assessments.filter(item=>item.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/>;}return <ProfessionalProfile/>;}
 
 function Modal({title,close,children}){return <div className="overlay"><div className="modal"><div className="title"><h2>{title}</h2><button className="iconButton" onClick={close}><X/></button></div>{children}</div></div>}
 function Input({label,...props}){return <label>{label}<input {...props}/></label>}

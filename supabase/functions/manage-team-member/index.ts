@@ -42,6 +42,14 @@ function getKey(jsonName: string, legacyName: string) {
   return Deno.env.get(legacyName)
 }
 
+function namesFromPayload(payload: Record<string, unknown>) {
+  const legacy = cleanName(payload.fullName)
+  const firstName = cleanName(payload.firstName) || legacy.split(' ')[0] || ''
+  const lastName = cleanName(payload.lastName) || legacy.split(' ').slice(1).join(' ')
+  const fullName = [firstName, lastName].filter(Boolean).join(' ')
+  return { firstName, lastName, fullName }
+}
+
 function cleanEmail(value: unknown) {
   return String(value ?? '').trim().toLowerCase()
 }
@@ -132,13 +140,14 @@ Deno.serve(async (req) => {
   try {
     if (action === 'invite') {
       const email = cleanEmail(payload.email)
-      const fullName = cleanName(payload.fullName)
+      const { firstName, lastName, fullName } = namesFromPayload(payload)
       const requestedRole = String(payload.role ?? 'trainer') as AppRole
       const professionalTitle = cleanName(payload.professionalTitle) || 'Personal Trainer'
       const whatsappPhone = String(payload.whatsappPhone ?? '').trim().replace(/[^0-9+]/g, '').slice(0, 20)
 
       if (!/^\S+@\S+\.\S+$/.test(email)) return json({ error: 'Indica um email válido.' }, 400)
-      if (fullName.length < 2) return json({ error: 'Indica o nome completo.' }, 400)
+      if (firstName.length < 2) return json({ error: 'Indica o nome.' }, 400)
+      if (lastName.length < 2) return json({ error: 'Indica o apelido.' }, 400)
       if (whatsappPhone.length < 9) return json({ error: 'Indica o número de WhatsApp profissional.' }, 400)
       if (!['admin', 'trainer'].includes(requestedRole)) return json({ error: 'Tipo de acesso inválido.' }, 400)
       if (caller.role === 'admin' && requestedRole !== 'trainer') {
@@ -157,7 +166,7 @@ Deno.serve(async (req) => {
       }
 
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-        data: { full_name: fullName },
+        data: { full_name: fullName, first_name: firstName, last_name: lastName },
         redirectTo: `${appUrl}/definir-palavra-passe`,
       })
       if (inviteError || !invited.user) throw inviteError ?? new Error('Não foi possível criar o convite.')
@@ -167,7 +176,7 @@ Deno.serve(async (req) => {
       const appMetadata = { ...(authUser.app_metadata ?? {}), app_role: requestedRole }
       const { error: metadataError } = await admin.auth.admin.updateUserById(authUser.id, {
         app_metadata: appMetadata,
-        user_metadata: { ...(authUser.user_metadata ?? {}), full_name: fullName },
+        user_metadata: { ...(authUser.user_metadata ?? {}), full_name: fullName, first_name: firstName, last_name: lastName },
       })
       if (metadataError) throw metadataError
 
@@ -175,6 +184,8 @@ Deno.serve(async (req) => {
         .from('profiles')
         .update({
           full_name: fullName,
+          first_name: firstName,
+          last_name: lastName,
           role: requestedRole,
           is_active: true,
           deleted_at: null,

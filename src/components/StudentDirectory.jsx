@@ -72,7 +72,8 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
       if (!editing) {
         const result = await invokeStudentAction({
           action: 'invite',
-          fullName: form.get('fullName'),
+          firstName: form.get('firstName'),
+          lastName: form.get('lastName'),
           email: form.get('email'),
           phone: form.get('phone'),
           birthDate: form.get('birthDate'),
@@ -83,6 +84,7 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
           postalCode: form.get('postalCode'),
           city: form.get('city'),
           emergencyContactName: form.get('emergencyContactName'),
+          emergencyContactPhone: form.get('emergencyContactPhone'),
           startDate: form.get('startDate'),
           trackingType: form.get('trackingType'),
           notes: form.get('notes'),
@@ -99,7 +101,8 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
         await invokeStudentAction({
           action: 'update_profile',
           studentId: student.id,
-          fullName: form.get('fullName'),
+          firstName: form.get('firstName'),
+          lastName: form.get('lastName'),
           phone: form.get('phone'),
           birthDate: form.get('birthDate'),
           sex: form.get('sex'),
@@ -109,6 +112,7 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
           postalCode: form.get('postalCode'),
           city: form.get('city'),
           emergencyContactName: form.get('emergencyContactName'),
+          emergencyContactPhone: form.get('emergencyContactPhone'),
           startDate: form.get('startDate'),
           trackingType: form.get('trackingType'),
           notes: form.get('notes'),
@@ -130,8 +134,9 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
     {error && <div className="errorBanner wide"><AlertTriangle size={18} />{error}</div>}
     <section className="formSection wide"><h3><UserRound size={18} />Dados pessoais</h3><div className="formGrid">
       <Field label="Fotografia" className="wide"><div className="photoPicker"><Camera size={20}/><input type="file" accept="image/*" onChange={event => setPhoto(event.target.files?.[0] || null)} /><span>{photo?.name || 'JPG, PNG ou WebP — será otimizado automaticamente.'}</span></div></Field>
-      <Field label="Nome completo *"><input name="fullName" defaultValue={student?.name || ''} required /></Field>
-      <Field label="Email *"><input name="email" type="email" defaultValue={student?.email || ''} required readOnly={editing} /></Field>
+      <Field label="Nome *"><input name="firstName" defaultValue={student?.firstName || student?.name?.split(' ')[0] || ''} required /></Field>
+      <Field label="Apelido *"><input name="lastName" defaultValue={student?.lastName || student?.name?.split(' ').slice(1).join(' ') || ''} required /></Field>
+      <Field label="Email *" className="wide"><input name="email" type="email" defaultValue={student?.email || ''} required readOnly={editing} /></Field>
       {!isStudentSelf && <><Field label="Data de nascimento *"><input name="birthDate" type="date" defaultValue={student?.birth || ''} required /></Field>
       <Field label="Género"><select name="sex" defaultValue={student?.sex || ''}><option value="">Selecionar</option>{sexOptions.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
       <Field label="NIF"><input name="nif" defaultValue={student?.nif || ''} inputMode="numeric" pattern="[0-9]{9}" maxLength="9" placeholder="9 algarismos" /></Field></>}
@@ -143,7 +148,8 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
       <Field label="Morada"><input name="address" defaultValue={student?.address || ''} /></Field>
       <Field label="Código postal"><input name="postalCode" defaultValue={student?.postalCode || ''} /></Field>
       <Field label="Localidade"><input name="city" defaultValue={student?.city || ''} /></Field>
-      <Field label="Contacto de emergência"><input name="emergencyContactName" defaultValue={student?.emergencyContactName || ''} /></Field>
+      <Field label="Contacto de emergência"><input name="emergencyContactPhone" defaultValue={student?.emergencyContactPhone || ''} inputMode="tel" placeholder="Telefone" /></Field>
+      <Field label="Nome do contacto de emergência"><input name="emergencyContactName" defaultValue={student?.emergencyContactName || ''} placeholder="Nome da pessoa" /></Field>
     </div></section>
 
     {!isStudentSelf && <section className="formSection wide"><h3><Dumbbell size={18} />Acompanhamento</h3><div className="formGrid">
@@ -293,6 +299,7 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
   return <>
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     <section className="studentSelfHero"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · Professor: {student.primaryTrainer?.name || 'Por definir'}</p></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
+    {student.primaryTrainer && <section className="assignedTrainerCard card"><div className="assignedTrainerPhoto">{student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl?<img src={student.primaryTrainer.thumbUrl||student.primaryTrainer.photoUrl} alt={student.primaryTrainer.name}/>:<span>{student.primaryTrainer.name.split(' ').map(item=>item[0]).slice(0,2).join('')}</span>}</div><div className="assignedTrainerInfo"><span className="eyebrow">PROFESSOR PRINCIPAL</span><h2>{student.primaryTrainer.name}</h2><p>{student.primaryTrainer.professionalTitle || 'Personal Trainer'}</p></div><div className="assignedTrainerActions"><button className="primary" onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle size={17}/>WhatsApp</button>{student.primaryTrainer.socialUrl&&<a className="secondary" href={student.primaryTrainer.socialUrl} target="_blank" rel="noreferrer"><ExternalLink size={17}/>Rede social</a>}</div></section>}
     <section className="profileModules studentModules"><button onClick={()=>onNavigate?.('assessments')}><Activity/><div><b>Avaliação física</b><span>Últimas avaliações e gráfico comparativo</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('plans')}><Dumbbell/><div><b>Plano de treino</b><span>Consultar o plano atual</span></div><ChevronRight/></button><button onClick={()=>onNavigate?.('nutrition')}><Apple/><div><b>Plano alimentar</b><span>Consultar documentos publicados</span></div><ChevronRight/></button></section>
     <ProfileSummaryChart assessments={assessments.slice(-5)} />
     {editing&&<Modal title="Editar o meu perfil" close={()=>setEditing(false)} wide><StudentForm student={student} trainers={trainers} currentUser={currentUser} onCancel={()=>setEditing(false)} onSaved={async message=>{setEditing(false);setNotice(message);await onRefresh?.()}}/></Modal>}

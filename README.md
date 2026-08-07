@@ -1,8 +1,15 @@
-# ULTIMATE FIT APP — Update 5A
+# ULTIMATE FIT APP — Update 5A.2
 
 Módulo real de **Alunos**, ligado ao Supabase e preparado para as fases seguintes de Avaliação Física, Planos de Treino e Plano Alimentar.
 
 ## Incluído nesta versão
+
+- perfil profissional completo para Proprietário, Administradores e Professores;
+- fotografia profissional otimizada e privada, visível aos alunos atribuídos;
+- Nome e Apelido separados em profissionais e alunos;
+- WhatsApp profissional e página de rede social / Instagram;
+- alteração de palavra-passe dentro da aplicação com validação da palavra-passe atual;
+- contacto de emergência com telefone e nome da pessoa associada;
 
 - alunos reais no Supabase, sem dados fictícios na listagem;
 - criação de conta e convite por email;
@@ -39,7 +46,7 @@ Módulo real de **Alunos**, ligado ao Supabase e preparado para as fases seguint
 
 ## Instalação
 
-Segue `INSTALL_UPDATE_V5A.txt` pela ordem indicada.
+Segue `INSTALL_UPDATE_V5A2.txt` pela ordem indicada.
 
 ## Próximas fases
 

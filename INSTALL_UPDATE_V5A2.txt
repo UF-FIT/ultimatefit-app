@@ -1,0 +1,57 @@
+ULTIMATE FIT APP — UPDATE 5A.2
+Perfil profissional, fotografia, Instagram, alteração de password e nomes separados
+
+ORDEM OBRIGATÓRIA
+
+1) SUPABASE — MIGRAÇÃO 005
+- SQL Editor > New query.
+- Executar supabase/migrations/20260806_005_professional_profiles_and_names.sql.
+- Resultado esperado: Success. No rows returned.
+- Numa nova query, executar 20260806_005_professional_profiles_and_names_verify.sql.
+- Confirmar:
+  * profiles.first_name e profiles.last_name;
+  * trainer_profiles.social_url;
+  * bucket professional-avatars com public=false;
+  * quatro políticas professional_avatars_*.
+
+2) EDGE FUNCTION manage-student
+- Edge Functions > manage-student > Code.
+- Substituir todo o conteúdo de index.ts pelo ficheiro incluído neste pacote.
+- Deploy updates.
+- Settings: Verify JWT with legacy secret = OFF.
+
+3) EDGE FUNCTION manage-team-member
+- Edge Functions > manage-team-member > Code.
+- Substituir todo o conteúdo de index.ts pelo ficheiro incluído neste pacote.
+- Deploy updates.
+- Settings: Verify JWT with legacy secret = OFF.
+
+4) GITHUB
+- Extrair o ZIP.
+- No repositório UF-FIT/ultimatefit-app, branch main:
+  Add file > Upload files.
+- Carregar o conteúdo da pasta extraída, não o ZIP.
+- Commit message:
+  Update 5A.2 — perfil profissional e dados de alunos
+- Commit directly to main.
+
+5) VERCEL
+- Aguardar o deployment automático ficar Ready.
+- Abrir https://ultimatefit-app.vercel.app e fazer Ctrl+F5.
+
+TESTES
+A) Entrar como Proprietário com a password atual.
+B) Abrir O meu perfil.
+C) Guardar Nome, Apelido, WhatsApp, Instagram e fotografia.
+D) Em Segurança, confirmar a password atual e definir uma nova.
+E) Criar um aluno de teste com Nome e Apelido separados.
+F) Confirmar os campos:
+   - Contacto de emergência (telefone)
+   - Nome do contacto de emergência
+G) Na conta do aluno, confirmar que aparece a fotografia, nome, WhatsApp e link social do professor principal.
+
+NOTAS
+- A fotografia profissional é convertida para WebP em 512x512 e miniatura 128x128.
+- O bucket é privado. Apenas o profissional, administradores autorizados e alunos atribuídos conseguem consultar a fotografia.
+- A página de rede social aceita uma URL completa, @utilizador ou utilizador do Instagram.
+- Se a tua password ficou igual à password usada no teste anterior, usa essa password apenas para entrar uma última vez e altera-a em O meu perfil > Segurança.

@@ -21,13 +21,13 @@ export async function fetchTeamMembers() {
   const [{ data: profiles, error: profilesError }, { data: trainerProfiles, error: trainerError }, { data: permissions, error: permissionsError }, { data: invitations, error: invitationsError }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id,email,full_name,role,is_active,created_at,deleted_at')
+      .select('id,email,full_name,first_name,last_name,avatar_path,avatar_thumb_path,role,is_active,created_at,deleted_at')
       .in('role', ['owner', 'admin', 'trainer'])
       .is('deleted_at', null)
       .order('created_at', { ascending: true }),
     supabase
       .from('trainer_profiles')
-      .select('id,profile_id,professional_title,specialties,is_accepting_students,whatsapp_phone'),
+      .select('id,profile_id,professional_title,specialties,is_accepting_students,whatsapp_phone,social_url'),
     supabase
       .from('trainer_permissions')
       .select('trainer_id,permission_key,is_granted'),
@@ -54,15 +54,27 @@ export async function fetchTeamMembers() {
     }
   }
 
-  return (profiles || []).map(profile => {
+  return Promise.all((profiles || []).map(async profile => {
     const trainerProfile = trainerByProfile.get(profile.id);
+    let photoUrl = '';
+    let thumbUrl = '';
+    if (profile.avatar_path) {
+      const [{ data: photoData }, { data: thumbData }] = await Promise.all([
+        supabase.storage.from('professional-avatars').createSignedUrl(profile.avatar_path, 3600),
+        supabase.storage.from('professional-avatars').createSignedUrl(profile.avatar_thumb_path || profile.avatar_path, 3600),
+      ]);
+      photoUrl = photoData?.signedUrl || '';
+      thumbUrl = thumbData?.signedUrl || photoUrl;
+    }
     return {
       ...profile,
+      photoUrl,
+      thumbUrl,
       trainerProfile,
       permissions: trainerProfile ? (permissionsByTrainer.get(trainerProfile.id) || []) : [],
       invitation: latestInviteByUser.get(profile.id) || null,
     };
-  });
+  }));
 }
 
 export async function invokeTeamAction(body) {

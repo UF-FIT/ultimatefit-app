@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id,email,full_name,phone,avatar_path,role,is_active,deleted_at')
+      .select('id,email,full_name,first_name,last_name,phone,avatar_path,avatar_thumb_path,role,is_active,deleted_at')
       .eq('id', user.id)
       .single();
 
@@ -28,9 +28,22 @@ export function AuthProvider({ children }) {
       return null;
     }
 
+    let avatarUrl = '';
+    let avatarThumbUrl = '';
+    const bucket = data.role === 'student' ? 'student-avatars' : 'professional-avatars';
+    if (data.avatar_path) {
+      const [{ data: avatarData }, { data: thumbData }] = await Promise.all([
+        supabase.storage.from(bucket).createSignedUrl(data.avatar_path, 3600),
+        supabase.storage.from(bucket).createSignedUrl(data.avatar_thumb_path || data.avatar_path, 3600),
+      ]);
+      avatarUrl = avatarData?.signedUrl || '';
+      avatarThumbUrl = thumbData?.signedUrl || avatarUrl;
+    }
+
+    const hydrated = { ...data, avatar_url: avatarUrl, avatar_thumb_url: avatarThumbUrl };
     setAuthError('');
-    setProfile(data);
-    return data;
+    setProfile(hydrated);
+    return hydrated;
   }
 
   useEffect(() => {
@@ -82,6 +95,21 @@ export function AuthProvider({ children }) {
     return supabase.auth.updateUser({ password });
   }
 
+  async function changeOwnPassword(currentPassword, newPassword) {
+    if (!supabase) return { error: new Error('Supabase não configurado.') };
+    if (!profile?.email) return { error: new Error('Email da conta indisponível.') };
+    const verification = await supabase.auth.signInWithPassword({
+      email: profile.email,
+      password: currentPassword,
+    });
+    if (verification.error) return verification;
+    const result = await supabase.auth.updateUser({ password: newPassword });
+    if (!result.error) {
+      try { await supabase.auth.signOut({ scope: 'others' }); } catch { /* Best effort. */ }
+    }
+    return result;
+  }
+
   async function acceptInvitation() {
     if (!supabase) return;
     await Promise.all([
@@ -112,6 +140,7 @@ export function AuthProvider({ children }) {
       signOut,
       requestPasswordReset,
       updatePassword,
+      changeOwnPassword,
       acceptInvitation,
       refreshProfile,
       configured: supabaseConfigured,

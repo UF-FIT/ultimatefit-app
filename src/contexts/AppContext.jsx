@@ -55,9 +55,13 @@ export function AppProvider({children}){
   systemRole:profile.role,
   roleLabel:roleLabels[profile.role]||'Aluno',
   name:profile.full_name||profile.email,
+  firstName:profile.first_name||profile.full_name?.split(' ')[0]||'',
+  lastName:profile.last_name||profile.full_name?.split(' ').slice(1).join(' ')||'',
   email:profile.email,
   phone:profile.phone||'',
   avatarPath:profile.avatar_path||'',
+  avatarUrl:profile.avatar_url||'',
+  avatarThumbUrl:profile.avatar_thumb_url||profile.avatar_url||'',
   active:profile.is_active,
   deletedAt:profile.deleted_at,
  }:data.users[0];

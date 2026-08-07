@@ -52,6 +52,14 @@ function cleanText(value: unknown, maxLength = 500) {
   return text.slice(0, maxLength)
 }
 
+function namesFromPayload(payload: Record<string, unknown>) {
+  const legacy = cleanText(payload.fullName, 160)
+  const firstName = cleanText(payload.firstName, 80) || legacy.split(' ')[0] || ''
+  const lastName = cleanText(payload.lastName, 120) || legacy.split(' ').slice(1).join(' ')
+  const fullName = [firstName, lastName].filter(Boolean).join(' ')
+  return { firstName, lastName, fullName }
+}
+
 function cleanLongText(value: unknown, maxLength = 5000) {
   return String(value ?? '').trim().slice(0, maxLength)
 }
@@ -154,7 +162,7 @@ Deno.serve(async (req) => {
   async function getStudent(studentId: string) {
     const { data, error } = await admin
       .from('student_profiles')
-      .select('*,profile:profiles!student_profiles_profile_id_fkey(id,email,full_name,phone,avatar_path,avatar_thumb_path,is_active,deleted_at)')
+      .select('*,profile:profiles!student_profiles_profile_id_fkey(id,email,full_name,first_name,last_name,phone,avatar_path,avatar_thumb_path,is_active,deleted_at)')
       .eq('id', studentId)
       .single()
     if (error || !data) throw new Error('Aluno não encontrado.')
@@ -239,14 +247,15 @@ Deno.serve(async (req) => {
       }
 
       const email = cleanEmail(payload.email)
-      const fullName = cleanText(payload.fullName, 160)
+      const { firstName, lastName, fullName } = namesFromPayload(payload)
       const phone = cleanPhone(payload.phone)
       const birthDate = cleanText(payload.birthDate, 10)
       const trackingType = normalizeTrackingType(payload.trackingType)
       const nif = cleanNif(payload.nif)
 
       if (!/^\S+@\S+\.\S+$/.test(email)) return json({ error: 'Indica um email válido.' }, 400)
-      if (fullName.length < 2) return json({ error: 'Indica o nome completo.' }, 400)
+      if (firstName.length < 2) return json({ error: 'Indica o nome.' }, 400)
+      if (lastName.length < 2) return json({ error: 'Indica o apelido.' }, 400)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return json({ error: 'Indica a data de nascimento.' }, 400)
       if (!trackingType) return json({ error: 'Seleciona o tipo de acompanhamento.' }, 400)
       if (nif && !/^\d{9}$/.test(nif)) {
@@ -277,7 +286,7 @@ Deno.serve(async (req) => {
       }
 
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-        data: { full_name: fullName },
+        data: { full_name: fullName, first_name: firstName, last_name: lastName },
         redirectTo: `${appUrl}/definir-palavra-passe`,
       })
       if (inviteError || !invited.user) throw inviteError ?? new Error('Não foi possível enviar o convite.')
@@ -286,7 +295,7 @@ Deno.serve(async (req) => {
       createdAuthUserId = authUser.id
       const { error: metadataError } = await admin.auth.admin.updateUserById(authUser.id, {
         app_metadata: { ...(authUser.app_metadata ?? {}), app_role: 'student' },
-        user_metadata: { ...(authUser.user_metadata ?? {}), full_name: fullName },
+        user_metadata: { ...(authUser.user_metadata ?? {}), full_name: fullName, first_name: firstName, last_name: lastName },
       })
       if (metadataError) throw metadataError
 
@@ -294,6 +303,8 @@ Deno.serve(async (req) => {
         .from('profiles')
         .update({
           full_name: fullName,
+          first_name: firstName,
+          last_name: lastName,
           phone: nullable(phone),
           role: 'student',
           is_active: true,
@@ -311,6 +322,7 @@ Deno.serve(async (req) => {
         postal_code: nullable(cleanText(payload.postalCode, 24)),
         city: nullable(cleanText(payload.city, 120)),
         emergency_contact_name: nullable(cleanText(payload.emergencyContactName, 160)),
+        emergency_contact_phone: nullable(cleanPhone(payload.emergencyContactPhone)),
         start_date: cleanText(payload.startDate, 10) || new Date().toISOString().slice(0, 10),
         status: 'active',
         tracking_type: trackingType,
@@ -363,8 +375,11 @@ Deno.serve(async (req) => {
     if (action === 'update_profile') {
       if (!manager && !self) return json({ error: 'Não tens permissão para editar este aluno.' }, 403)
 
+      const updateNames = namesFromPayload(payload)
       const profilePatch: Record<string, unknown> = {
-        full_name: cleanText(payload.fullName, 160) || student.profile.full_name,
+        full_name: updateNames.fullName || student.profile.full_name,
+        first_name: updateNames.firstName || student.profile.first_name,
+        last_name: updateNames.lastName || student.profile.last_name,
         phone: nullable(cleanPhone(payload.phone)),
       }
       const studentPatch: Record<string, unknown> = {
@@ -373,6 +388,7 @@ Deno.serve(async (req) => {
         postal_code: nullable(cleanText(payload.postalCode, 24)),
         city: nullable(cleanText(payload.city, 120)),
         emergency_contact_name: nullable(cleanText(payload.emergencyContactName, 160)),
+        emergency_contact_phone: nullable(cleanPhone(payload.emergencyContactPhone)),
       }
 
       if (manager) {

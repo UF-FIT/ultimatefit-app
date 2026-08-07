@@ -1,0 +1,13 @@
+UPDATE 5A.2
+
+Inclui:
+- O meu perfil para Proprietário, Administradores e Professores.
+- Fotografia profissional otimizada e privada.
+- Nome e Apelido separados.
+- WhatsApp profissional obrigatório.
+- Página de rede social / Instagram.
+- Alteração de palavra-passe dentro da aplicação, com confirmação da password atual.
+- Fotografia e rede social do professor visíveis ao aluno atribuído.
+- Formulário de aluno com Nome e Apelido separados.
+- Contacto de emergência (telefone) e Nome do contacto de emergência.
+- Formulário de criação de professores com Nome e Apelido separados.

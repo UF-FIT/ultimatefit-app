@@ -44,9 +44,9 @@ function mapBy(items, key) {
   return new Map((items || []).map(item => [item[key], item]));
 }
 
-async function signedUrl(path, expires = 3600) {
+async function signedUrl(bucket, path, expires = 3600) {
   if (!path) return '';
-  const { data, error } = await supabase.storage.from('student-avatars').createSignedUrl(path, expires);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expires);
   if (error) return '';
   return data?.signedUrl || '';
 }
@@ -54,7 +54,7 @@ async function signedUrl(path, expires = 3600) {
 export async function fetchStudents() {
   const { data: studentRows, error: studentError } = await supabase
     .from('student_profiles')
-    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,start_date,status,notes,postal_code,city,tracking_type,archived_at,deleted_at,created_at')
+    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,emergency_contact_phone,start_date,status,notes,postal_code,city,tracking_type,archived_at,deleted_at,created_at')
     .order('student_number', { ascending: true });
   if (studentError) throw studentError;
   if (!studentRows?.length) return [];
@@ -65,7 +65,7 @@ export async function fetchStudents() {
   const [profilesResult, assignmentsResult, invitesResult] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id,email,full_name,phone,avatar_path,avatar_thumb_path,is_active,deleted_at,created_at')
+      .select('id,email,full_name,first_name,last_name,phone,avatar_path,avatar_thumb_path,is_active,deleted_at,created_at')
       .in('id', profileIds),
     supabase
       .from('trainer_students')
@@ -89,7 +89,7 @@ export async function fetchStudents() {
   if (trainerIds.length) {
     const trainerResult = await supabase
       .from('trainer_profiles')
-      .select('id,profile_id,professional_title,whatsapp_phone,is_accepting_students')
+      .select('id,profile_id,professional_title,whatsapp_phone,social_url,is_accepting_students')
       .in('id', trainerIds);
     if (trainerResult.error) throw trainerResult.error;
     trainerProfiles = trainerResult.data || [];
@@ -97,12 +97,21 @@ export async function fetchStudents() {
     if (trainerProfileUserIds.length) {
       const userResult = await supabase
         .from('profiles')
-        .select('id,full_name,email,is_active,deleted_at')
+        .select('id,full_name,first_name,last_name,email,avatar_path,avatar_thumb_path,is_active,deleted_at')
         .in('id', trainerProfileUserIds);
       if (userResult.error) throw userResult.error;
       trainerUserProfiles = userResult.data || [];
     }
   }
+
+  const trainerAvatarEntries = await Promise.all((trainerUserProfiles || []).map(async item => {
+    const [photoUrl, thumbUrl] = await Promise.all([
+      signedUrl('professional-avatars', item.avatar_path),
+      signedUrl('professional-avatars', item.avatar_thumb_path || item.avatar_path),
+    ]);
+    return [item.id, { photoUrl, thumbUrl }];
+  }));
+  const trainerAvatarByProfile = new Map(trainerAvatarEntries);
 
   const profileById = mapBy(profilesResult.data, 'id');
   const trainerById = mapBy(trainerProfiles, 'id');
@@ -123,17 +132,22 @@ export async function fetchStudents() {
         trainerProfileId: assignment.trainer_id,
         profileId: trainerProfile.profile_id,
         name: trainerUser.full_name || 'Professor',
+        firstName: trainerUser.first_name || trainerUser.full_name?.split(' ')[0] || '',
+        lastName: trainerUser.last_name || trainerUser.full_name?.split(' ').slice(1).join(' ') || '',
         email: trainerUser.email || '',
         whatsappPhone: trainerProfile.whatsapp_phone || '',
         professionalTitle: trainerProfile.professional_title || 'Personal Trainer',
+        socialUrl: trainerProfile.social_url || '',
+        photoUrl: trainerAvatarByProfile.get(trainerProfile.profile_id)?.photoUrl || '',
+        thumbUrl: trainerAvatarByProfile.get(trainerProfile.profile_id)?.thumbUrl || '',
         isPrimary: assignment.is_primary,
         assignedAt: assignment.assigned_at,
       };
     });
     const primaryTrainer = trainers.find(item => item.isPrimary) || trainers[0] || null;
     const [photoUrl, thumbUrl] = await Promise.all([
-      signedUrl(profile.avatar_path),
-      signedUrl(profile.avatar_thumb_path || profile.avatar_path),
+      signedUrl('student-avatars', profile.avatar_path),
+      signedUrl('student-avatars', profile.avatar_thumb_path || profile.avatar_path),
     ]);
 
     return {
@@ -143,6 +157,8 @@ export async function fetchStudents() {
       studentNumber: row.student_number,
       studentCode: formatStudentNumber(row.student_number),
       name: profile.full_name || profile.email || 'Aluno',
+      firstName: profile.first_name || profile.full_name?.split(' ')[0] || '',
+      lastName: profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '',
       email: profile.email || '',
       phone: profile.phone || '',
       photoUrl,
@@ -158,6 +174,7 @@ export async function fetchStudents() {
       postalCode: row.postal_code || '',
       city: row.city || '',
       emergencyContactName: row.emergency_contact_name || '',
+      emergencyContactPhone: row.emergency_contact_phone || '',
       startDate: row.start_date,
       status: row.status,
       active: Boolean(profile.is_active && row.status === 'active' && !profile.deleted_at && !row.deleted_at),
@@ -177,30 +194,41 @@ export async function fetchStudents() {
 export async function fetchAvailableTrainers() {
   const { data: trainerProfiles, error: trainerError } = await supabase
     .from('trainer_profiles')
-    .select('id,profile_id,professional_title,whatsapp_phone,is_accepting_students');
+    .select('id,profile_id,professional_title,whatsapp_phone,social_url,is_accepting_students');
   if (trainerError) throw trainerError;
   const profileIds = (trainerProfiles || []).map(item => item.profile_id);
   if (!profileIds.length) return [];
   const { data: profiles, error: profileError } = await supabase
     .from('profiles')
-    .select('id,full_name,email,role,is_active,deleted_at')
+    .select('id,full_name,first_name,last_name,email,avatar_path,avatar_thumb_path,role,is_active,deleted_at')
     .in('id', profileIds)
     .in('role', ['owner', 'admin', 'trainer']);
   if (profileError) throw profileError;
   const profileById = mapBy(profiles, 'id');
-  return (trainerProfiles || [])
+  const visible = (trainerProfiles || [])
     .map(item => ({ ...item, profile: profileById.get(item.profile_id) }))
-    .filter(item => item.profile?.is_active && !item.profile?.deleted_at)
-    .map(item => ({
+    .filter(item => item.profile?.is_active && !item.profile?.deleted_at);
+  return Promise.all(visible.map(async item => {
+    const [photoUrl, thumbUrl] = await Promise.all([
+      signedUrl('professional-avatars', item.profile.avatar_path),
+      signedUrl('professional-avatars', item.profile.avatar_thumb_path || item.profile.avatar_path),
+    ]);
+    return {
       trainerProfileId: item.id,
       profileId: item.profile_id,
       name: item.profile.full_name,
+      firstName: item.profile.first_name || item.profile.full_name?.split(' ')[0] || '',
+      lastName: item.profile.last_name || item.profile.full_name?.split(' ').slice(1).join(' ') || '',
       email: item.profile.email,
       role: item.profile.role,
       professionalTitle: item.professional_title || 'Personal Trainer',
       whatsappPhone: item.whatsapp_phone || '',
+      socialUrl: item.social_url || '',
+      photoUrl,
+      thumbUrl,
       isAcceptingStudents: item.is_accepting_students,
-    }));
+    };
+  }));
 }
 
 export async function invokeStudentAction(body) {
