@@ -1,0 +1,14 @@
+ULTIMATE FIT APP — v5C.3
+
+Atualização de usabilidade e organização:
+- Professores removidos do menu principal do proprietário/admin e integrados no Backoffice.
+- Removido o bloco "Estado da plataforma" do Dashboard.
+- Pesquisa de exercícios com texto amarelo e maior contraste.
+- Ícones do seletor de datas ajustados para amarelo.
+- Miniaturas de exercícios uniformizadas.
+- YouTube usa thumbnail do próprio vídeo.
+- Vimeo tenta obter a thumbnail oficial via oEmbed do próprio vídeo.
+- Vídeos MP4 usam o próprio vídeo para a miniatura.
+- Sem fonte visual fiável: ilustração anatómica neutra da zona muscular + identidade ULTIMATE FIT, sem inventar execução técnica.
+- Botão "Ver como aluno" no detalhe do plano.
+- Botão "Duplicar plano" com seleção do aluno de destino; a cópia abre como rascunho e não altera o original.

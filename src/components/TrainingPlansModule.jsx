@@ -31,6 +31,21 @@ function emptyPlan(studentId = '') {
 function deepCopyPlan(plan) {
   return JSON.parse(JSON.stringify(plan));
 }
+function duplicatePlanFor(plan, studentId) {
+  const clone = deepCopyPlan(plan);
+  return {
+    ...clone,
+    id: '',
+    studentId: studentId || clone.studentId,
+    title: `Cópia de ${clone.title}`,
+    status: 'draft',
+    active: true,
+    publishedAt: null,
+    archivedAt: null,
+    createdAt: null,
+    updatedAt: null,
+  };
+}
 function planStatus(plan) {
   if (plan.status === 'archived') return ['Arquivado', 'gray'];
   if (plan.status === 'published') return [plan.active ? 'Publicado · ativo' : 'Publicado', 'green'];
@@ -51,12 +66,12 @@ function ExercisePrescription({ item }) {
   return <div className="prescriptionLine">{details.join(' · ') || 'Prescrição por definir'}</div>;
 }
 
-function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit, onArchive }) {
+function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit, onArchive, onDuplicate, onPreview, previewMode = false, onExitPreview }) {
   const [openExercise, setOpenExercise] = useState(null);
   const [label, tone] = planStatus(plan);
   const typeByCode = Object.fromEntries(blockTypes.map(type => [type.code, type]));
-  return <div className="trainingViewer">
-    <button className="backButton" onClick={onBack}><ArrowLeft size={17}/>Voltar aos planos</button>
+  return <div className={cx('trainingViewer', previewMode && 'studentPreviewMode')}>
+    {previewMode ? <div className="studentPreviewBanner"><div><Eye size={18}/><span><b>Pré-visualização · visão do aluno</b><small>Estás a ver este plano sem os controlos de edição do professor.</small></span></div><button className="secondary" onClick={onExitPreview}>Voltar à visão do professor</button></div> : <button className="backButton" onClick={onBack}><ArrowLeft size={17}/>Voltar aos planos</button>}
     <section className="trainingPlanHero card pad">
       <div>
         <span className="eyebrow">PLANO DE TREINO</span>
@@ -68,7 +83,7 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
           {(plan.startDate || plan.endDate) && <span><CalendarDays size={14}/>{plan.startDate || '—'} → {plan.endDate || '—'}</span>}
         </div>
       </div>
-      {canManage && <div className="trainingHeroActions"><button className="secondary" onClick={onEdit}><Edit3 size={16}/>Editar</button><button className="secondary" onClick={onArchive}><Archive size={16}/>Arquivar</button></div>}
+      {canManage && <div className="trainingHeroActions"><button className="secondary" onClick={onPreview}><Eye size={16}/>Ver como aluno</button><button className="secondary" onClick={onDuplicate}><Copy size={16}/>Duplicar plano</button><button className="secondary" onClick={onEdit}><Edit3 size={16}/>Editar</button><button className="secondary" onClick={onArchive}><Archive size={16}/>Arquivar</button></div>}
     </section>
 
     <div className="trainingSessionsView">
@@ -236,6 +251,9 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
   const [canManage, setCanManage] = useState(currentUser.role === 'admin');
   const [activePlanId, setActivePlanId] = useState('');
   const [editing, setEditing] = useState(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateStudentId, setDuplicateStudentId] = useState('');
   const [filterStudent, setFilterStudent] = useState(context.studentId || 'all');
   const [q, setQ] = useState('');
   const [error, setError] = useState('');
@@ -255,7 +273,18 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
 
   const activePlan = data.plans.find(plan => plan.id === activePlanId);
   if (editing) return <PlanEditor initialPlan={editing} students={visibleStudents} exercises={data.exercises} blockTypes={data.blockTypes||[]} onCancel={() => setEditing(null)} onSaved={async id => { setEditing(null); await refreshTraining(); setActivePlanId(id); }}/>;
-  if (activePlan) return <PlanViewer plan={activePlan} student={data.students.find(student => student.id === activePlan.studentId)} canManage={canManage} blockTypes={data.blockTypes||[]} onBack={() => setActivePlanId('')} onEdit={() => setEditing(deepCopyPlan(activePlan))} onArchive={async () => { if (!window.confirm('Arquivar este plano? O aluno deixará de o ver como plano ativo.')) return; try { await archiveWorkoutPlan(activePlan.id); await refreshTraining(); setActivePlanId(''); } catch (err) { setError(err.message); } }}/>;
+  if (activePlan) {
+    const student=data.students.find(item=>item.id===activePlan.studentId);
+    const openDuplicate=()=>{setDuplicateStudentId(activePlan.studentId);setDuplicateOpen(true)};
+    const confirmDuplicate=()=>{
+      const target=duplicateStudentId||activePlan.studentId;
+      setDuplicateOpen(false);setPreviewMode(false);setActivePlanId('');setEditing(duplicatePlanFor(activePlan,target));
+    };
+    return <>
+      <PlanViewer plan={activePlan} student={student} canManage={canManage && !previewMode} blockTypes={data.blockTypes||[]} previewMode={previewMode} onExitPreview={()=>setPreviewMode(false)} onBack={() => {setPreviewMode(false);setActivePlanId('')}} onPreview={()=>setPreviewMode(true)} onDuplicate={openDuplicate} onEdit={() => setEditing(deepCopyPlan(activePlan))} onArchive={async () => { if (!window.confirm('Arquivar este plano? O aluno deixará de o ver como plano ativo.')) return; try { await archiveWorkoutPlan(activePlan.id); await refreshTraining(); setActivePlanId(''); } catch (err) { setError(err.message); } }}/>
+      {duplicateOpen && <div className="overlay" onClick={()=>setDuplicateOpen(false)}><div className="modal duplicatePlanModal" onClick={event=>event.stopPropagation()}><div className="title"><div><span className="eyebrow">DUPLICAR PLANO</span><h2>Aplicar a outro aluno</h2></div><button className="iconButton" onClick={()=>setDuplicateOpen(false)}><X/></button></div><p>É criada uma nova cópia em rascunho. O plano original não é alterado.</p><label className="duplicatePlanStudent">Aluno<select value={duplicateStudentId} onChange={event=>setDuplicateStudentId(event.target.value)}>{visibleStudents.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="modalActions"><button className="secondary" onClick={()=>setDuplicateOpen(false)}>Cancelar</button><button className="primary" onClick={confirmDuplicate}><Copy size={16}/>Criar cópia</button></div></div></div>}
+    </>;
+  }
 
   const targetStudent = filterStudent !== 'all' ? data.students.find(student => student.id === filterStudent) : null;
   return <div className="trainingPlansPage">
