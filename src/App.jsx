@@ -11,13 +11,15 @@ import AssessmentsModule from './components/AssessmentsModule';
 import ParqOnboarding from './components/ParqOnboarding';
 import TrainingPlansModule from './components/TrainingPlansModule';
 import ExerciseLibraryModule from './components/ExerciseLibraryModule';
+import ActivitiesModule from './components/ActivitiesModule';
+import {NoticeManager,StudentNoticeBoard,StudentNoticePopup} from './components/NoticeCenter';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
-import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
+import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CalendarDays,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
-const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['assessments','Avaliações',ClipboardList],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['challenges','Desafios',Flag],['exercises','Biblioteca',BookOpen],['messages','Avisos',MessageSquare],['reports','Relatórios PDF',FileText],['settings','Backoffice',Settings]];
+const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['assessments','Avaliações',ClipboardList],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['exercises','Biblioteca',BookOpen],['settings','Backoffice',Settings]];
 const trainerNav=adminNav.filter(x=>x[0]!=='settings');
-const studentNav=[['dashboard','Início',Home],['plans','Treino',Dumbbell],['nutrition','Nutrição',Apple],['assessments','Avaliações',ClipboardList],['challenges','Desafios',Flag],['messages','Avisos',MessageSquare],['reports','Relatórios',FileText],['profile','Perfil',User]];
+const studentNav=[['dashboard','Início',Home],['plans','Treino',Dumbbell],['nutrition','Nutrição',Apple],['assessments','Avaliações',ClipboardList],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['profile','Perfil',User]];
 
 const cx=(...a)=>a.filter(Boolean).join(' ');
 function Card({children,className=''}){return <div className={cx('card',className)}>{children}</div>}
@@ -30,23 +32,30 @@ function Shell(){
  const [page,setPage]=useState(()=>{
   if(typeof window==='undefined') return 'dashboard';
   const challengeHost=window.location.hostname.toLowerCase().startsWith('desafios.');
-  const challengePath=window.location.pathname.toLowerCase().startsWith('/desafios');
-  return challengeHost||challengePath?'challenges':'dashboard';
+  const path=window.location.pathname.toLowerCase();
+  if(path.startsWith('/atividades')) return 'activities';
+  if(challengeHost||path.startsWith('/desafios')) return 'challenges';
+  return 'dashboard';
  });
- const [pageContext,setPageContext]=useState({});
+ const [pageContext,setPageContext]=useState(()=>{
+  if(typeof window==='undefined') return {};
+  const match=window.location.pathname.match(/^\/atividades\/([^/?#]+)/i);
+  return match?{slug:decodeURIComponent(match[1])}:{};
+ });
  const navigate=(key,context={})=>{setPage(key);setPageContext(context||{})};
  const nav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
   <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>navigate('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
   <div className="content"><PageRouter page={page} context={pageContext} onNavigate={navigate}/></div>
+  {currentUser.role==='aluno'&&<StudentNoticePopup/>}
   <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
   </main>
  </div>
 }
 
 function PageRouter({page,context,onNavigate}){
- const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<Nutrition context={context}/>,challenges:<ChallengesModule context={context}/>,exercises:<ExerciseLibraryModule/>,messages:<Messages/>,reports:<Reports/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
+ const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<Nutrition context={context}/>,challenges:<ChallengesModule context={context}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}
@@ -61,7 +70,7 @@ function Dashboard({onNavigate}){
  <div className="grid four"><Kpi icon={Users} label="Alunos ativos" value={visibleStudents.filter(s=>s.active).length}/><Kpi icon={Dumbbell} label="Planos ativos" value={data.plans.filter(p=>p.status==='published'&&p.active).length}/><Kpi icon={ClipboardList} label="Avaliações" value={data.assessments.length}/><Kpi icon={BookOpen} label="Exercícios" value={data.exercises.length}/></div>
  <div className="section"><Card className="pad dashboardRecentStudents"><h2>Alunos recentes</h2>{visibleStudents.length?visibleStudents.slice(0,6).map(s=><div className="listRow" key={s.id}><div className="avatar small">{s.thumbUrl?<img src={s.thumbUrl} alt={s.name}/>:s.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><b>{s.name}</b><small>{s.objective||'Objetivo por definir'}</small></div><Badge tone={s.active?'green':'gray'}>{s.active?'Ativo':'Sem acesso'}</Badge></div>):<div className="notice">Ainda não existem alunos reais. Cria o primeiro registo na secção Alunos.</div>}</Card></div></>;
 }
-function StudentDashboard({student,onNavigate}){const {data,refreshStudents}=useApp();return <StudentSelfHome student={student} assessments={data.assessments.filter(a=>a.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/>;}
+function StudentDashboard({student,onNavigate}){const {data,refreshStudents}=useApp();return <><StudentNoticeBoard/><StudentSelfHome student={student} assessments={data.assessments.filter(a=>a.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/></>;}
 
 function Students({onNavigate}){return <StudentDirectory onNavigate={onNavigate}/>;}
 function Trainers(){
@@ -194,8 +203,8 @@ function SettingsPage(){
  const [section,setSection]=useState('settings');
  const s=data.settings;
  return <div className="backofficePage"><Heading title="Backoffice" sub="Gestão administrativa e definições globais da aplicação."/>
-  <div className="backofficeTabs"><button className={section==='settings'?'active':''} onClick={()=>setSection('settings')}><Settings size={16}/>Definições</button><button className={section==='trainers'?'active':''} onClick={()=>setSection('trainers')}><UserCog size={16}/>Professores</button></div>
-  {section==='trainers'?<div className="backofficeEmbedded"><Trainers/></div>:<div className="grid two section"><Card className="pad"><h2>Modo público</h2><div className="setting"><div><b>Página Coming Soon</b><small>Enquanto ativa, o público vê apenas a página de lançamento.</small></div><button className={s.comingSoon?'toggle on':'toggle'} onClick={()=>setData(d=>({...d,settings:{...d.settings,comingSoon:!d.settings.comingSoon}}))}><span/></button></div></Card><Card className="pad"><h2>Permissões previstas</h2><p><b>Proprietário:</b> controlo total e conta protegida.</p><p><b>Administrador:</b> gestão global, exceto a conta do Proprietário.</p><p><b>Professor:</b> alunos atribuídos e permissões concedidas.</p><p><b>Aluno:</b> apenas os próprios dados.</p></Card><Card className="pad"><h2>Convites</h2><p>Fluxo final: criação no backoffice → email para definir password → instruções complementares por WhatsApp.</p></Card><Card className="pad"><h2>PWA</h2><p>Manifesto instalável já incluído. Ícone e experiência mobile serão validados antes do deploy.</p></Card></div>}
+  <div className="backofficeTabs"><button className={section==='settings'?'active':''} onClick={()=>setSection('settings')}><Settings size={16}/>Definições</button><button className={section==='trainers'?'active':''} onClick={()=>setSection('trainers')}><UserCog size={16}/>Professores</button><button className={section==='notices'?'active':''} onClick={()=>setSection('notices')}><MessageSquare size={16}/>Avisos</button></div>
+  {section==='trainers'?<div className="backofficeEmbedded"><Trainers/></div>:section==='notices'?<div className="backofficeEmbedded"><NoticeManager/></div>:<div className="grid two section"><Card className="pad"><h2>Modo público</h2><div className="setting"><div><b>Página Coming Soon</b><small>Enquanto ativa, o público vê apenas a página de lançamento.</small></div><button className={s.comingSoon?'toggle on':'toggle'} onClick={()=>setData(d=>({...d,settings:{...d.settings,comingSoon:!d.settings.comingSoon}}))}><span/></button></div></Card><Card className="pad"><h2>Permissões previstas</h2><p><b>Proprietário:</b> controlo total e conta protegida.</p><p><b>Administrador:</b> gestão global, exceto a conta do Proprietário.</p><p><b>Professor:</b> alunos atribuídos e permissões concedidas.</p><p><b>Aluno:</b> apenas os próprios dados.</p></Card><Card className="pad"><h2>Convites</h2><p>Fluxo final: criação no backoffice → email para definir password → instruções complementares por WhatsApp.</p></Card><Card className="pad"><h2>PWA</h2><p>Manifesto instalável já incluído. Ícone e experiência mobile serão validados antes do deploy.</p></Card></div>}
  </div>
 }
 function Profile({onNavigate}){const {currentUser,data,refreshStudents}=useApp();if(currentUser.role==='aluno'){const student=data.students.find(item=>item.userId===currentUser.id);return <StudentSelfHome student={student} assessments={data.assessments.filter(item=>item.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/>;}return <ProfessionalProfile/>;}

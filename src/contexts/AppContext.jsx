@@ -5,6 +5,7 @@ import {seedUsers} from '../data/seed';
 import {fetchStudents} from '../lib/students';
 import {fetchAssessments} from '../lib/assessments';
 import {fetchExercises,fetchWorkoutPlans,fetchMuscleGroups,fetchWorkoutBlockTypes,fetchWorkoutCompletions} from '../lib/training';
+import {fetchActivities,fetchNotices} from '../lib/community';
 
 const AppContext=createContext(null);
 const demoInitial={users:seedUsers,exercises:[],settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
@@ -26,6 +27,9 @@ function buildInitial(){
   nutrition:[],
   goals:[],
   messages:[],
+  notices:[],
+  activities:[],
+  activityRegistrations:[],
  };
 }
 
@@ -38,9 +42,11 @@ export function AppProvider({children}){
  const [assessmentsError,setAssessmentsError]=useState('');
  const [trainingLoading,setTrainingLoading]=useState(true);
  const [trainingError,setTrainingError]=useState('');
+ const [communityLoading,setCommunityLoading]=useState(true);
+ const [communityError,setCommunityError]=useState('');
 
  useEffect(()=>{
-  const {students,assessments,exercises,muscleGroups,blockTypes,plans,workoutCompletions,nutrition,goals,messages,...safeToStore}=data;
+  const {students,assessments,exercises,muscleGroups,blockTypes,plans,workoutCompletions,nutrition,goals,messages,notices,activities,activityRegistrations,...safeToStore}=data;
   save('ultimatefit-mvp',safeToStore);
  },[data]);
 
@@ -84,7 +90,19 @@ export function AppProvider({children}){
   }finally{setTrainingLoading(false)}
  }
 
- useEffect(()=>{refreshStudents();refreshAssessments();refreshTraining()},[profile?.id]);
+
+ async function refreshCommunity(){
+  if(!profile){setData(d=>({...d,notices:[],activities:[],activityRegistrations:[]}));setCommunityLoading(false);return {notices:[],activities:[],registrations:[]}}
+  setCommunityLoading(true);setCommunityError('');
+  try{
+   const [notices,activityData]=await Promise.all([fetchNotices(),fetchActivities()]);
+   setData(d=>({...d,notices,activities:activityData.activities,activityRegistrations:activityData.registrations}));
+   return {notices,activities:activityData.activities,registrations:activityData.registrations};
+  }catch(error){setCommunityError(error.message||'Não foi possível carregar avisos e atividades.');return {notices:[],activities:[],registrations:[]}}
+  finally{setCommunityLoading(false)}
+ }
+
+ useEffect(()=>{refreshStudents();refreshAssessments();refreshTraining();refreshCommunity()},[profile?.id]);
 
  const currentUser=profile?{
   id:profile.id,
@@ -103,7 +121,7 @@ export function AppProvider({children}){
   deletedAt:profile.deleted_at,
  }:data.users[0];
  const update=(key,fn)=>setData(d=>({...d,[key]:typeof fn==='function'?fn(d[key]):fn}));
- const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError,refreshTraining,trainingLoading,trainingError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError]);
+ const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError,refreshTraining,trainingLoading,trainingError,refreshCommunity,communityLoading,communityError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError,communityLoading,communityError]);
  return <AppContext.Provider value={api}>{children}</AppContext.Provider>
 }
 export const useApp=()=>useContext(AppContext);

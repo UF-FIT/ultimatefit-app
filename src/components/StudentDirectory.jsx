@@ -16,6 +16,7 @@ import {
 } from '../lib/students';
 import { fetchChallenges } from '../lib/challenges';
 import { recordWorkoutCompletion } from '../lib/training';
+import { downloadAssessmentPdf } from '../lib/assessmentPdf';
 
 const trackingLabels = Object.fromEntries(trackingTypeOptions.map(item => [item.value, item.label]));
 
@@ -148,7 +149,7 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
     </div></section>
 
     <section className="formSection wide"><h3><MessageCircle size={18} />Contactos</h3><div className="formGrid">
-      <Field label="Telemóvel / WhatsApp"><input name="phone" defaultValue={student?.phone || ''} inputMode="tel" /></Field>
+      <Field label="Telemóvel / WhatsApp"><input name="phone" defaultValue={student?.phone || ''} inputMode="tel" placeholder="Ex.: 912 345 678" /></Field>
       <Field label="Morada"><input name="address" defaultValue={student?.address || ''} /></Field>
       <Field label="Código postal"><input name="postalCode" defaultValue={student?.postalCode || ''} /></Field>
       <Field label="Localidade"><input name="city" defaultValue={student?.city || ''} /></Field>
@@ -377,9 +378,11 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
   useEffect(()=>{fetchAvailableTrainers().then(setTrainers).catch(()=>{})},[]);
   if (!student) return <div className="emptyState card pad"><UserRound size={36}/><h2>Perfil do aluno indisponível</h2><p>Contacta a administração para concluir a associação da conta.</p></div>;
   const professorUrl = whatsappUrl(student.primaryTrainer?.whatsappPhone, `Olá ${student.primaryTrainer?.name || 'Professor'}, sou ${student.name}.`);
+  const latestAssessment=[...assessments].filter(item=>item.status==='published').sort((a,b)=>a.date.localeCompare(b.date)).at(-1);
+  function exportLatestAssessment(){if(!latestAssessment){setNotice('Ainda não existe uma avaliação publicada para exportar.');return;}try{downloadAssessmentPdf(student,latestAssessment);setNotice('PDF da avaliação exportado com sucesso.');}catch(err){setNotice(err.message||'Não foi possível exportar o PDF.')}}
   return <div className="studentSelfProfilePage">
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
-    <section className="studentSelfHero profileHeroV2"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {trackingLabels[student.trackingType] || 'Acompanhamento ULTIMATE FIT'}</p><div className="profileChips"><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span></div></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
+    <section className="studentSelfHero profileHeroV2"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {trackingLabels[student.trackingType] || 'Acompanhamento ULTIMATE FIT'}</p><div className="profileChips"><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span></div></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={exportLatestAssessment} disabled={!latestAssessment}><FileText/><span>Exportar avaliação em PDF</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
     <TrainingActivityCalendar completions={(data.workoutCompletions||[]).filter(item=>item.studentId===student.id)}/>
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate} studentView/>
     <AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/>

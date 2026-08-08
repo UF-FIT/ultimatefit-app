@@ -1,0 +1,10 @@
+ULTIMATE FIT APP — v5D.1 FINAL
+
+Decisão final sobre relatórios de avaliação:
+- Um único botão: "Exportar avaliação em PDF".
+- A aplicação apenas gera/exporta o PDF.
+- O aluno decide depois se guarda o ficheiro ou o envia por WhatsApp, email, Drive, etc.
+- Sem envio automático para WhatsApp.
+- Telemóvel/WhatsApp do aluno permanece opcional.
+
+Migration 013 não contém alterações ao telefone e mantém-se válida.

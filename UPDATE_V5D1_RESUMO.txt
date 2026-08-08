@@ -1,0 +1,36 @@
+ULTIMATE FIT APP — v5D.1
+
+1. Menu simplificado
+- Avisos sai do menu principal e passa para Backoffice > Avisos.
+- Relatórios PDF sai do menu principal; exportação passa a ser contextual nas Avaliações e no perfil do aluno.
+- Nova secção Atividades no menu.
+
+2. Avisos / pop-ups
+- Proprietário/Admin cria, edita, ativa/desativa avisos no Backoffice.
+- Aviso pode aparecer como pop-up quando o aluno entra na app.
+- O X fecha o pop-up durante essa entrada; volta a aparecer numa nova entrada/reload enquanto estiver ativo.
+- O aviso pode permanecer visível no Dashboard do aluno.
+- Datas de início/fim e destinatários configuráveis.
+
+3. Atividades
+- Criação de caminhadas, provas, piqueniques, jantar de Natal, etc.
+- Data, hora, local, descrição, preço, lotação, prazo e cartaz.
+- Alunos inscrevem/cancelam na própria app.
+- Admin vê lista de inscritos e marca pagamentos.
+- QR Code gerado para cada atividade; aponta para /atividades/<slug>.
+
+4. Avaliação PDF
+- Botão Exportar PDF na avaliação publicada.
+- No perfil do aluno há Exportar avaliação em PDF para a última avaliação publicada.
+- Telemóvel/WhatsApp mantém-se opcional; não condiciona a exportação do relatório.
+
+5. Exportação do relatório
+- A app gera e exporta o ficheiro PDF.
+- Depois da exportação, o aluno decide livremente se o guarda ou se o envia por WhatsApp, email, Drive ou outra aplicação.
+- Não existe envio automático para WhatsApp.
+
+Instalação:
+A) Executar migration 013 no Supabase SQL Editor.
+B) Executar verify da migration 013 numa New Query.
+C) Só depois publicar este pacote no GitHub/Vercel.
+D) Não é necessário alterar regras de telefone para esta funcionalidade; o contacto do aluno continua opcional.
