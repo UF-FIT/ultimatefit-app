@@ -61,6 +61,16 @@ export function skinfoldSum(skinfolds) {
   return values.length ? values.reduce((a,b)=>a+b,0) : null;
 }
 
+export function bmiCategory(value) {
+  const bmi = Number(value);
+  if (!Number.isFinite(bmi) || bmi <= 0) return '';
+  if (bmi < 18.5) return 'Abaixo do peso';
+  if (bmi <= 25) return 'Peso normal';
+  if (bmi <= 30) return 'Sobrepeso';
+  if (bmi < 40) return 'Obesidade';
+  return 'Obesidade mórbida';
+}
+
 export function assessmentMetrics(assessment) {
   const bio = assessment?.modules?.bioimpedance || {};
   const per = assessment?.modules?.perimetry || {};
@@ -206,6 +216,17 @@ export async function archiveAssessment(id) {
 
 export async function deleteDraftAssessment(id) {
   const { error } = await supabase.from('physical_assessments').delete().eq('id', id).eq('status', 'draft');
+  if (error) throw error;
+}
+
+export async function deleteAssessmentPermanently(assessment) {
+  if (!assessment?.id) throw new Error('Avaliação inválida.');
+  const paths = [...new Set((assessment.photos || []).flatMap(photo => [photo.image_path, photo.thumb_path]).filter(Boolean))];
+  if (paths.length) {
+    const { error: storageError } = await supabase.storage.from('assessment-photos').remove(paths);
+    if (storageError) throw new Error(`Não foi possível eliminar as fotografias da avaliação: ${storageError.message}`);
+  }
+  const { error } = await supabase.rpc('delete_physical_assessment_permanently', { target_assessment_id: assessment.id });
   if (error) throw error;
 }
 

@@ -7,7 +7,7 @@ import {
 import { useApp } from '../contexts/AppContext';
 import ExerciseMedia from './ExerciseMedia';
 import {
-  archiveWorkoutPlan, canManageWorkoutPlans, formatSeconds, saveWorkoutPlan, recordWorkoutCompletion
+  archiveWorkoutPlan, canManageWorkoutPlans, deleteWorkoutPlanPermanently, formatSeconds, saveWorkoutPlan, recordWorkoutCompletion
 } from '../lib/training';
 
 const cx = (...items) => items.filter(Boolean).join(' ');
@@ -67,7 +67,7 @@ function ExercisePrescription({ item }) {
   return <div className="prescriptionLine">{details.join(' · ') || 'Prescrição por definir'}</div>;
 }
 
-function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit, onArchive, onDuplicate, onPreview, previewMode = false, onExitPreview, studentView = false, completions = [], completionBusy = false, onCompleteSession }) {
+function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit, onArchive, onDelete, onDuplicate, onPreview, previewMode = false, onExitPreview, studentView = false, completions = [], completionBusy = false, onCompleteSession }) {
   const [openExercise, setOpenExercise] = useState(null);
   const [label, tone] = planStatus(plan);
   const typeByCode = Object.fromEntries(blockTypes.map(type => [type.code, type]));
@@ -85,7 +85,7 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
           {(plan.startDate || plan.endDate) && <span><CalendarDays size={14}/>{plan.startDate || '—'} → {plan.endDate || '—'}</span>}
         </div>
       </div>
-      {canManage && <div className="trainingHeroActions"><button className="secondary" onClick={onPreview}><Eye size={16}/>Ver como aluno</button><button className="secondary" onClick={onDuplicate}><Copy size={16}/>Duplicar plano</button><button className="secondary" onClick={onEdit}><Edit3 size={16}/>Editar</button><button className="secondary" onClick={onArchive}><Archive size={16}/>Arquivar</button></div>}
+      {canManage && <div className="trainingHeroActions"><button className="secondary" onClick={onPreview}><Eye size={16}/>Ver como aluno</button><button className="secondary" onClick={onDuplicate}><Copy size={16}/>Duplicar plano</button><button className="secondary" onClick={onEdit}><Edit3 size={16}/>Editar</button><button className="secondary" onClick={onArchive}><Archive size={16}/>Arquivar</button><button className="secondary destructiveButton" onClick={onDelete}><Trash2 size={16}/>Eliminar definitivamente</button></div>}
     </section>
 
     <div className="trainingSessionsView">
@@ -285,7 +285,7 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
       setDuplicateOpen(false);setPreviewMode(false);setActivePlanId('');setEditing(duplicatePlanFor(activePlan,target));
     };
     return <>
-      <PlanViewer plan={activePlan} student={student} canManage={canManage && !previewMode} blockTypes={data.blockTypes||[]} previewMode={previewMode} studentView={currentUser.role==='aluno'} completions={(data.workoutCompletions||[]).filter(item=>item.studentId===activePlan.studentId)} completionBusy={completionBusy} onCompleteSession={async session=>{if(!student||currentUser.role!=='aluno')return;setCompletionBusy(true);setError('');try{await recordWorkoutCompletion({studentId:student.id,planId:activePlan.id,sessionId:session.id,completedOn:localToday(),source:'student'});await refreshTraining()}catch(err){setError(err.message||'Não foi possível registar o treino.')}finally{setCompletionBusy(false)}}} onExitPreview={()=>setPreviewMode(false)} onBack={() => {setPreviewMode(false);setActivePlanId('')}} onPreview={()=>setPreviewMode(true)} onDuplicate={openDuplicate} onEdit={() => setEditing(deepCopyPlan(activePlan))} onArchive={async () => { if (!window.confirm('Arquivar este plano? O aluno deixará de o ver como plano ativo.')) return; try { await archiveWorkoutPlan(activePlan.id); await refreshTraining(); setActivePlanId(''); } catch (err) { setError(err.message); } }}/>
+      <PlanViewer plan={activePlan} student={student} canManage={canManage && !previewMode} blockTypes={data.blockTypes||[]} previewMode={previewMode} studentView={currentUser.role==='aluno'} completions={(data.workoutCompletions||[]).filter(item=>item.studentId===activePlan.studentId)} completionBusy={completionBusy} onCompleteSession={async session=>{if(!student||currentUser.role!=='aluno')return;setCompletionBusy(true);setError('');try{await recordWorkoutCompletion({studentId:student.id,planId:activePlan.id,sessionId:session.id,completedOn:localToday(),source:'student'});await refreshTraining()}catch(err){setError(err.message||'Não foi possível registar o treino.')}finally{setCompletionBusy(false)}}} onExitPreview={()=>setPreviewMode(false)} onBack={() => {setPreviewMode(false);setActivePlanId('')}} onPreview={()=>setPreviewMode(true)} onDuplicate={openDuplicate} onEdit={() => setEditing(deepCopyPlan(activePlan))} onArchive={async () => { if (!window.confirm('Arquivar este plano? O aluno deixará de o ver como plano ativo.')) return; try { await archiveWorkoutPlan(activePlan.id); await refreshTraining(); setActivePlanId(''); } catch (err) { setError(err.message); } }} onDelete={async () => { if (!window.confirm('Eliminar definitivamente este plano de treino? Esta ação não pode ser anulada. Os registos de treinos já concluídos pelo aluno são preservados.')) return; try { await deleteWorkoutPlanPermanently(activePlan.id); await refreshTraining(); setPreviewMode(false); setActivePlanId(''); } catch (err) { setError(err.message||'Não foi possível eliminar o plano.'); } }}/>
       {duplicateOpen && <div className="overlay" onClick={()=>setDuplicateOpen(false)}><div className="modal duplicatePlanModal" onClick={event=>event.stopPropagation()}><div className="title"><div><span className="eyebrow">DUPLICAR PLANO</span><h2>Aplicar a outro aluno</h2></div><button className="iconButton" onClick={()=>setDuplicateOpen(false)}><X/></button></div><p>É criada uma nova cópia em rascunho. O plano original não é alterado.</p><label className="duplicatePlanStudent">Aluno<select value={duplicateStudentId} onChange={event=>setDuplicateStudentId(event.target.value)}>{visibleStudents.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="modalActions"><button className="secondary" onClick={()=>setDuplicateOpen(false)}>Cancelar</button><button className="primary" onClick={confirmDuplicate}><Copy size={16}/>Criar cópia</button></div></div></div>}
     </>;
   }

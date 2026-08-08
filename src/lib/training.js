@@ -319,6 +319,12 @@ export async function archiveWorkoutPlan(planId) {
   if (error) throw error;
 }
 
+export async function deleteWorkoutPlanPermanently(planId) {
+  if (!planId) throw new Error('Plano de treino inválido.');
+  const { error } = await supabase.rpc('delete_workout_plan_permanently', { target_plan_id: planId });
+  if (error) throw error;
+}
+
 export async function createExercise(input) {
   const { data, error } = await supabase
     .from('exercise_library')
