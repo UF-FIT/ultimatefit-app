@@ -1,0 +1,23 @@
+ULTIMATE FIT APP — UPDATE 5C.1
+
+BIBLIOTECA DE EXERCÍCIOS
+- 693 exercícios consolidados.
+- 515 com demonstração disponível.
+- Deduplicação entre biblioteca inicial, Excel Tecnofit e anexo 3.
+- Nomes PT-PT uniformizados.
+- Pesquisa inclui nomes alternativos/aliases.
+- Carregamento progressivo dos cards.
+
+GRUPOS MUSCULARES
+- Visualização por cards/ícones.
+- Filtro com um clique.
+- Criar, editar, arquivar e reativar grupos.
+
+SÉRIES ESPECIAIS
+- Série normal, Supersérie e Circuito mantidas.
+- Novos tipos personalizados podem ser criados e passam a surgir no editor dos planos.
+
+VÍDEOS
+- Importa os links existentes no ficheiro Tecnofit.
+- Suporte leve para YouTube, Vimeo, MP4/WebM e links externos.
+- A grelha não carrega centenas de players: o vídeo só é aberto quando necessário.

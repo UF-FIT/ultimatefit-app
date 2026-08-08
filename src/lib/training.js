@@ -23,6 +23,7 @@ export function mapExercise(row) {
     name: row.name,
     description: row.description || '',
     group: row.muscle_group || '',
+    groupId: row.muscle_group_id || '',
     secondaryMuscles: row.secondary_muscles || [],
     equipment: row.equipment || '',
     category: row.category || '',
@@ -33,6 +34,7 @@ export function mapExercise(row) {
     externalMediaUrl: row.external_media_url || '',
     mediaUrl: mediaUrl(row),
     active: row.is_active !== false,
+    aliases: row.aliases || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -96,7 +98,7 @@ function sortNestedPlan(row) {
 export async function fetchExercises({ includeInactive = true } = {}) {
   let query = supabase
     .from('exercise_library')
-    .select('id,name,description,muscle_group,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,created_at,updated_at')
+    .select('id,name,description,muscle_group,muscle_group_id,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,aliases,created_at,updated_at')
     .order('name');
   if (!includeInactive) query = query.eq('is_active', true);
   const { data, error } = await query;
@@ -115,7 +117,7 @@ export async function fetchWorkoutPlans() {
           id,block_type,title,rounds,rest_after_seconds,sort_order,
           workout_items(
             id,exercise_id,sort_order,sets,reps,duration_seconds,rest_seconds,tempo,load_text,rpe,notes,
-            exercise_library(id,name,description,muscle_group,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,created_at,updated_at)
+            exercise_library(id,name,description,muscle_group,muscle_group_id,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,aliases,created_at,updated_at)
           )
         )
       )
@@ -135,6 +137,141 @@ export async function canManageExerciseLibrary() {
   const { data, error } = await supabase.rpc('trainer_has_permission', { target_permission: 'manage_exercise_library' });
   if (error) return false;
   return Boolean(data);
+}
+
+
+export function mapMuscleGroup(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    iconKey: row.icon_key || 'default',
+    sortOrder: row.sort_order || 100,
+    active: row.is_active !== false,
+    system: row.is_system === true,
+  };
+}
+
+export function mapWorkoutBlockType(row) {
+  return {
+    code: row.code,
+    name: row.name,
+    description: row.description || '',
+    iconKey: row.icon_key || 'layers',
+    supportsRounds: row.supports_rounds !== false,
+    special: row.is_special !== false,
+    system: row.is_system === true,
+    active: row.is_active !== false,
+    sortOrder: row.sort_order || 100,
+  };
+}
+
+function slugify(value = '') {
+  return value
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export async function fetchMuscleGroups() {
+  const { data, error } = await supabase
+    .from('exercise_muscle_groups')
+    .select('id,name,slug,icon_key,sort_order,is_active,is_system')
+    .order('sort_order')
+    .order('name');
+  if (error) throw error;
+  return (data || []).map(mapMuscleGroup);
+}
+
+export async function createMuscleGroup(input) {
+  const { data, error } = await supabase
+    .from('exercise_muscle_groups')
+    .insert({
+      name: input.name.trim(),
+      slug: slugify(input.name),
+      icon_key: input.iconKey || 'default',
+      sort_order: Number(input.sortOrder) || 100,
+      is_active: true,
+    })
+    .select()
+    .single();
+  if (error) {
+    if (error.code === '23505') throw new Error('Já existe um grupo muscular com esse nome.');
+    throw error;
+  }
+  return mapMuscleGroup(data);
+}
+
+export async function updateMuscleGroup(groupId, input) {
+  const { data, error } = await supabase
+    .from('exercise_muscle_groups')
+    .update({ name: input.name.trim(), icon_key: input.iconKey || 'default', sort_order: Number(input.sortOrder) || 100 })
+    .eq('id', groupId)
+    .select()
+    .single();
+  if (error) throw error;
+  return mapMuscleGroup(data);
+}
+
+export async function archiveMuscleGroup(groupId, active = false) {
+  const { error } = await supabase.from('exercise_muscle_groups').update({ is_active: active }).eq('id', groupId);
+  if (error) throw error;
+}
+
+export async function fetchWorkoutBlockTypes() {
+  const { data, error } = await supabase
+    .from('workout_block_types')
+    .select('code,name,description,icon_key,supports_rounds,is_special,is_system,is_active,sort_order')
+    .order('sort_order')
+    .order('name');
+  if (error) throw error;
+  return (data || []).map(mapWorkoutBlockType);
+}
+
+export async function createWorkoutBlockType(input) {
+  const code = `custom-${slugify(input.name)}`;
+  const { data, error } = await supabase
+    .from('workout_block_types')
+    .insert({
+      code,
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      icon_key: input.iconKey || 'layers',
+      supports_rounds: input.supportsRounds !== false,
+      is_special: true,
+      is_active: true,
+      sort_order: Number(input.sortOrder) || 100,
+    })
+    .select()
+    .single();
+  if (error) {
+    if (error.code === '23505') throw new Error('Já existe uma série especial com esse nome.');
+    throw error;
+  }
+  return mapWorkoutBlockType(data);
+}
+
+export async function updateWorkoutBlockType(code, input) {
+  const { data, error } = await supabase
+    .from('workout_block_types')
+    .update({
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      icon_key: input.iconKey || 'layers',
+      supports_rounds: input.supportsRounds !== false,
+      sort_order: Number(input.sortOrder) || 100,
+    })
+    .eq('code', code)
+    .select()
+    .single();
+  if (error) throw error;
+  return mapWorkoutBlockType(data);
+}
+
+export async function archiveWorkoutBlockType(code, active = false) {
+  const { error } = await supabase.from('workout_block_types').update({ is_active: active }).eq('code', code);
+  if (error) throw error;
 }
 
 export async function saveWorkoutPlan(plan) {
@@ -187,6 +324,7 @@ export async function createExercise(input) {
       name: input.name.trim(),
       description: input.description?.trim() || null,
       muscle_group: input.group,
+      muscle_group_id: input.groupId || null,
       secondary_muscles: input.secondaryMuscles || [],
       equipment: input.equipment?.trim() || null,
       category: input.category || null,
@@ -199,7 +337,10 @@ export async function createExercise(input) {
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505') throw new Error('Já existe um exercício igual ou equivalente na biblioteca.');
+    throw error;
+  }
   return mapExercise(data);
 }
 
@@ -210,6 +351,7 @@ export async function updateExercise(exerciseId, input) {
       name: input.name.trim(),
       description: input.description?.trim() || null,
       muscle_group: input.group,
+      muscle_group_id: input.groupId || null,
       secondary_muscles: input.secondaryMuscles || [],
       equipment: input.equipment?.trim() || null,
       category: input.category || null,
@@ -223,7 +365,10 @@ export async function updateExercise(exerciseId, input) {
     .eq('id', exerciseId)
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505') throw new Error('Já existe um exercício igual ou equivalente na biblioteca.');
+    throw error;
+  }
   return mapExercise(data);
 }
 

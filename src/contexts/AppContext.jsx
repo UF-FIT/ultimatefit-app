@@ -4,7 +4,7 @@ import {useAuth} from './AuthContext';
 import {seedUsers} from '../data/seed';
 import {fetchStudents} from '../lib/students';
 import {fetchAssessments} from '../lib/assessments';
-import {fetchExercises,fetchWorkoutPlans} from '../lib/training';
+import {fetchExercises,fetchWorkoutPlans,fetchMuscleGroups,fetchWorkoutBlockTypes} from '../lib/training';
 
 const AppContext=createContext(null);
 const demoInitial={users:seedUsers,exercises:[],settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
@@ -19,6 +19,8 @@ function buildInitial(){
   students:[],
   assessments:[],
   exercises:[],
+  muscleGroups:[],
+  blockTypes:[],
   plans:[],
   nutrition:[],
   goals:[],
@@ -37,7 +39,7 @@ export function AppProvider({children}){
  const [trainingError,setTrainingError]=useState('');
 
  useEffect(()=>{
-  const {students,assessments,exercises,plans,nutrition,goals,messages,...safeToStore}=data;
+  const {students,assessments,exercises,muscleGroups,blockTypes,plans,nutrition,goals,messages,...safeToStore}=data;
   save('ultimatefit-mvp',safeToStore);
  },[data]);
 
@@ -69,15 +71,15 @@ export function AppProvider({children}){
  }
 
  async function refreshTraining(){
-  if(!profile){setData(d=>({...d,exercises:[],plans:[]}));setTrainingLoading(false);return {exercises:[],plans:[]}}
+  if(!profile){setData(d=>({...d,exercises:[],muscleGroups:[],blockTypes:[],plans:[]}));setTrainingLoading(false);return {exercises:[],muscleGroups:[],blockTypes:[],plans:[]}}
   setTrainingLoading(true);setTrainingError('');
   try{
-   const [exercises,plans]=await Promise.all([fetchExercises(),fetchWorkoutPlans()]);
-   setData(d=>({...d,exercises,plans}));
-   return {exercises,plans};
+   const [exercises,muscleGroups,blockTypes,plans]=await Promise.all([fetchExercises(),fetchMuscleGroups(),fetchWorkoutBlockTypes(),fetchWorkoutPlans()]);
+   setData(d=>({...d,exercises,muscleGroups,blockTypes,plans}));
+   return {exercises,muscleGroups,blockTypes,plans};
   }catch(error){
    setTrainingError(error.message||'Não foi possível carregar os planos e a biblioteca de exercícios.');
-   return {exercises:[],plans:[]};
+   return {exercises:[],muscleGroups:[],blockTypes:[],plans:[]};
   }finally{setTrainingLoading(false)}
  }
 

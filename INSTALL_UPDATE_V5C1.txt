@@ -1,0 +1,44 @@
+ULTIMATE FIT APP — Update 5C.1
+Biblioteca avançada: grupos musculares visuais, séries especiais configuráveis e importação de exercícios.
+
+ORDEM DE INSTALAÇÃO
+
+1. SUPABASE
+- SQL Editor > New query.
+- Executar UMA VEZ:
+  supabase/migrations/20260808_010_exercise_library_taxonomy_and_import.sql
+- Resultado esperado: Success. No rows returned.
+
+2. VERIFICAÇÃO
+- Executar:
+  supabase/migrations/20260808_010_exercise_library_taxonomy_and_import_verify.sql
+- Confirmar:
+  * biblioteca com pelo menos 693 exercícios (poderá ser superior se já tiveres criado exercícios próprios);
+  * zero linhas na consulta de dedupe_key duplicado;
+  * grupos musculares visíveis;
+  * tipos standard, superset e circuit ativos;
+  * vários exercícios com URLs de demonstração.
+
+3. GITHUB
+- Upload de todo o conteúdo desta pasta para a raiz do repositório ultimatefit-app.
+- Commit sugerido:
+  Update 5C.1 — biblioteca avançada e exercícios Tecnofit
+
+4. VERCEL
+- Aguardar deployment automático.
+- Se não arrancar, usar o Deploy Hook 'Deploy main' já criado.
+
+O QUE MUDA
+- 619 registos do Excel Tecnofit analisados.
+- 134 exercícios do anexo 3 considerados.
+- Biblioteca inicial da app considerada na deduplicação.
+- Resultado preparado: 693 exercícios canónicos, sem repetições pelo nome normalizado.
+- 515 exercícios ficam associados a uma demonstração em vídeo/link quando a fonte a disponibiliza.
+- Nomenclatura PT-BR ajustada para PT-PT em termos claros (ex.: esteira > passadeira; desenvolvimento > press; rosca > curl; panturrilha > gémeos; levantamento terra > peso morto).
+- Nomes originalmente em inglês mantêm-se em inglês sempre que faz sentido.
+- Grupos musculares passam a ser cards visuais e configuráveis.
+- Professores autorizados podem criar/editar grupos musculares.
+- Professores autorizados podem criar novos tipos de séries especiais.
+- Os novos tipos aparecem automaticamente no editor de planos.
+- Biblioteca usa paginação progressiva para não tentar renderizar centenas de cards de uma só vez.
+- YouTube/Vimeo e vídeos externos só são carregados quando o utilizador abre a demonstração, preservando a fluidez da app.
