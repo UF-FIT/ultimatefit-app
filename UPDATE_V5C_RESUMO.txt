@@ -1,0 +1,19 @@
+UPDATE 5C — PLANOS DE TREINO
+
+Incluído:
+- Biblioteca real de exercícios ligada ao Supabase
+- 45 exercícios-base migrados para a base de dados
+- Criar / editar / arquivar exercícios
+- Grupo muscular, categoria, equipamento, dificuldade, descrição e instruções
+- Imagem otimizada, GIF, MP4/WebM ou URL externa
+- Planos de treino reais por aluno
+- Estados rascunho / publicado / arquivado
+- Sessões ilimitadas
+- Série normal
+- Superséries
+- Circuitos
+- Séries, repetições, duração, descanso, tempo, carga, RPE e notas
+- Publicação do plano para o aluno
+- Visão aluno simplificada com demonstração dos exercícios
+- RLS por professor/aluno
+- Permissões manage_workout_plans e manage_exercise_library respeitadas

@@ -1,0 +1,272 @@
+import { supabase } from './supabase';
+import { optimiseExerciseImage } from './image';
+
+const EXERCISE_BUCKET = 'exercise-media';
+const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
+
+function asNumber(value) {
+  if (value === '' || value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function mediaUrl(row) {
+  if (row.external_media_url) return row.external_media_url;
+  if (!row.media_path) return '';
+  return supabase.storage.from(EXERCISE_BUCKET).getPublicUrl(row.media_path).data.publicUrl || '';
+}
+
+export function mapExercise(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description || '',
+    group: row.muscle_group || '',
+    secondaryMuscles: row.secondary_muscles || [],
+    equipment: row.equipment || '',
+    category: row.category || '',
+    difficulty: row.difficulty || '',
+    instructions: row.instructions || '',
+    mediaPath: row.media_path || '',
+    mediaKind: row.media_kind || '',
+    externalMediaUrl: row.external_media_url || '',
+    mediaUrl: mediaUrl(row),
+    active: row.is_active !== false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function sortNestedPlan(row) {
+  const sessions = [...(row.workout_sessions || [])]
+    .sort((a,b) => a.sort_order - b.sort_order)
+    .map(session => ({
+      id: session.id,
+      title: session.title,
+      description: session.description || '',
+      sortOrder: session.sort_order,
+      blocks: [...(session.workout_blocks || [])]
+        .sort((a,b) => a.sort_order - b.sort_order)
+        .map(block => ({
+          id: block.id,
+          type: block.block_type,
+          title: block.title || '',
+          rounds: block.rounds || 1,
+          restAfterSeconds: block.rest_after_seconds,
+          sortOrder: block.sort_order,
+          items: [...(block.workout_items || [])]
+            .sort((a,b) => a.sort_order - b.sort_order)
+            .map(item => ({
+              id: item.id,
+              exerciseId: item.exercise_id,
+              exercise: mapExercise(item.exercise_library),
+              sets: item.sets,
+              reps: item.reps || '',
+              durationSeconds: item.duration_seconds,
+              restSeconds: item.rest_seconds,
+              tempo: item.tempo || '',
+              loadText: item.load_text || '',
+              rpe: item.rpe == null ? null : Number(item.rpe),
+              notes: item.notes || '',
+              sortOrder: item.sort_order,
+            })),
+        })),
+    }));
+
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    trainerId: row.trainer_id,
+    title: row.title,
+    description: row.description || '',
+    goal: row.goal || '',
+    status: row.status,
+    active: row.is_active !== false,
+    startDate: row.start_date || '',
+    endDate: row.end_date || '',
+    publishedAt: row.published_at,
+    archivedAt: row.archived_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    sessions,
+  };
+}
+
+export async function fetchExercises({ includeInactive = true } = {}) {
+  let query = supabase
+    .from('exercise_library')
+    .select('id,name,description,muscle_group,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,created_at,updated_at')
+    .order('name');
+  if (!includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []).map(mapExercise);
+}
+
+export async function fetchWorkoutPlans() {
+  const { data, error } = await supabase
+    .from('workout_plans')
+    .select(`
+      id,student_id,trainer_id,title,description,goal,status,is_active,start_date,end_date,published_at,archived_at,created_at,updated_at,
+      workout_sessions(
+        id,title,description,sort_order,
+        workout_blocks(
+          id,block_type,title,rounds,rest_after_seconds,sort_order,
+          workout_items(
+            id,exercise_id,sort_order,sets,reps,duration_seconds,rest_seconds,tempo,load_text,rpe,notes,
+            exercise_library(id,name,description,muscle_group,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,created_at,updated_at)
+          )
+        )
+      )
+    `)
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(sortNestedPlan);
+}
+
+export async function canManageWorkoutPlans() {
+  const { data, error } = await supabase.rpc('trainer_has_permission', { target_permission: 'manage_workout_plans' });
+  if (error) return false;
+  return Boolean(data);
+}
+
+export async function canManageExerciseLibrary() {
+  const { data, error } = await supabase.rpc('trainer_has_permission', { target_permission: 'manage_exercise_library' });
+  if (error) return false;
+  return Boolean(data);
+}
+
+export async function saveWorkoutPlan(plan) {
+  const payload = {
+    planId: plan.id || '',
+    studentId: plan.studentId,
+    title: plan.title,
+    description: plan.description || '',
+    goal: plan.goal || '',
+    status: plan.status || 'draft',
+    isActive: plan.active !== false,
+    startDate: plan.startDate || '',
+    endDate: plan.endDate || '',
+    sessions: (plan.sessions || []).map(session => ({
+      title: session.title,
+      description: session.description || '',
+      blocks: (session.blocks || []).map(block => ({
+        type: block.type || 'standard',
+        title: block.title || '',
+        rounds: asNumber(block.rounds) || 1,
+        restAfterSeconds: asNumber(block.restAfterSeconds),
+        items: (block.items || []).map(item => ({
+          exerciseId: item.exerciseId,
+          sets: asNumber(item.sets),
+          reps: item.reps || '',
+          durationSeconds: asNumber(item.durationSeconds),
+          restSeconds: asNumber(item.restSeconds),
+          tempo: item.tempo || '',
+          loadText: item.loadText || '',
+          rpe: asNumber(item.rpe),
+          notes: item.notes || '',
+        })),
+      })),
+    })),
+  };
+  const { data, error } = await supabase.rpc('save_workout_plan', { payload });
+  if (error) throw error;
+  return data;
+}
+
+export async function archiveWorkoutPlan(planId) {
+  const { error } = await supabase.rpc('archive_workout_plan', { target_plan_id: planId });
+  if (error) throw error;
+}
+
+export async function createExercise(input) {
+  const { data, error } = await supabase
+    .from('exercise_library')
+    .insert({
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      muscle_group: input.group,
+      secondary_muscles: input.secondaryMuscles || [],
+      equipment: input.equipment?.trim() || null,
+      category: input.category || null,
+      difficulty: input.difficulty || null,
+      instructions: input.instructions?.trim() || null,
+      media_path: input.mediaPath || null,
+      media_kind: input.mediaKind || null,
+      external_media_url: input.externalMediaUrl?.trim() || null,
+      is_active: input.active !== false,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return mapExercise(data);
+}
+
+export async function updateExercise(exerciseId, input) {
+  const { data, error } = await supabase
+    .from('exercise_library')
+    .update({
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      muscle_group: input.group,
+      secondary_muscles: input.secondaryMuscles || [],
+      equipment: input.equipment?.trim() || null,
+      category: input.category || null,
+      difficulty: input.difficulty || null,
+      instructions: input.instructions?.trim() || null,
+      media_path: input.mediaPath || null,
+      media_kind: input.mediaKind || null,
+      external_media_url: input.externalMediaUrl?.trim() || null,
+      is_active: input.active !== false,
+    })
+    .eq('id', exerciseId)
+    .select()
+    .single();
+  if (error) throw error;
+  return mapExercise(data);
+}
+
+export async function archiveExercise(exerciseId, active = false) {
+  const { error } = await supabase.from('exercise_library').update({ is_active: active }).eq('id', exerciseId);
+  if (error) throw error;
+}
+
+export async function uploadExerciseMedia(file) {
+  if (!file) return { path: '', kind: '' };
+  let blob = file;
+  let extension = (file.name.split('.').pop() || '').toLowerCase();
+  let kind = 'video';
+
+  if (file.type.startsWith('image/') && file.type !== 'image/gif') {
+    blob = await optimiseExerciseImage(file);
+    extension = 'webp';
+    kind = 'image';
+  } else if (file.type === 'image/gif') {
+    if (file.size > MAX_VIDEO_BYTES) throw new Error('O GIF não pode ultrapassar 15 MB.');
+    kind = 'gif';
+  } else if (file.type === 'video/mp4' || file.type === 'video/webm') {
+    if (file.size > MAX_VIDEO_BYTES) throw new Error('O vídeo não pode ultrapassar 15 MB.');
+    kind = 'video';
+  } else {
+    throw new Error('Usa JPG, PNG, WebP, GIF, MP4 ou WebM.');
+  }
+
+  const folder = crypto.randomUUID();
+  const path = `${folder}/demo.${extension}`;
+  const { error } = await supabase.storage.from(EXERCISE_BUCKET).upload(path, blob, {
+    cacheControl: '31536000',
+    upsert: false,
+    contentType: blob.type || file.type,
+  });
+  if (error) throw error;
+  return { path, kind };
+}
+
+export function formatSeconds(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return '';
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds % 60 === 0) return `${seconds / 60} min`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}

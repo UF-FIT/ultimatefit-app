@@ -16,3 +16,8 @@ Ver `INSTALL_UPDATE_V5B1.txt` para a ordem de instalação.
 ## Update 5B.2 — Perfil completo do aluno
 
 O perfil individual passa a centralizar Avaliação Física, Objetivos, PAR-Q, Professor Principal, Plano de Treino, Plano Alimentar, Desafios e evolução das últimas cinco avaliações. Esta versão é apenas de interface/lógica e não requer migração SQL adicional.
+
+## Update 5C — Planos de treino
+
+A aplicação passa a usar planos e biblioteca de exercícios reais no Supabase.
+Consultar `INSTALL_UPDATE_V5C.txt` antes de publicar.

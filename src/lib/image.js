@@ -104,3 +104,16 @@ export async function optimiseAssessmentPhoto(file) {
     if (typeof source.close === 'function') source.close();
   }
 }
+
+export async function optimiseExerciseImage(file) {
+  if (!file) return null;
+  if (!file.type.startsWith('image/')) throw new Error('Seleciona um ficheiro de imagem.');
+  if (file.size > MAX_SOURCE_BYTES) throw new Error('A imagem original não pode ultrapassar 15 MB.');
+
+  const source = await loadImageSource(file);
+  try {
+    return await renderContained(source, 1200, 1200, 0.78);
+  } finally {
+    if (typeof source.close === 'function') source.close();
+  }
+}

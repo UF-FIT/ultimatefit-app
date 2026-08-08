@@ -9,6 +9,8 @@ import BrandLogo from './components/BrandLogo';
 import ChallengesModule from './components/ChallengesModule';
 import AssessmentsModule from './components/AssessmentsModule';
 import ParqOnboarding from './components/ParqOnboarding';
+import TrainingPlansModule from './components/TrainingPlansModule';
+import ExerciseLibraryModule from './components/ExerciseLibraryModule';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
 import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
@@ -44,7 +46,7 @@ function Shell(){
 }
 
 function PageRouter({page,context,onNavigate}){
- const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<Plans context={context}/>,nutrition:<Nutrition context={context}/>,challenges:<ChallengesModule context={context}/>,exercises:<Exercises/>,messages:<Messages/>,reports:<Reports/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
+ const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<Nutrition context={context}/>,challenges:<ChallengesModule context={context}/>,exercises:<ExerciseLibraryModule/>,messages:<Messages/>,reports:<Reports/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}
@@ -56,7 +58,7 @@ function Dashboard({onNavigate}){
  if(currentUser.role==='aluno') return <StudentDashboard student={student} onNavigate={onNavigate}/>;
  const visibleStudents=currentUser.role==='admin'?data.students:data.students.filter(s=>s.trainerIds?.includes(currentUser.id));
  return <><Heading title={`Olá, ${currentUser.name.split(' ')[0]}`} sub="Visão geral da plataforma."/>
- <div className="grid four"><Kpi icon={Users} label="Alunos ativos" value={visibleStudents.filter(s=>s.active).length}/><Kpi icon={Dumbbell} label="Planos ativos" value={data.plans.filter(p=>p.status==='Ativo').length}/><Kpi icon={ClipboardList} label="Avaliações" value={data.assessments.length}/><Kpi icon={BookOpen} label="Exercícios" value={data.exercises.length}/></div>
+ <div className="grid four"><Kpi icon={Users} label="Alunos ativos" value={visibleStudents.filter(s=>s.active).length}/><Kpi icon={Dumbbell} label="Planos ativos" value={data.plans.filter(p=>p.status==='published'&&p.active).length}/><Kpi icon={ClipboardList} label="Avaliações" value={data.assessments.length}/><Kpi icon={BookOpen} label="Exercícios" value={data.exercises.length}/></div>
  <div className="grid two section"><Card className="pad"><h2>Alunos recentes</h2>{visibleStudents.length?visibleStudents.slice(0,6).map(s=><div className="listRow" key={s.id}><div className="avatar small">{s.thumbUrl?<img src={s.thumbUrl} alt={s.name}/>:s.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><b>{s.name}</b><small>{s.objective||'Objetivo por definir'}</small></div><Badge tone={s.active?'green':'gray'}>{s.active?'Ativo':'Sem acesso'}</Badge></div>):<div className="notice">Ainda não existem alunos reais. Cria o primeiro registo na secção Alunos.</div>}</Card><Card className="pad"><h2>Estado da plataforma</h2><div className="notice">Módulo real de alunos ligado ao Supabase.</div><div className="notice">Avaliações físicas modulares ligadas ao Supabase.</div><div className="notice">{data.settings.comingSoon?'Página Coming Soon ativa.':'Aplicação pública ativa.'}</div></Card></div></>;
 }
 function StudentDashboard({student,onNavigate}){const {data,refreshStudents}=useApp();return <StudentSelfHome student={student} assessments={data.assessments.filter(a=>a.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/>;}

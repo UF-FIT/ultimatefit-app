@@ -1,12 +1,13 @@
 import React, {createContext, useContext, useEffect, useMemo, useState} from 'react';
 import {load, save} from '../lib/storage';
 import {useAuth} from './AuthContext';
-import {seedUsers,seedExercises} from '../data/seed';
+import {seedUsers} from '../data/seed';
 import {fetchStudents} from '../lib/students';
 import {fetchAssessments} from '../lib/assessments';
+import {fetchExercises,fetchWorkoutPlans} from '../lib/training';
 
 const AppContext=createContext(null);
-const demoInitial={users:seedUsers,exercises:seedExercises,settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
+const demoInitial={users:seedUsers,exercises:[],settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
 const roleMap={owner:'admin',admin:'admin',trainer:'professor',student:'aluno'};
 const roleLabels={owner:'Proprietário',admin:'Administrador',trainer:'Professor',student:'Aluno'};
 
@@ -17,6 +18,7 @@ function buildInitial(){
   ...stored,
   students:[],
   assessments:[],
+  exercises:[],
   plans:[],
   nutrition:[],
   goals:[],
@@ -31,9 +33,11 @@ export function AppProvider({children}){
  const [studentsError,setStudentsError]=useState('');
  const [assessmentsLoading,setAssessmentsLoading]=useState(true);
  const [assessmentsError,setAssessmentsError]=useState('');
+ const [trainingLoading,setTrainingLoading]=useState(true);
+ const [trainingError,setTrainingError]=useState('');
 
  useEffect(()=>{
-  const {students,assessments,plans,nutrition,goals,messages,...safeToStore}=data;
+  const {students,assessments,exercises,plans,nutrition,goals,messages,...safeToStore}=data;
   save('ultimatefit-mvp',safeToStore);
  },[data]);
 
@@ -64,7 +68,20 @@ export function AppProvider({children}){
   }finally{setAssessmentsLoading(false)}
  }
 
- useEffect(()=>{refreshStudents();refreshAssessments()},[profile?.id]);
+ async function refreshTraining(){
+  if(!profile){setData(d=>({...d,exercises:[],plans:[]}));setTrainingLoading(false);return {exercises:[],plans:[]}}
+  setTrainingLoading(true);setTrainingError('');
+  try{
+   const [exercises,plans]=await Promise.all([fetchExercises(),fetchWorkoutPlans()]);
+   setData(d=>({...d,exercises,plans}));
+   return {exercises,plans};
+  }catch(error){
+   setTrainingError(error.message||'Não foi possível carregar os planos e a biblioteca de exercícios.');
+   return {exercises:[],plans:[]};
+  }finally{setTrainingLoading(false)}
+ }
+
+ useEffect(()=>{refreshStudents();refreshAssessments();refreshTraining()},[profile?.id]);
 
  const currentUser=profile?{
   id:profile.id,
@@ -83,7 +100,7 @@ export function AppProvider({children}){
   deletedAt:profile.deleted_at,
  }:data.users[0];
  const update=(key,fn)=>setData(d=>({...d,[key]:typeof fn==='function'?fn(d[key]):fn}));
- const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError]);
+ const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError,refreshTraining,trainingLoading,trainingError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError]);
  return <AppContext.Provider value={api}>{children}</AppContext.Provider>
 }
 export const useApp=()=>useContext(AppContext);

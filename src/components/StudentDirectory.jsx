@@ -243,7 +243,7 @@ function ProfileModuleHub({ student, assessments = [], onNavigate, studentView =
   const latest = published[0];
   const plans = data.plans.filter(item => item.studentId === student.id);
   const foods = data.nutrition.filter(item => item.studentId === student.id);
-  const activePlan = plans.find(item => String(item.status || '').toLowerCase() === 'ativo') || plans[0];
+  const activePlan = plans.find(item => item.status === 'published' && item.active) || plans.find(item => item.status === 'published') || plans[0];
   const currentFood = foods[0];
   const modules = [
     { key:'assessments', icon:Activity, title:'Avaliação física', caption: latest ? `Última: ${formatDate(latest.date)} · ${published.length} publicada(s)` : 'Ainda sem avaliações publicadas', context:{studentId:student.id}, status: latest ? 'Atualizada' : 'Por iniciar' },

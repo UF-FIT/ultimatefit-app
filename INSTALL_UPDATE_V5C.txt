@@ -1,0 +1,60 @@
+ULTIMATE FIT APP — UPDATE 5C
+Planos de treino reais + biblioteca real de exercícios
+
+ORDEM DE INSTALAÇÃO
+
+1) SUPABASE
+   SQL Editor > New query
+   Executar uma única vez:
+   supabase/migrations/20260807_009_workout_plans_and_exercise_library.sql
+
+   Resultado esperado:
+   Success. No rows returned
+
+2) VERIFICAÇÃO
+   Executar:
+   supabase/migrations/20260807_009_workout_plans_and_exercise_library_verify.sql
+
+   Devem existir:
+   - exercise_library
+   - workout_plans
+   - workout_sessions
+   - workout_blocks
+   - workout_items
+   - bucket exercise-media
+   - feature flags workout_plans e exercise_library = true
+
+3) GITHUB
+   Só depois da verificação do SQL:
+   - extrair o ZIP
+   - carregar TODO o conteúdo da pasta para UF-FIT/ultimatefit-app, branch main
+   - commit: Update 5C — planos de treino e biblioteca de exercícios
+
+4) VERCEL
+   Aguardar o deployment automático.
+   Se não disparar, usar o Deploy Hook "Deploy main" já criado.
+
+5) TESTES
+   Professor/proprietário:
+   - Biblioteca > criar exercício
+   - anexar imagem/GIF/vídeo ou URL externa
+   - Planos de treino > Novo plano
+   - escolher aluno
+   - criar sessão
+   - adicionar série normal, supersérie e/ou circuito
+   - guardar rascunho
+   - reabrir e publicar
+
+   Aluno:
+   - entrar na conta
+   - Treino
+   - confirmar que vê apenas planos publicados
+   - abrir sessões e exercícios
+   - abrir demonstração do exercício
+
+NOTAS
+- Imagens JPG/PNG/WebP são convertidas no browser para WebP até 1200x1200.
+- GIF/MP4/WebM: máximo 15 MB.
+- A biblioteca começa com os 45 exercícios-base da versão anterior.
+- Rascunhos não ficam visíveis para o aluno.
+- O histórico de planos pode ser arquivado sem apagar os dados.
