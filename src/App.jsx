@@ -13,6 +13,7 @@ import TrainingPlansModule from './components/TrainingPlansModule';
 import ExerciseLibraryModule from './components/ExerciseLibraryModule';
 import ActivitiesModule from './components/ActivitiesModule';
 import {NoticeManager,StudentNoticeBoard,StudentNoticePopup} from './components/NoticeCenter';
+import {fetchRuntimeSettings,saveRuntimeSettings} from './lib/runtime';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
 import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CalendarDays,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
@@ -199,12 +200,18 @@ function Exercises(){const {data}=useApp();const [q,setQ]=useState('');const [gr
 function Messages(){const {data,currentUser}=useApp();const student=data.students.find(s=>s.userId===currentUser.id);const items=currentUser.role==='aluno'?data.messages.filter(m=>m.studentId===student?.id):data.messages;return <><Heading title="Avisos" sub="Comunicação assíncrona entre professor e aluno."/><div className="section">{items.map(m=><Card className="pad message" key={m.id}><MessageSquare className="yellow"/><div><h3>{m.title}</h3><p>{m.body}</p><small>{m.date}</small></div></Card>)}</div></>}
 function Reports(){const {data}=useApp();return <><Heading title="Relatórios PDF" sub="Geração automática a partir das avaliações físicas."/><Card className="pad section"><h2>Relatório de avaliação</h2><p>Seleciona um aluno e duas avaliações para criar um documento com dados, diferenças, gráficos, observações e identidade ULTIMATE FIT.</p><div className="formGrid"><Select label="Aluno" options={data.students.map(s=>s.name)}/><Select label="Avaliação inicial" options={data.assessments.map(a=>a.date)}/><Select label="Avaliação atual" options={data.assessments.map(a=>a.date)}/><button className="primary full"><FileText size={17}/>Gerar relatório demonstrativo</button></div></Card></>}
 function SettingsPage(){
- const {data,setData}=useApp();
  const [section,setSection]=useState('settings');
- const s=data.settings;
+ const [runtime,setRuntime]=useState({maintenanceMode:false,maintenanceMessage:'Estamos a realizar uma atualização. Voltamos dentro de momentos.'});
+ const [runtimeLoading,setRuntimeLoading]=useState(true),[runtimeSaving,setRuntimeSaving]=useState(false),[runtimeMessage,setRuntimeMessage]=useState(''),[runtimeError,setRuntimeError]=useState('');
+ useEffect(()=>{let live=true;fetchRuntimeSettings().then(value=>live&&setRuntime(value)).catch(err=>live&&setRuntimeError(err.message)).finally(()=>live&&setRuntimeLoading(false));return()=>{live=false}},[]);
+ async function persistRuntime(){setRuntimeSaving(true);setRuntimeMessage('');setRuntimeError('');try{const saved=await saveRuntimeSettings(runtime);setRuntime(saved);setRuntimeMessage(saved.maintenanceMode?'Modo manutenção ativado. Alunos e professores verão o ecrã de manutenção.':'Modo manutenção desativado. A app voltou ao funcionamento normal.')}catch(err){setRuntimeError(err.message||'Não foi possível guardar a definição.')}finally{setRuntimeSaving(false)}}
  return <div className="backofficePage"><Heading title="Backoffice" sub="Gestão administrativa e definições globais da aplicação."/>
   <div className="backofficeTabs"><button className={section==='settings'?'active':''} onClick={()=>setSection('settings')}><Settings size={16}/>Definições</button><button className={section==='trainers'?'active':''} onClick={()=>setSection('trainers')}><UserCog size={16}/>Professores</button><button className={section==='notices'?'active':''} onClick={()=>setSection('notices')}><MessageSquare size={16}/>Avisos</button></div>
-  {section==='trainers'?<div className="backofficeEmbedded"><Trainers/></div>:section==='notices'?<div className="backofficeEmbedded"><NoticeManager/></div>:<div className="grid two section"><Card className="pad"><h2>Modo público</h2><div className="setting"><div><b>Página Coming Soon</b><small>Enquanto ativa, o público vê apenas a página de lançamento.</small></div><button className={s.comingSoon?'toggle on':'toggle'} onClick={()=>setData(d=>({...d,settings:{...d.settings,comingSoon:!d.settings.comingSoon}}))}><span/></button></div></Card><Card className="pad"><h2>Permissões previstas</h2><p><b>Proprietário:</b> controlo total e conta protegida.</p><p><b>Administrador:</b> gestão global, exceto a conta do Proprietário.</p><p><b>Professor:</b> alunos atribuídos e permissões concedidas.</p><p><b>Aluno:</b> apenas os próprios dados.</p></Card><Card className="pad"><h2>Convites</h2><p>Fluxo final: criação no backoffice → email para definir password → instruções complementares por WhatsApp.</p></Card><Card className="pad"><h2>PWA</h2><p>Manifesto instalável já incluído. Ícone e experiência mobile serão validados antes do deploy.</p></Card></div>}
+  {section==='trainers'?<div className="backofficeEmbedded"><Trainers/></div>:section==='notices'?<div className="backofficeEmbedded"><NoticeManager/></div>:<div className="grid two section">
+   <Card className="pad maintenanceSettings"><div className="maintenanceSettingsHead"><div><h2>Modo manutenção</h2><p>Usa esta opção durante atualizações ou intervenções técnicas. A administração mantém acesso para concluir a manutenção.</p></div><button disabled={runtimeLoading} className={runtime.maintenanceMode?'toggle on':'toggle'} onClick={()=>setRuntime(v=>({...v,maintenanceMode:!v.maintenanceMode}))}><span/></button></div><label>Mensagem apresentada na app<textarea rows="4" value={runtime.maintenanceMessage||''} onChange={e=>setRuntime(v=>({...v,maintenanceMessage:e.target.value}))} placeholder="Ex.: Estamos a atualizar a ULTIMATE FIT APP. Voltamos às 22h."/></label>{runtimeError&&<div className="errorBanner">{runtimeError}</div>}{runtimeMessage&&<div className="successBanner"><CheckCircle2 size={17}/>{runtimeMessage}</div>}<button className="primary" disabled={runtimeLoading||runtimeSaving} onClick={persistRuntime}>{runtimeSaving?'A guardar…':'Guardar modo manutenção'}</button></Card>
+   <Card className="pad"><h2>Perfis da aplicação</h2><p><b>Administrador:</b> gestão global da aplicação.</p><p><b>Professor:</b> gestão dos alunos atribuídos e das áreas autorizadas.</p><p><b>Aluno:</b> acesso apenas aos próprios dados, planos, avaliações, atividades e comunicações.</p></Card>
+   <Card className="pad"><h2>Convites</h2><p>Fluxo: criação do utilizador → email para definir palavra-passe → entrada segura na ULTIMATE FIT APP.</p></Card>
+  </div>}
  </div>
 }
 function Profile({onNavigate}){const {currentUser,data,refreshStudents}=useApp();if(currentUser.role==='aluno'){const student=data.students.find(item=>item.userId===currentUser.id);return <StudentSelfHome student={student} assessments={data.assessments.filter(item=>item.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/>;}return <ProfessionalProfile/>;}
@@ -214,15 +221,22 @@ function Input({label,...props}){return <label>{label}<input {...props}/></label
 function Select({label,options=[],...props}){return <label>{label}<select {...props}>{options.map((o,i)=>typeof o==='string'?<option key={i}>{o}</option>:<option key={o.value} value={o.value}>{o.label}</option>)}</select></label>}
 function Info({l,v}){return <div className="info"><small>{l}</small><b>{v||'—'}</b></div>}
 
+function MaintenanceScreen({message,onAdminAccess}){return <div className="maintenanceScreen"><div className="maintenanceBrand"><BrandLogo/><strong>APP</strong></div><p>{message||'Estamos a realizar uma atualização. Voltamos dentro de momentos.'}</p><button className="maintenanceAdminAccess" onClick={onAdminAccess}>Acesso à gestão</button></div>}
+
 function AppGate(){
- const {configured,loading,session,profile}=useAuth();
+ const {configured,loading,session,profile,signOut}=useAuth();
+ const [runtime,setRuntime]=useState(null),[runtimeLoading,setRuntimeLoading]=useState(true),[maintenanceBypass,setMaintenanceBypass]=useState(false);
  const path=window.location.pathname.replace(/\/$/,'')||'/';
+ useEffect(()=>{if(!configured){setRuntimeLoading(false);return;}let live=true;const loadRuntime=()=>fetchRuntimeSettings().then(value=>live&&setRuntime(value)).catch(()=>live&&setRuntime({maintenanceMode:false,maintenanceMessage:''})).finally(()=>live&&setRuntimeLoading(false));loadRuntime();const timer=setInterval(loadRuntime,30000);window.addEventListener('focus',loadRuntime);return()=>{live=false;clearInterval(timer);window.removeEventListener('focus',loadRuntime)}},[configured,profile?.id]);
  if(!configured) return <div className="appState"><Logo/><h1>Configuração em falta</h1><p>As variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY ainda não estão disponíveis neste deployment.</p></div>;
- if(loading) return <div className="appState"><Logo/><div className="loader"/><p>A preparar a aplicação…</p></div>;
+ if(loading||runtimeLoading) return <div className="appState"><Logo/><div className="loader"/><p>A preparar a aplicação…</p></div>;
  if(path==='/repor-palavra-passe') return <PasswordSetupScreen mode="recovery"/>;
  if(path==='/definir-palavra-passe') return <PasswordSetupScreen mode="invite"/>;
+ const adminRole=profile?.role==='owner'||profile?.role==='admin';
+ if(runtime?.maintenanceMode&&!adminRole&&!maintenanceBypass) return <MaintenanceScreen message={runtime.maintenanceMessage} onAdminAccess={()=>setMaintenanceBypass(true)}/>;
  if(!session) return <LoginScreen/>;
  if(!profile) return <div className="appState"><Logo/><h1>Perfil indisponível</h1><p>Não foi possível carregar o perfil associado a esta conta.</p></div>;
+ if(runtime?.maintenanceMode&&!adminRole) return <MaintenanceScreen message={runtime.maintenanceMessage} onAdminAccess={async()=>{await signOut();setMaintenanceBypass(true)}}/>;
  if(profile.deleted_at) return <div className="appState"><Logo/><h1>Acesso eliminado</h1><p>Esta conta já não faz parte da equipa ULTIMATE FIT.</p></div>;
  if(!profile.is_active) return <div className="appState"><Logo/><h1>Conta desativada</h1><p>Contacta a administração do ULTIMATE FIT.</p></div>;
  if(profile.role==='student') return <ParqOnboarding profile={profile}><AppProvider><Shell/></AppProvider></ParqOnboarding>;

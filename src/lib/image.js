@@ -117,3 +117,49 @@ export async function optimiseExerciseImage(file) {
     if (typeof source.close === 'function') source.close();
   }
 }
+
+async function renderCommunityPoster(source, width, height, quality, zoom = 1, positionX = 0.5, positionY = 0.5) {
+  const sourceWidth = source.width || source.naturalWidth;
+  const sourceHeight = source.height || source.naturalHeight;
+  const baseScale = Math.max(width / sourceWidth, height / sourceHeight);
+  const scale = baseScale * Math.max(1, Math.min(2, Number(zoom) || 1));
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  const overflowX = Math.max(0, drawWidth - width);
+  const overflowY = Math.max(0, drawHeight - height);
+  const x = -overflowX * Math.max(0, Math.min(1, Number(positionX) || 0));
+  const y = -overflowY * Math.max(0, Math.min(1, Number(positionY) || 0));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d', { alpha: false });
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+  context.fillStyle = '#080808';
+  context.fillRect(0, 0, width, height);
+  context.drawImage(source, x, y, drawWidth, drawHeight);
+  return canvasToBlob(canvas, quality);
+}
+
+export async function optimiseCommunityPoster(file, options = {}) {
+  if (!file) return null;
+  if (!file.type.startsWith('image/')) throw new Error('Seleciona um ficheiro de imagem.');
+  if (file.size > MAX_SOURCE_BYTES) throw new Error('A imagem original não pode ultrapassar 15 MB.');
+
+  const source = await loadImageSource(file);
+  const zoom = options.zoom ?? 1;
+  const positionX = options.positionX ?? 0.5;
+  const positionY = options.positionY ?? 0.5;
+  try {
+    // Formato 4:5: funciona bem como cartaz no telemóvel e mantém boa leitura no desktop.
+    // O objetivo é ficar normalmente abaixo de ~450 KB sem sacrificar texto de cartazes.
+    for (const quality of [0.78, 0.7, 0.62, 0.54]) {
+      const blob = await renderCommunityPoster(source, 1080, 1350, quality, zoom, positionX, positionY);
+      if (blob.size <= 450 * 1024 || quality === 0.54) return blob;
+    }
+    throw new Error('Não foi possível otimizar a imagem.');
+  } finally {
+    if (typeof source.close === 'function') source.close();
+  }
+}
