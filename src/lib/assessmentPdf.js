@@ -3,7 +3,6 @@ import { assessmentMetrics, assessmentModuleLabels, activityLevelLabel, bmiCateg
 
 const YELLOW = [255, 217, 8];
 const BLACK = [10, 10, 10];
-const DARK = [28, 28, 28];
 const MID = [92, 92, 92];
 const LIGHT = [244, 244, 244];
 const LINE = [224, 224, 224];
@@ -29,16 +28,26 @@ const skinfoldRows = [
   ['Axilar média','midaxillary_mm','mm'],['Supra-ilíaca','suprailiac_mm','mm'],['Abdominal','abdominal_mm','mm'],['Coxa','thigh_mm','mm'],['Gémeo','calf_mm','mm'],
 ];
 
+function pdfText(value = '') {
+  return String(value)
+    .replace(/→/g, ' para ')
+    .replace(/Δ/g, 'Variacao')
+    .replace(/Σ/g, 'Soma')
+    .replace(/[—–]/g, '-')
+    .replace(/·/g, '|')
+    .normalize('NFC')
+    .replace(/[^\u000A\u000D\u0020-\u007E\u00A0-\u00FF]/g, '');
+}
 function safe(value, unit = '') {
-  if (value === null || value === undefined || value === '') return '—';
+  if (value === null || value === undefined || value === '') return '-';
   return `${value}${unit ? ` ${unit}` : ''}`;
 }
 function n(value) { const result = Number(value); return Number.isFinite(result) ? result : null; }
-function formatDate(value) { if (!value) return '—'; try { return PT.format(new Date(`${value}T12:00:00`)); } catch { return value; } }
+function formatDate(value) { if (!value) return '-'; try { return PT.format(new Date(`${value}T12:00:00`)); } catch { return value; } }
 function fileName(student, assessment) { return `ULTIMATE-FIT-Avaliacao-${(student?.name || 'Aluno').replace(/[^a-z0-9]+/gi,'-')}-${assessment.date}.pdf`; }
 function cleanPhone(value='') { return String(value).trim(); }
 function delta(current, previous, unit='') {
-  const a=n(current), b=n(previous); if(a===null||b===null) return '—';
+  const a=n(current), b=n(previous); if(a===null||b===null) return '-';
   const d=a-b; const sign=d>0?'+':''; return `${sign}${d.toFixed(Math.abs(d)<10?1:0)}${unit?` ${unit}`:''}`;
 }
 function getModule(assessment,key){ return assessment?.modules?.[key] || null; }
@@ -46,9 +55,16 @@ function getModule(assessment,key){ return assessment?.modules?.[key] || null; }
 async function blobToDataUrl(blob) {
   return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
 }
-async function fetchDataUrl(src) {
-  if (!src || typeof fetch === 'undefined') return '';
-  try { const response=await fetch(src); if(!response.ok) return ''; return blobToDataUrl(await response.blob()); } catch { return ''; }
+async function fetchImagePng(src, maxWidth = 1200) {
+  if (!src || typeof document === 'undefined') return '';
+  try {
+    const response=await fetch(src); if(!response.ok) return '';
+    const blob=await response.blob(); const url=URL.createObjectURL(blob);
+    const img=await new Promise((resolve,reject)=>{const el=new Image();el.onload=()=>resolve(el);el.onerror=reject;el.src=url});
+    const scale=Math.min(1,maxWidth/img.naturalWidth); const width=Math.max(1,Math.round(img.naturalWidth*scale)); const height=Math.max(1,Math.round(img.naturalHeight*scale));
+    const canvas=document.createElement('canvas'); canvas.width=width; canvas.height=height; const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,width,height); ctx.drawImage(img,0,0,width,height); URL.revokeObjectURL(url); return canvas.toDataURL('image/png');
+  } catch { return ''; }
 }
 async function fetchSquareJpeg(src, size=600) {
   if (!src || typeof document === 'undefined') return '';
@@ -61,121 +77,166 @@ async function fetchSquareJpeg(src, size=600) {
     ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h); URL.revokeObjectURL(url); return canvas.toDataURL('image/jpeg',0.88);
   } catch { return ''; }
 }
+async function ensureBebas() {
+  if (typeof document === 'undefined' || !document.fonts) return;
+  try { await document.fonts.load('400 48px "Bebas Neue"'); await document.fonts.ready; } catch {}
+}
+function addBebasText(doc, text, x, topY, { px = 48, color = '#0a0a0a', maxWidth = 180, align = 'left' } = {}) {
+  if (typeof document === 'undefined') {
+    doc.setFont('helvetica','bold'); doc.setFontSize(Math.max(12, px * 0.55)); doc.setTextColor(...BLACK); doc.text(pdfText(text),x,topY+8,{align});
+    return 10;
+  }
+  try {
+    const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
+    ctx.font=`400 ${px}px "Bebas Neue", Arial, sans-serif`; const clean=pdfText(text).toUpperCase();
+    const measured=Math.ceil(ctx.measureText(clean).width)+10; canvas.width=Math.max(20,measured); canvas.height=Math.ceil(px*1.2);
+    const c=canvas.getContext('2d'); c.clearRect(0,0,canvas.width,canvas.height); c.font=`400 ${px}px "Bebas Neue", Arial, sans-serif`; c.textBaseline='top'; c.fillStyle=color; c.fillText(clean,5,0);
+    const naturalW=canvas.width*0.264583; const naturalH=canvas.height*0.264583; const scale=Math.min(1,maxWidth/naturalW); const w=naturalW*scale,h=naturalH*scale;
+    let drawX=x; if(align==='right') drawX=x-w; if(align==='center') drawX=x-(w/2);
+    doc.addImage(canvas.toDataURL('image/png'),'PNG',drawX,topY,w,h,undefined,'FAST'); return h;
+  } catch {
+    doc.setFont('helvetica','bold'); doc.setFontSize(Math.max(12, px * 0.55)); doc.setTextColor(...BLACK); doc.text(pdfText(text),x,topY+8,{align}); return 10;
+  }
+}
 
+function addLogo(doc, logoData, x=14, y=5, w=31) {
+  if (!logoData) return;
+  try { doc.addImage(logoData,'PNG',x,y,w,w/4.77,undefined,'FAST'); } catch {}
+}
 function footer(doc, page, total) {
   doc.setDrawColor(...LINE); doc.line(14,285,196,285);
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...MID);
-  doc.text('ULTIMATE FIT · ultimatefit.pt',14,291);
-  doc.text(`Relatório gerado pela ULTIMATE FIT APP · ${page}/${total}`,196,291,{align:'right'});
+  doc.text(pdfText('ULTIMATE FIT | ultimatefit.pt'),14,291);
+  doc.text(pdfText(`Relatório gerado pela ULTIMATE FIT APP | ${page}/${total}`),196,291,{align:'right'});
 }
-function contentHeader(doc, section) {
+function contentHeader(doc, section, logoData) {
   doc.setFillColor(...BLACK); doc.rect(0,0,210,18,'F');
   doc.setFillColor(...YELLOW); doc.rect(0,18,210,3,'F');
-  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...WHITE); doc.text('ULTIMATE FIT',14,11);
-  doc.setFont('helvetica','normal'); doc.setTextColor(200); doc.text(section.toUpperCase(),196,11,{align:'right'});
+  addLogo(doc,logoData,14,5,31);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(205); doc.text(pdfText(section.toUpperCase()),196,11,{align:'right'});
 }
 function pageTitle(doc, title, subtitle='') {
-  doc.setTextColor(...BLACK); doc.setFont('helvetica','bold'); doc.setFontSize(23); doc.text(title,14,35);
-  if(subtitle){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...MID);doc.text(subtitle,14,42)}
+  addBebasText(doc,title,14,27,{px:48,color:'#0a0a0a',maxWidth:182});
+  if(subtitle){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...MID);doc.text(pdfText(subtitle),14,43,{maxWidth:182});}
 }
 function sectionTitle(doc, title, y) {
-  doc.setFillColor(...YELLOW); doc.rect(14,y-5,4,7,'F'); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...BLACK); doc.text(title,22,y); return y+7;
+  doc.setFillColor(...YELLOW); doc.rect(14,y-5,4,7,'F'); addBebasText(doc,title,22,y-7,{px:28,color:'#0a0a0a',maxWidth:170}); return y+7;
 }
-function card(doc,x,y,w,h,label,value,sub='') {
+function infoBlock(doc, x, y, label, value, width=74) {
+  doc.setFont('helvetica','normal');doc.setFontSize(7.3);doc.setTextColor(...MID);doc.text(pdfText(label),x,y);
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...BLACK);const lines=doc.splitTextToSize(pdfText(value||'-'),width);doc.text(lines,x,y+5);
+}
+function metricCard(doc,x,y,w,h,label,value,{previous=null,change=null,classification=''}={}) {
   doc.setFillColor(...LIGHT); doc.setDrawColor(235,235,235); doc.roundedRect(x,y,w,h,2,2,'FD');
-  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...MID);doc.text(label,x+4,y+6);
-  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(...BLACK);doc.text(String(value),x+4,y+15);
-  if(sub){doc.setFont('helvetica','normal');doc.setFontSize(7.2);doc.setTextColor(100);doc.text(sub,x+4,y+h-4)}
+  doc.setFont('helvetica','normal');doc.setFontSize(7.1);doc.setTextColor(...MID);doc.text(pdfText(label),x+4,y+6);
+  doc.setFont('helvetica','bold');doc.setFontSize(14.5);doc.setTextColor(...BLACK);doc.text(pdfText(String(value)),x+4,y+16);
+  if(classification){
+    doc.setFont('helvetica','normal');doc.setFontSize(7.2);doc.setTextColor(80);const cl=doc.splitTextToSize(pdfText(classification),w-8);doc.text(cl.slice(0,2),x+4,y+22);
+  } else if(previous!==null && previous!==undefined) {
+    doc.setFont('helvetica','normal');doc.setFontSize(6.9);doc.setTextColor(95);doc.text(pdfText(`Anterior: ${previous}`),x+4,y+22,{maxWidth:w-8});
+    doc.setFont('helvetica','bold');doc.setFontSize(6.9);doc.setTextColor(...BLACK);doc.text(pdfText(`Variação: ${change}`),x+4,y+27,{maxWidth:w-8});
+  } else {
+    doc.setFont('helvetica','normal');doc.setFontSize(6.9);doc.setTextColor(105);doc.text('Primeira referência',x+4,y+24,{maxWidth:w-8});
+  }
 }
 function comparisonCard(doc,x,y,w,h,label,current,previous,unit='') {
-  card(doc,x,y,w,h,label,safe(current,unit),previous===null||previous===undefined?'Primeira referência':`Anterior: ${safe(previous,unit)} · Δ ${delta(current,previous,unit)}`);
+  metricCard(doc,x,y,w,h,label,safe(current,unit),{
+    previous:previous===null||previous===undefined?null:safe(previous,unit),
+    change:previous===null||previous===undefined?null:delta(current,previous,unit),
+  });
 }
-function infoRow(doc, label, value, x, y, w=82) {
-  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...MID);doc.text(label,x,y);
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...BLACK);const lines=doc.splitTextToSize(String(value||'—'),w);doc.text(lines,x,y+5);return y+5+(lines.length*4.2);
-}
-function table(doc, {title, rows, current, previous, startY=48, unitByKey={}}) {
-  let y=sectionTitle(doc,title,startY); const x=14; const widths=[70,36,36,40]; const headers=['Indicador','Atual','Anterior','Evolução'];
-  const drawHeader=()=>{doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(h,cx+3,y+5.2);cx+=widths[i]});y+=8;};
+function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, logoData}) {
+  let y=sectionTitle(doc,title,startY); const x=14; const widths=[69,39,36,38]; const headers=['Indicador','Atual','Anterior','Evolução'];
+  const drawHeader=()=>{doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+3,y+5.2);cx+=widths[i]});y+=8;};
   drawHeader();
   for(let i=0;i<rows.length;i++){
-    if(y>273){doc.addPage();contentHeader(doc,title);y=30;drawHeader();}
-    const [label,key,defaultUnit='']=rows[i]; const unit=unitByKey[key]??defaultUnit; const a=current?.[key],b=previous?.[key];
-    doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,7,'F');
-    const values=[label,safe(a,unit),safe(b,unit),delta(a,b,unit)];let cx=x;
-    values.forEach((v,j)=>{doc.setFont('helvetica',j===1?'bold':'normal');doc.setFontSize(7.3);doc.setTextColor(...(j===1?BLACK:MID));doc.text(String(v),cx+3,y+4.8);cx+=widths[j]});
-    y+=7;
-    if(key==='bmi' && bmiCategory(a)){doc.setFont('helvetica','italic');doc.setFontSize(6.8);doc.setTextColor(...MID);doc.text(`Classificação atual: ${bmiCategory(a)}`,x+73,y-1.2)}
+    const [label,key,defaultUnit='']=rows[i]; const unit=unitByKey[key]??defaultUnit; const a=current?.[key],b=previous?.[key]; const isBmi=key==='bmi' && bmiCategory(a); const rowH=isBmi?14:8;
+    if(y+rowH>278){doc.addPage();contentHeader(doc,title,logoData);y=30;drawHeader();}
+    doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,rowH,'F');
+    const cells=[pdfText(label),pdfText(safe(a,unit)),pdfText(safe(b,unit)),pdfText(delta(a,b,unit))]; let cx=x;
+    for(let j=0;j<cells.length;j++){
+      doc.setFont('helvetica',j===1?'bold':'normal');doc.setFontSize(7.2);doc.setTextColor(...(j===1?BLACK:MID));
+      const maxW=widths[j]-6; const lines=doc.splitTextToSize(cells[j],maxW); doc.text(lines.slice(0,2),cx+3,y+5.1);
+      cx+=widths[j];
+    }
+    if(isBmi){doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(88);const bmiLines=doc.splitTextToSize(pdfText(`Classificação: ${bmiCategory(a)}`),34);doc.text(bmiLines.slice(0,2),x+72,y+9.2);}
+    y+=rowH;
   }
   return y+5;
 }
 function narrative(doc, title, text, y) {
-  y=sectionTitle(doc,title,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);const lines=doc.splitTextToSize(text||'—',178);doc.text(lines,14,y);return y+lines.length*4.7+5;
+  y=sectionTitle(doc,title,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);const lines=doc.splitTextToSize(pdfText(text||'-'),178);doc.text(lines,14,y);return y+lines.length*4.7+5;
 }
 
 function summaryChanges(current, previous) {
   if(!previous) return ['Esta é a primeira avaliação disponível para comparação.'];
   const cm=assessmentMetrics(current), pm=assessmentMetrics(previous); const items=[];
   [['Peso','weight','kg'],['Massa gorda','fat','%'],['Massa muscular','muscle','kg'],['Cintura','waist','cm']].forEach(([label,key,unit])=>{
-    if(n(cm[key])!==null&&n(pm[key])!==null) items.push(`${label}: ${safe(pm[key],unit)} → ${safe(cm[key],unit)} (${delta(cm[key],pm[key],unit)})`);
+    if(n(cm[key])!==null&&n(pm[key])!==null) items.push({label, previous:safe(pm[key],unit), current:safe(cm[key],unit), change:delta(cm[key],pm[key],unit)});
   });
   return items.length?items:['Não existem métricas comuns suficientes para uma comparação automática.'];
 }
 
 export async function buildAssessmentPdf(student, assessment, previousAssessment = null) {
+  await ensureBebas();
   const doc=new jsPDF({unit:'mm',format:'a4',compress:true}); const currentMetrics=assessmentMetrics(assessment); const previousMetrics=previousAssessment?assessmentMetrics(previousAssessment):{};
   const assessor=assessment.assessor || student?.trainers?.find?.(item=>item.profileId===assessment.assessorProfileId) || student?.primaryTrainer || null;
-  const [logoData, assessorPhoto] = await Promise.all([fetchDataUrl('/ultimatefit-logo-stacked.png'),fetchSquareJpeg(assessor?.photoUrl||assessor?.thumbUrl)]);
+  const [logoData, assessorPhoto] = await Promise.all([fetchImagePng('/brand/ultimatefit-logo.webp'),fetchSquareJpeg(assessor?.photoUrl||assessor?.thumbUrl)]);
 
   // CAPA
   doc.setFillColor(...YELLOW);doc.rect(0,0,210,205,'F');doc.setFillColor(...BLACK);doc.triangle(0,205,210,165,210,297,'F');doc.rect(0,205,210,92,'F');
-  doc.setFillColor(...BLACK);doc.roundedRect(14,15,48,38,2,2,'F'); if(logoData){try{doc.addImage(logoData,'PNG',21,18,34,32)}catch{}}
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...BLACK);doc.text('RELATÓRIO DE ACOMPANHAMENTO PERSONALIZADO',196,25,{align:'right'});
-  doc.setFont('helvetica','bold');doc.setFontSize(33);doc.text('AVALIAÇÃO',14,93);doc.text('FÍSICA',14,108);
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.text('Avaliação · Prescrição · Controlo',14,120);
-  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(student?.name||'Aluno',14,142);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.text(`${formatDate(assessment.date)}${previousAssessment?` · comparação com ${formatDate(previousAssessment.date)}`:' · avaliação de referência'}`,14,150);
+  doc.setFillColor(...BLACK);doc.roundedRect(14,14,78,23,2,2,'F'); addLogo(doc,logoData,20,21,58);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...BLACK);doc.text(pdfText('RELATÓRIO DE ACOMPANHAMENTO PERSONALIZADO'),196,25,{align:'right'});
+  addBebasText(doc,'AVALIAÇÃO',14,78,{px:72,color:'#0a0a0a',maxWidth:115}); addBebasText(doc,'FÍSICA',14,102,{px:72,color:'#0a0a0a',maxWidth:90});
+  doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(...BLACK);doc.text(pdfText('Avaliação | Prescrição | Controlo'),14,124);
+  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(pdfText(student?.name||'Aluno'),14,144);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.text(pdfText(`${formatDate(assessment.date)}${previousAssessment?` | comparação com ${formatDate(previousAssessment.date)}`:' | avaliação de referência'}`),14,152);
   if(assessorPhoto){try{doc.addImage(assessorPhoto,'JPEG',151,185,38,38)}catch{}}
-  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(assessor?.name||'Equipa ULTIMATE FIT',146,232,{align:'center'});doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(210);doc.text(assessor?.professionalTitle||'Personal Trainer',146,238,{align:'center'});
-  const contacts=[cleanPhone(assessor?.phone),assessor?.email].filter(Boolean).join(' · ');if(contacts){doc.setFontSize(7.7);doc.text(contacts,146,244,{align:'center',maxWidth:90})}
-  doc.setFontSize(10);doc.setTextColor(...WHITE);doc.text('ultimatefit.pt',14,278);doc.setTextColor(170);doc.setFontSize(8);doc.text('ULTIMATE FIT · Estúdio privado de treino personalizado',14,285);
+  doc.setTextColor(...WHITE);addBebasText(doc,assessor?.name||'Equipa ULTIMATE FIT',146,228,{px:28,color:'#ffffff',maxWidth:90,align:'center'});doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(210);doc.text(pdfText(assessor?.professionalTitle||'Personal Trainer'),146,241,{align:'center'});
+  const contacts=[cleanPhone(assessor?.phone),assessor?.email].filter(Boolean).join(' | ');if(contacts){doc.setFontSize(7.7);doc.text(pdfText(contacts),146,247,{align:'center',maxWidth:90});}
+  doc.setFontSize(10);doc.setTextColor(...WHITE);doc.text('ultimatefit.pt',14,278);doc.setTextColor(170);doc.setFontSize(8);doc.text(pdfText('ULTIMATE FIT | Estúdio privado de treino personalizado'),14,285);
 
   // RESUMO
-  doc.addPage();contentHeader(doc,'Resumo e evolução');pageTitle(doc,'A tua avaliação em resumo',previousAssessment?`Comparação automática com a avaliação de ${formatDate(previousAssessment.date)}.`:'Primeira avaliação disponível — servirá como referência para a evolução futura.');
-  let y=53; doc.setFillColor(250,250,250);doc.roundedRect(14,y,182,29,2,2,'F');
-  const leftY=y+7;infoRow(doc,'Aluno',student?.name,19,leftY,70);infoRow(doc,'Idade',student?.age!=null?`${student.age} anos`:'—',19,leftY+11,70);infoRow(doc,'Objetivo',student?.mainGoal||'—',19,leftY+21,70);
-  infoRow(doc,'Data da avaliação',formatDate(assessment.date),110,leftY,70);infoRow(doc,'Professor responsável',assessor?.name||'ULTIMATE FIT',110,leftY+11,70);infoRow(doc,'Contacto',cleanPhone(assessor?.phone)||assessor?.email||'ultimatefit.pt',110,leftY+21,70);
-  y=91;const cw=42.5,g=4;comparisonCard(doc,14,y,cw,27,'Peso',currentMetrics.weight,previousMetrics.weight,'kg');comparisonCard(doc,14+cw+g,y,cw,27,'Massa gorda',currentMetrics.fat,previousMetrics.fat,'%');comparisonCard(doc,14+(cw+g)*2,y,cw,27,'Massa muscular',currentMetrics.muscle,previousMetrics.muscle,'kg');comparisonCard(doc,14+(cw+g)*3,y,cw,27,'Cintura',currentMetrics.waist,previousMetrics.waist,'cm');
-  y=126;card(doc,14,y,57,24,'IMC',currentMetrics.bmi==null?'—':String(currentMetrics.bmi),bmiCategory(currentMetrics.bmi)||'Sem classificação');comparisonCard(doc,76,y,57,24,'Gordura visceral',currentMetrics.visceral,previousMetrics.visceral,'');comparisonCard(doc,138,y,58,24,'Soma das dobras',currentMetrics.skinfoldSum==null?null:Number(currentMetrics.skinfoldSum.toFixed(1)),previousMetrics.skinfoldSum==null?null:Number(previousMetrics.skinfoldSum.toFixed?.(1)??previousMetrics.skinfoldSum),'mm');
-  y=164;y=sectionTitle(doc,'Evolução desde a avaliação anterior',y);doc.setFillColor(250,250,250);doc.roundedRect(14,y,182,42,2,2,'F');let by=y+8;summaryChanges(assessment,previousAssessment).forEach(text=>{doc.setFillColor(...YELLOW);doc.circle(20,by-1.3,1.3,'F');doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(45);doc.text(text,25,by);by+=8});
-  y=220;y=sectionTitle(doc,'Módulos incluídos neste relatório',y);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MID);doc.text(assessmentModuleLabels(assessment).join(' · ')||'Avaliação geral',14,y);
-  doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(115);doc.text('As comparações são descritivas e destinam-se ao acompanhamento da evolução. A interpretação clínica deve ser feita por profissional de saúde quando aplicável.',14,271,{maxWidth:182});
+  doc.addPage();contentHeader(doc,'Resumo e evolução',logoData);pageTitle(doc,'A tua avaliação em resumo',previousAssessment?`Comparação automática com a avaliação de ${formatDate(previousAssessment.date)}.`:'Primeira avaliação disponível - servirá como referência para a evolução futura.');
+  let y=53; doc.setFillColor(250,250,250);doc.roundedRect(14,y,182,34,2,2,'F');
+  infoBlock(doc,19,y+8,'Aluno',student?.name,70);infoBlock(doc,19,y+19,'Idade',student?.age!=null?`${student.age} anos`:'-',70);infoBlock(doc,19,y+26,'Objetivo',student?.mainGoal||'-',70);
+  infoBlock(doc,110,y+8,'Data da avaliação',formatDate(assessment.date),70);infoBlock(doc,110,y+19,'Professor responsável',assessor?.name||'ULTIMATE FIT',70);infoBlock(doc,110,y+26,'Contacto',cleanPhone(assessor?.phone)||assessor?.email||'ultimatefit.pt',70);
+  y=94;const cw=42.5,g=4;comparisonCard(doc,14,y,cw,31,'Peso',currentMetrics.weight,previousMetrics.weight,'kg');comparisonCard(doc,14+cw+g,y,cw,31,'Massa gorda',currentMetrics.fat,previousMetrics.fat,'%');comparisonCard(doc,14+(cw+g)*2,y,cw,31,'Massa muscular',currentMetrics.muscle,previousMetrics.muscle,'kg');comparisonCard(doc,14+(cw+g)*3,y,cw,31,'Cintura',currentMetrics.waist,previousMetrics.waist,'cm');
+  y=132;metricCard(doc,14,y,57,27,'IMC',currentMetrics.bmi==null?'-':String(currentMetrics.bmi),{classification:bmiCategory(currentMetrics.bmi)||'Sem classificação'});comparisonCard(doc,76,y,57,27,'Gordura visceral',currentMetrics.visceral,previousMetrics.visceral,'');comparisonCard(doc,138,y,58,27,'Soma das dobras',currentMetrics.skinfoldSum==null?null:Number(currentMetrics.skinfoldSum.toFixed(1)),previousMetrics.skinfoldSum==null?null:Number(previousMetrics.skinfoldSum.toFixed?.(1)??previousMetrics.skinfoldSum),'mm');
+  y=171;y=sectionTitle(doc,'Evolução desde a avaliação anterior',y);doc.setFillColor(250,250,250);doc.roundedRect(14,y,182,48,2,2,'F');let by=y+9;const changes=summaryChanges(assessment,previousAssessment);
+  changes.slice(0,5).forEach(item=>{
+    doc.setFillColor(...YELLOW);doc.circle(20,by-1.3,1.3,'F');doc.setFont('helvetica','bold');doc.setFontSize(8.2);doc.setTextColor(...BLACK);
+    if(typeof item==='string'){doc.text(pdfText(item),25,by,{maxWidth:165});by+=8;return;}
+    doc.text(pdfText(item.label),25,by);doc.setFont('helvetica','normal');doc.setTextColor(55);doc.text(pdfText(`de ${item.previous} para ${item.current}`),57,by);doc.setFont('helvetica','bold');doc.setTextColor(...BLACK);doc.text(pdfText(`Variação ${item.change}`),145,by,{maxWidth:46});by+=9;
+  });
+  y=234;y=sectionTitle(doc,'Módulos incluídos neste relatório',y);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MID);doc.text(pdfText(assessmentModuleLabels(assessment).join(' | ')||'Avaliação geral'),14,y,{maxWidth:182});
+  doc.setFont('helvetica','italic');doc.setFontSize(7.3);doc.setTextColor(115);doc.text(pdfText('As comparações são descritivas e destinam-se ao acompanhamento da evolução. A interpretação clínica deve ser feita por profissional de saúde quando aplicável.'),14,271,{maxWidth:182});
 
   // BIOIMPEDÂNCIA
   if(getModule(assessment,'bioimpedance')){
-    doc.addPage();contentHeader(doc,'Bioimpedância TANITA');pageTitle(doc,'Composição corporal','Valores atuais, referência anterior e diferença entre avaliações.');
-    table(doc,{title:'Bioimpedância · TANITA',rows:bioRows,current:getModule(assessment,'bioimpedance'),previous:getModule(previousAssessment,'bioimpedance'),startY:52});
+    doc.addPage();contentHeader(doc,'Bioimpedância TANITA',logoData);pageTitle(doc,'Composição corporal','Valores atuais, referência anterior e diferença entre avaliações.');
+    table(doc,{title:'Bioimpedância - TANITA',rows:bioRows,current:getModule(assessment,'bioimpedance'),previous:getModule(previousAssessment,'bioimpedance'),startY:52,logoData});
   }
   // PERIMETRIA
   if(getModule(assessment,'perimetry')){
-    doc.addPage();contentHeader(doc,'Perimetria');pageTitle(doc,'Perimetria corporal','Acompanhamento das principais medidas corporais.');
-    table(doc,{title:'Medidas corporais',rows:perimetryRows,current:getModule(assessment,'perimetry'),previous:getModule(previousAssessment,'perimetry'),startY:52});
+    doc.addPage();contentHeader(doc,'Perimetria',logoData);pageTitle(doc,'Perimetria corporal','Acompanhamento das principais medidas corporais.');
+    table(doc,{title:'Medidas corporais',rows:perimetryRows,current:getModule(assessment,'perimetry'),previous:getModule(previousAssessment,'perimetry'),startY:52,logoData});
   }
   // DOBRAS
   if(getModule(assessment,'skinfolds')){
-    doc.addPage();contentHeader(doc,'Dobras cutâneas');pageTitle(doc,'Dobras cutâneas','Registo em milímetros e evolução face à avaliação anterior.');
-    let end=table(doc,{title:'Pregas cutâneas',rows:skinfoldRows,current:getModule(assessment,'skinfolds'),previous:getModule(previousAssessment,'skinfolds'),startY:52});
-    const currentSum=skinfoldSum(getModule(assessment,'skinfolds')), previousSum=skinfoldSum(getModule(previousAssessment,'skinfolds')); end=sectionTitle(doc,'Somatório',end+3);comparisonCard(doc,14,end,70,24,'Σ Dobras',currentSum==null?null:Number(currentSum.toFixed(1)),previousSum==null?null:Number(previousSum.toFixed(1)),'mm');
+    doc.addPage();contentHeader(doc,'Dobras cutâneas',logoData);pageTitle(doc,'Dobras cutâneas','Registo em milímetros e evolução face à avaliação anterior.');
+    let end=table(doc,{title:'Pregas cutâneas',rows:skinfoldRows,current:getModule(assessment,'skinfolds'),previous:getModule(previousAssessment,'skinfolds'),startY:52,logoData});
+    const currentSum=skinfoldSum(getModule(assessment,'skinfolds')), previousSum=skinfoldSum(getModule(previousAssessment,'skinfolds')); end=sectionTitle(doc,'Somatório',end+3);comparisonCard(doc,14,end,70,31,'Soma das dobras',currentSum==null?null:Number(currentSum.toFixed(1)),previousSum==null?null:Number(previousSum.toFixed(1)),'mm');
   }
   // CONTEXTO
   if(getModule(assessment,'anamnesis')||getModule(assessment,'posture')||assessment.notes){
-    doc.addPage();contentHeader(doc,'Contexto da avaliação');pageTitle(doc,'Contexto e observações','Informação complementar registada durante a avaliação.');y=53;
-    const anam=getModule(assessment,'anamnesis'); if(anam){y=sectionTitle(doc,'Anamnese',y);doc.setFillColor(...LIGHT);doc.roundedRect(14,y,182,34,2,2,'F');infoRow(doc,'Nível de atividade',activityLevelLabel(anam.physical_activity_level),19,y+7,70);infoRow(doc,'Estratificação registada',riskResultLabel(anam.risk_result),105,y+7,80);infoRow(doc,'Fumador',anam.smoker===true?'Sim':anam.smoker===false?'Não':'—',19,y+20,70);infoRow(doc,'Dor muscular',anam.muscle_pain===true?'Sim':anam.muscle_pain===false?'Não':'—',105,y+20,80);y+=44;}
+    doc.addPage();contentHeader(doc,'Contexto da avaliação',logoData);pageTitle(doc,'Contexto e observações','Informação complementar registada durante a avaliação.');y=53;
+    const anam=getModule(assessment,'anamnesis'); if(anam){y=sectionTitle(doc,'Anamnese',y);doc.setFillColor(...LIGHT);doc.roundedRect(14,y,182,34,2,2,'F');infoBlock(doc,19,y+8,'Nível de atividade',activityLevelLabel(anam.physical_activity_level),70);infoBlock(doc,105,y+8,'Estratificação registada',riskResultLabel(anam.risk_result),80);infoBlock(doc,19,y+22,'Fumador',anam.smoker===true?'Sim':anam.smoker===false?'Não':'-',70);infoBlock(doc,105,y+22,'Dor muscular',anam.muscle_pain===true?'Sim':anam.muscle_pain===false?'Não':'-',80);y+=44;}
     const posture=getModule(assessment,'posture'); if(posture){const text=[['Anterior',posture.anterior_notes],['Posterior',posture.posterior_notes],['Perfil direito',posture.lateral_right_notes],['Perfil esquerdo',posture.lateral_left_notes]].filter(([,v])=>v).map(([l,v])=>`${l}: ${v}`).join('\n');if(text)y=narrative(doc,'Análise postural',text,y);}
     if(assessment.notes)y=narrative(doc,'Observações do professor',assessment.notes,y);
-    y=sectionTitle(doc,'Contacto ULTIMATE FIT',Math.min(y+5,250));doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);doc.text(`Professor: ${assessor?.name||'Equipa ULTIMATE FIT'} · ${cleanPhone(assessor?.phone)||assessor?.email||'ultimatefit.pt'}`,14,y);doc.text('Website: ultimatefit.pt',14,y+6);
+    y=sectionTitle(doc,'Contacto ULTIMATE FIT',Math.min(y+5,250));doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);doc.text(pdfText(`Professor: ${assessor?.name||'Equipa ULTIMATE FIT'} | ${cleanPhone(assessor?.phone)||assessor?.email||'ultimatefit.pt'}`),14,y,{maxWidth:182});doc.text('Website: ultimatefit.pt',14,y+6);
   }
 
-  const total=doc.internal.getNumberOfPages();for(let page=2;page<=total;page++){doc.setPage(page);footer(doc,page,total)}
+  const total=doc.internal.getNumberOfPages();for(let page=2;page<=total;page++){doc.setPage(page);footer(doc,page,total);}
   return { name:fileName(student,assessment), doc };
 }
 
