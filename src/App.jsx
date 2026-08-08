@@ -12,6 +12,7 @@ import ParqOnboarding from './components/ParqOnboarding';
 import TrainingPlansModule from './components/TrainingPlansModule';
 import ExerciseLibraryModule from './components/ExerciseLibraryModule';
 import ActivitiesModule from './components/ActivitiesModule';
+import NutritionModule from './components/NutritionModule';
 import {NoticeManager,StudentNoticeBoard,StudentNoticePopup} from './components/NoticeCenter';
 import {fetchRuntimeSettings,saveRuntimeSettings} from './lib/runtime';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
@@ -56,7 +57,7 @@ function Shell(){
 }
 
 function PageRouter({page,context,onNavigate}){
- const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<Nutrition context={context}/>,challenges:<ChallengesModule context={context}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
+ const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}

@@ -6,6 +6,7 @@ import {fetchStudents} from '../lib/students';
 import {fetchAssessments} from '../lib/assessments';
 import {fetchExercises,fetchWorkoutPlans,fetchMuscleGroups,fetchWorkoutBlockTypes,fetchWorkoutCompletions} from '../lib/training';
 import {fetchActivities,fetchNotices} from '../lib/community';
+import {fetchNutritionDocuments} from '../lib/nutrition';
 
 const AppContext=createContext(null);
 const demoInitial={users:seedUsers,exercises:[],settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
@@ -44,6 +45,8 @@ export function AppProvider({children}){
  const [trainingError,setTrainingError]=useState('');
  const [communityLoading,setCommunityLoading]=useState(true);
  const [communityError,setCommunityError]=useState('');
+ const [nutritionLoading,setNutritionLoading]=useState(true);
+ const [nutritionError,setNutritionError]=useState('');
 
  useEffect(()=>{
   const {students,assessments,exercises,muscleGroups,blockTypes,plans,workoutCompletions,nutrition,goals,messages,notices,activities,activityRegistrations,...safeToStore}=data;
@@ -102,7 +105,20 @@ export function AppProvider({children}){
   finally{setCommunityLoading(false)}
  }
 
- useEffect(()=>{refreshStudents();refreshAssessments();refreshTraining();refreshCommunity()},[profile?.id]);
+ async function refreshNutrition(){
+  if(!profile){setData(d=>({...d,nutrition:[]}));setNutritionLoading(false);return []}
+  setNutritionLoading(true);setNutritionError('');
+  try{
+   const nutrition=await fetchNutritionDocuments();
+   setData(d=>({...d,nutrition}));
+   return nutrition;
+  }catch(error){
+   setNutritionError(error.message||'Não foi possível carregar os documentos de nutrição.');
+   return [];
+  }finally{setNutritionLoading(false)}
+ }
+
+ useEffect(()=>{refreshStudents();refreshAssessments();refreshTraining();refreshCommunity();refreshNutrition()},[profile?.id]);
 
  const currentUser=profile?{
   id:profile.id,
@@ -121,7 +137,7 @@ export function AppProvider({children}){
   deletedAt:profile.deleted_at,
  }:data.users[0];
  const update=(key,fn)=>setData(d=>({...d,[key]:typeof fn==='function'?fn(d[key]):fn}));
- const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError,refreshTraining,trainingLoading,trainingError,refreshCommunity,communityLoading,communityError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError,communityLoading,communityError]);
+ const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError,refreshTraining,trainingLoading,trainingError,refreshCommunity,communityLoading,communityError,refreshNutrition,nutritionLoading,nutritionError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError,communityLoading,communityError,nutritionLoading,nutritionError]);
  return <AppContext.Provider value={api}>{children}</AppContext.Provider>
 }
 export const useApp=()=>useContext(AppContext);

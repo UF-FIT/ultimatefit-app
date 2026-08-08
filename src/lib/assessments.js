@@ -20,6 +20,13 @@ async function signedUrl(path, expiresIn = 3600) {
   return data?.signedUrl || '';
 }
 
+async function signedProfessionalUrl(path, expiresIn = 3600) {
+  if (!path) return '';
+  const { data, error } = await supabase.storage.from('professional-avatars').createSignedUrl(path, expiresIn);
+  if (error) return '';
+  return data?.signedUrl || '';
+}
+
 export function assessmentStatusLabel(status) {
   return ({ draft: 'Rascunho', published: 'Publicada', archived: 'Arquivada' })[status] || status;
 }
@@ -121,6 +128,36 @@ export async function fetchAssessments() {
     posture: byAssessment(postureRes.data),
   };
 
+  const assessorIds = [...new Set(headers.map(item => item.assessor_profile_id).filter(Boolean))];
+  const assessorById = new Map();
+  if (assessorIds.length) {
+    const [profileRes, trainerRes] = await Promise.all([
+      supabase.from('profiles').select('id,full_name,first_name,last_name,email,phone,avatar_path,avatar_thumb_path').in('id', assessorIds),
+      supabase.from('trainer_profiles').select('profile_id,professional_title,whatsapp_phone,social_url').in('profile_id', assessorIds),
+    ]);
+    const trainerByProfile = new Map((trainerRes.data || []).map(item => [item.profile_id, item]));
+    const assessorEntries = await Promise.all((profileRes.data || []).map(async profile => {
+      const trainer = trainerByProfile.get(profile.id) || {};
+      const [photoUrl, thumbUrl] = await Promise.all([
+        signedProfessionalUrl(profile.avatar_path),
+        signedProfessionalUrl(profile.avatar_thumb_path || profile.avatar_path),
+      ]);
+      return [profile.id, {
+        id: profile.id,
+        name: profile.full_name || [profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'Professor ULTIMATE FIT',
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || '',
+        email: profile.email || '',
+        phone: trainer.whatsapp_phone || profile.phone || '',
+        professionalTitle: trainer.professional_title || 'Personal Trainer',
+        socialUrl: trainer.social_url || '',
+        photoUrl,
+        thumbUrl: thumbUrl || photoUrl,
+      }];
+    }));
+    assessorEntries.forEach(([id, value]) => assessorById.set(id, value));
+  }
+
   const photosByAssessment = new Map();
   for (const photo of photosRes.data || []) {
     if (!photosByAssessment.has(photo.assessment_id)) photosByAssessment.set(photo.assessment_id, []);
@@ -150,6 +187,7 @@ export async function fetchAssessments() {
         bioimpedance: maps.bioimpedance.get(header.id) || null,
         posture: maps.posture.get(header.id) || null,
       },
+      assessor: assessorById.get(header.assessor_profile_id) || null,
       photos,
     };
     return { ...assessment, ...assessmentMetrics(assessment) };
