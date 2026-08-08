@@ -1,20 +1,26 @@
 import React from 'react';
-import { BookOpen, ExternalLink, PlayCircle } from 'lucide-react';
+import { BookOpen, Dumbbell, ExternalLink, PlayCircle } from 'lucide-react';
 
-function youtubeEmbed(url) {
+function youtubeId(url) {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname.includes('youtu.be')) {
-      const id = parsed.pathname.split('/').filter(Boolean)[0];
-      return id ? `https://www.youtube.com/embed/${id}` : '';
-    }
+    if (parsed.hostname.includes('youtu.be')) return parsed.pathname.split('/').filter(Boolean)[0] || '';
     if (parsed.hostname.includes('youtube.com')) {
-      if (parsed.pathname.startsWith('/embed/')) return url;
-      const id = parsed.searchParams.get('v');
-      return id ? `https://www.youtube.com/embed/${id}` : '';
+      if (parsed.pathname.startsWith('/embed/')) return parsed.pathname.split('/').filter(Boolean)[1] || '';
+      return parsed.searchParams.get('v') || '';
     }
   } catch {}
   return '';
+}
+
+function youtubeEmbed(url) {
+  const id = youtubeId(url);
+  return id ? `https://www.youtube.com/embed/${id}` : '';
+}
+
+function youtubeThumbnail(url) {
+  const id = youtubeId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
 }
 
 function vimeoEmbed(url) {
@@ -47,9 +53,29 @@ export function hasExerciseMedia(exercise) {
   return Boolean(exercise?.mediaUrl || exercise?.externalMediaUrl || exercise?.mediaPath);
 }
 
-export default function ExerciseMedia({ exercise, compact = false, controls = true, className = '' }) {
-  if (!exercise || !hasExerciseMedia(exercise)) {
-    return <div className={`exerciseMediaPlaceholder ${className}`}><BookOpen size={26}/><span>Sem demonstração</span></div>;
+function BrandMark() {
+  return <span className="exerciseBrandMark"><img src="/uf-icon.svg" alt=""/><b>ULTIMATE FIT</b></span>;
+}
+
+function VisualFallback({ exercise, className = '', manual = false }) {
+  return <div className={`exerciseVisualFallback ${className}`}>
+    <div className="exerciseVisualFallbackInner">
+      {manual ? <BookOpen size={28}/> : <Dumbbell size={30}/>} 
+      <small>{manual ? 'TEXTO LIVRE' : (exercise?.group || 'ULTIMATE FIT')}</small>
+      <strong>{exercise?.name || 'Exercício'}</strong>
+      {!manual && <span>Imagem neutra · sem técnica ilustrada</span>}
+    </div>
+    <BrandMark/>
+  </div>;
+}
+
+function Branded({ children, className = '' }) {
+  return <div className={`exerciseMediaBranded ${className}`}>{children}<BrandMark/></div>;
+}
+
+export default function ExerciseMedia({ exercise, compact = false, controls = true, className = '', manual = false }) {
+  if (!exercise || manual || !hasExerciseMedia(exercise)) {
+    return <VisualFallback exercise={exercise} className={className} manual={manual}/>;
   }
 
   const url = exercise.mediaUrl || exercise.externalMediaUrl || '';
@@ -57,23 +83,33 @@ export default function ExerciseMedia({ exercise, compact = false, controls = tr
   const kind = storedKind && storedKind !== 'external' ? storedKind : externalKind(url);
 
   if (compact) {
-    if (kind === 'image' || kind === 'gif') {
-      return <img className={className} src={url} alt={exercise.name} loading="lazy" decoding="async"/>;
+    if (kind === 'youtube') {
+      const thumb = youtubeThumbnail(url);
+      if (thumb) return <Branded className={className}><img src={thumb} alt={exercise.name} loading="lazy" decoding="async"/></Branded>;
     }
-    return <div className={`exerciseMediaPlaceholder videoAvailable ${className}`}><PlayCircle size={28}/><span>Vídeo disponível</span></div>;
+    if (kind === 'image' || kind === 'gif') {
+      return <Branded className={className}><img src={url} alt={exercise.name} loading="lazy" decoding="async"/></Branded>;
+    }
+    if (kind === 'video') {
+      const thumbSrc = url.includes('#') ? url : `${url}#t=0.15`;
+      return <Branded className={className}><video src={thumbSrc} muted playsInline preload="metadata" aria-label={`Miniatura de ${exercise.name}`}/></Branded>;
+    }
+    // Vimeo/HLS/link: não inventamos uma posição corporal. Mantemos um cartão visual neutro,
+    // enquanto a demonstração original continua disponível ao abrir o exercício.
+    return <VisualFallback exercise={exercise} className={className}/>;
   }
 
   if (kind === 'image' || kind === 'gif') {
-    return <img className={className} src={url} alt={exercise.name} loading="lazy" decoding="async"/>;
+    return <Branded className={className}><img src={url} alt={exercise.name} loading="lazy" decoding="async"/></Branded>;
   }
   if (kind === 'video') {
-    return <video className={className} src={url} controls={controls} playsInline preload="metadata"/>;
+    return <Branded className={className}><video src={url} controls={controls} playsInline preload="metadata"/></Branded>;
   }
   if (kind === 'youtube') {
-    return <iframe className={className} src={youtubeEmbed(url)} title={exercise.name} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/>;
+    return <Branded className={className}><iframe src={youtubeEmbed(url)} title={exercise.name} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></Branded>;
   }
   if (kind === 'vimeo') {
-    return <iframe className={className} src={vimeoEmbed(url)} title={exercise.name} loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/>;
+    return <Branded className={className}><iframe src={vimeoEmbed(url)} title={exercise.name} loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/></Branded>;
   }
-  return <a className="exerciseExternalMediaLink" href={url} target="_blank" rel="noreferrer"><PlayCircle size={34}/><b>Abrir demonstração</b><small>O vídeo abre numa nova janela.</small><ExternalLink size={16}/></a>;
+  return <Branded className={className}><a className="exerciseExternalMediaLink" href={url} target="_blank" rel="noreferrer"><PlayCircle size={34}/><b>Abrir demonstração</b><small>O vídeo abre numa nova janela.</small><ExternalLink size={16}/></a></Branded>;
 }

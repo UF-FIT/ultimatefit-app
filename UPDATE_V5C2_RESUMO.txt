@@ -1,0 +1,8 @@
+ULTIMATE FIT APP — Update v5C.2
+
+- Novo seletor de exercícios nos planos: pesquisa instantânea por nome/alias e filtro por grupo muscular.
+- Resultados apresentam miniatura, nome, grupo e equipamento.
+- Opção Texto livre: permite prescrever um exercício sem o criar na biblioteca; o aluno recebe apenas o nome e a prescrição, sem vídeo.
+- Todos os exercícios passam a ter representação visual: miniatura derivada da própria demonstração quando tecnicamente segura; nos restantes casos, cartão visual neutro ULTIMATE FIT, sem ilustrar uma técnica que não foi verificada.
+- Marca ULTIMATE FIT aplicada no canto inferior direito das miniaturas/visuais.
+- Migration 011 adiciona custom_exercise_name e torna exercise_id opcional, mantendo regra de exclusividade entre biblioteca e texto livre.

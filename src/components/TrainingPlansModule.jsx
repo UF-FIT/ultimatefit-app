@@ -16,8 +16,9 @@ function Badge({ children, tone = 'gray' }) { return <span className={`badge ${t
 function Card({ children, className = '' }) { return <div className={cx('card', className)}>{children}</div>; }
 
 function emptyItem() {
-  return { exerciseId: '', sets: 3, reps: '10', durationSeconds: '', restSeconds: 60, tempo: '', loadText: '', rpe: '', notes: '' };
+  return { exerciseId: '', manualName: '', sets: 3, reps: '10', durationSeconds: '', restSeconds: 60, tempo: '', loadText: '', rpe: '', notes: '' };
 }
+
 function emptyBlock(type = 'standard') {
   return { type, title: '', rounds: 1, restAfterSeconds: '', items: [emptyItem()] };
 }
@@ -38,6 +39,8 @@ function planStatus(plan) {
 function getExerciseMedia(exercise, compact = false) {
   return <ExerciseMedia exercise={exercise} compact={compact}/>;
 }
+
+function itemExerciseName(item) { return item?.exercise?.name || item?.manualName || 'Exercício'; }
 
 function ExercisePrescription({ item }) {
   const details = [];
@@ -74,9 +77,9 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
         <div className="trainingBlocksView">
           {session.blocks.map((block, blockIndex) => { const definition = typeByCode[block.type] || { name:block.type, supportsRounds:block.type !== 'standard' }; return <div className={cx('trainingBlockView', block.type, block.type !== 'standard' && 'special')} key={block.id || blockIndex}>
             <div className="trainingBlockHeading"><div><Badge tone={block.type === 'standard' ? 'gray' : 'yellow'}>{definition.name}</Badge>{block.title && <b>{block.title}</b>}</div>{definition.supportsRounds && <span>{block.rounds || 1} volta(s){block.restAfterSeconds ? ` · ${formatSeconds(block.restAfterSeconds)} após bloco` : ''}</span>}</div>
-            {block.items.map((item, itemIndex) => <button className="trainingExerciseView" key={item.id || itemIndex} onClick={() => setOpenExercise(item)}>
-              <div className="trainingExerciseThumb">{getExerciseMedia(item.exercise, true)}</div>
-              <div className="trainingExerciseCopy"><div><b>{item.exercise?.name || 'Exercício'}</b><ChevronRight size={17}/></div><small>{item.exercise?.group || ''}{item.exercise?.equipment ? ` · ${item.exercise.equipment}` : ''}</small><ExercisePrescription item={item}/>{item.loadText && <span>Carga: {item.loadText}</span>}{item.rpe != null && <span>RPE: {item.rpe}</span>}{item.notes && <p>{item.notes}</p>}</div>
+            {block.items.map((item, itemIndex) => <button className={cx('trainingExerciseView', item.manualName && 'manual')} key={item.id || itemIndex} onClick={() => item.exercise && setOpenExercise(item)}>
+              <div className="trainingExerciseThumb"><ExerciseMedia exercise={item.exercise || { name:item.manualName, group:'Texto livre' }} compact manual={!item.exercise}/></div>
+              <div className="trainingExerciseCopy"><div><b>{itemExerciseName(item)}</b>{item.exercise && <ChevronRight size={17}/>}</div><small>{item.exercise ? `${item.exercise.group || ''}${item.exercise.equipment ? ` · ${item.exercise.equipment}` : ''}` : 'Texto livre · sem vídeo demonstrativo'}</small><ExercisePrescription item={item}/>{item.loadText && <span>Carga: {item.loadText}</span>}{item.rpe != null && <span>RPE: {item.rpe}</span>}{item.notes && <p>{item.notes}</p>}</div>
             </button>)}
           </div>})}
         </div>
@@ -87,16 +90,83 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
   </div>;
 }
 
+
+function ExercisePicker({ item, exercises, onChange }) {
+  const selected = exercises.find(exercise => exercise.id === item.exerciseId) || item.exercise || null;
+  const initialMode = item.manualName && !item.exerciseId ? 'manual' : 'library';
+  const [mode, setMode] = useState(initialMode);
+  const [query, setQuery] = useState('');
+  const [group, setGroup] = useState('Todos');
+  const [open, setOpen] = useState(false);
+
+  const groups = useMemo(() => ['Todos', ...Array.from(new Set(exercises.filter(ex => ex.active).map(ex => ex.group).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt'))], [exercises]);
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return exercises
+      .filter(ex => ex.active)
+      .filter(ex => group === 'Todos' || ex.group === group)
+      .filter(ex => !q || ex.name.toLowerCase().includes(q) || (ex.aliases || []).some(alias => alias.toLowerCase().includes(q)))
+      .sort((a,b) => {
+        if (!q) return a.name.localeCompare(b.name,'pt');
+        const aStart = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+        const bStart = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+        return aStart - bStart || a.name.localeCompare(b.name,'pt');
+      })
+      .slice(0, 36);
+  }, [exercises, query, group]);
+
+  function selectExercise(exercise) {
+    onChange({ exerciseId: exercise.id, manualName: '' });
+    setQuery(''); setOpen(false);
+  }
+  function changeMode(next) {
+    setMode(next); setOpen(false); setQuery('');
+    if (next === 'manual') onChange({ exerciseId:'', manualName:item.manualName || '' });
+    else onChange({ exerciseId:item.exerciseId || '', manualName:'' });
+  }
+
+  return <div className="exercisePicker">
+    <div className="exercisePickerModes">
+      <button type="button" className={mode==='library'?'active':''} onClick={()=>changeMode('library')}><Search size={14}/>Biblioteca</button>
+      <button type="button" className={mode==='manual'?'active':''} onClick={()=>changeMode('manual')}><FilePenLine size={14}/>Texto livre</button>
+    </div>
+
+    {mode === 'manual' ? <div className="manualExerciseInput">
+      <input value={item.manualName || ''} onChange={event=>onChange({exerciseId:'',manualName:event.target.value})} placeholder="Escrever nome do exercício…"/>
+      <small>O aluno verá apenas este nome e a prescrição. Não será enviado vídeo demonstrativo.</small>
+    </div> : <>
+      {selected && <div className="selectedExerciseCard">
+        <div className="selectedExerciseThumb"><ExerciseMedia exercise={selected} compact/></div>
+        <div><b>{selected.name}</b><small>{selected.group}{selected.equipment ? ` · ${selected.equipment}` : ''}</small></div>
+        <button type="button" className="secondary" onClick={()=>setOpen(current=>!current)}>{open?'Fechar':'Alterar'}</button>
+      </div>}
+      {!selected && <button type="button" className="exercisePickerOpen" onClick={()=>setOpen(true)}><Search size={16}/><span>Pesquisar e selecionar exercício…</span></button>}
+      {open && <div className="exercisePickerPanel">
+        <div className="exercisePickerFilters">
+          <div className="search"><Search size={16}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Ex.: agachamento…"/></div>
+          <select value={group} onChange={event=>setGroup(event.target.value)}>{groups.map(name=><option value={name} key={name}>{name}</option>)}</select>
+        </div>
+        <div className="exercisePickerHint">{query ? `${results.length} resultado(s) visíveis` : group !== 'Todos' ? `Exercícios de ${group}` : 'Escreve para encontrar rapidamente um exercício ou escolhe um grupo muscular.'}</div>
+        <div className="exercisePickerResults">
+          {results.map(exercise=><button type="button" className="exercisePickerResult" key={exercise.id} onClick={()=>selectExercise(exercise)}>
+            <span className="exercisePickerResultThumb"><ExerciseMedia exercise={exercise} compact/></span>
+            <span><b>{exercise.name}</b><small>{exercise.group}{exercise.equipment ? ` · ${exercise.equipment}` : ''}</small></span>
+          </button>)}
+          {results.length===0 && <div className="exercisePickerEmpty">Nenhum exercício encontrado com estes filtros.</div>}
+        </div>
+      </div>}
+    </>}
+  </div>;
+}
+
 function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCancel, onSaved }) {
   const { refreshTraining } = useApp();
   const [draft, setDraft] = useState(() => deepCopyPlan(initialPlan));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [exerciseQuery, setExerciseQuery] = useState('');
 
   const activeBlockTypes = useMemo(() => blockTypes.filter(type => type.active), [blockTypes]);
   const typeByCode = useMemo(() => Object.fromEntries(blockTypes.map(type => [type.code, type])), [blockTypes]);
-  const activeExercises = useMemo(() => exercises.filter(ex => ex.active && (!exerciseQuery || ex.name.toLowerCase().includes(exerciseQuery.toLowerCase()) || ex.group.toLowerCase().includes(exerciseQuery.toLowerCase()))), [exercises, exerciseQuery]);
 
   function patchPlan(patch) { setDraft(current => ({ ...current, ...patch })); }
   function patchSession(sessionIndex, patch) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index === sessionIndex ? { ...session, ...patch } : session) })); }
@@ -147,7 +217,7 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
 
           <div className="trainingItemsEditor">
             {block.items.map((item,itemIndex) => <div className="trainingItemEditor" key={itemIndex}>
-              <div className="trainingItemMain"><select value={item.exerciseId} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{exerciseId:event.target.value})}><option value="">Selecionar exercício…</option>{activeExercises.map(exercise => <option value={exercise.id} key={exercise.id}>{exercise.name} · {exercise.group}</option>)}</select><button className="iconButton dangerText" onClick={() => removeItem(sessionIndex,blockIndex,itemIndex)}><X size={16}/></button></div>
+              <div className="trainingItemMain"><ExercisePicker item={item} exercises={exercises} onChange={patch => patchItem(sessionIndex,blockIndex,itemIndex,patch)}/><button className="iconButton dangerText" onClick={() => removeItem(sessionIndex,blockIndex,itemIndex)}><X size={16}/></button></div>
               <div className="trainingPrescriptionGrid"><label>Séries<input type="number" min="1" value={item.sets ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{sets:event.target.value})}/></label><label>Repetições<input value={item.reps} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{reps:event.target.value})} placeholder="10-12"/></label><label>Duração (seg)<input type="number" min="0" value={item.durationSeconds ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{durationSeconds:event.target.value})}/></label><label>Descanso (seg)<input type="number" min="0" value={item.restSeconds ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{restSeconds:event.target.value})}/></label><label>Tempo<input value={item.tempo} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{tempo:event.target.value})} placeholder="3-1-1"/></label><label>Carga<input value={item.loadText} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{loadText:event.target.value})} placeholder="20 kg / moderada"/></label><label>RPE<input type="number" step="0.5" min="0" max="10" value={item.rpe ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{rpe:event.target.value})}/></label><label className="wide">Notas<input value={item.notes} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{notes:event.target.value})} placeholder="Indicações técnicas ou adaptações"/></label></div>
             </div>)}
           </div>

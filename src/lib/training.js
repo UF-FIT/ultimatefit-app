@@ -61,7 +61,8 @@ function sortNestedPlan(row) {
             .sort((a,b) => a.sort_order - b.sort_order)
             .map(item => ({
               id: item.id,
-              exerciseId: item.exercise_id,
+              exerciseId: item.exercise_id || '',
+              manualName: item.custom_exercise_name || '',
               exercise: mapExercise(item.exercise_library),
               sets: item.sets,
               reps: item.reps || '',
@@ -116,7 +117,7 @@ export async function fetchWorkoutPlans() {
         workout_blocks(
           id,block_type,title,rounds,rest_after_seconds,sort_order,
           workout_items(
-            id,exercise_id,sort_order,sets,reps,duration_seconds,rest_seconds,tempo,load_text,rpe,notes,
+            id,exercise_id,custom_exercise_name,sort_order,sets,reps,duration_seconds,rest_seconds,tempo,load_text,rpe,notes,
             exercise_library(id,name,description,muscle_group,muscle_group_id,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,aliases,created_at,updated_at)
           )
         )
@@ -294,7 +295,8 @@ export async function saveWorkoutPlan(plan) {
         rounds: asNumber(block.rounds) || 1,
         restAfterSeconds: asNumber(block.restAfterSeconds),
         items: (block.items || []).map(item => ({
-          exerciseId: item.exerciseId,
+          exerciseId: item.exerciseId || '',
+          manualName: item.manualName || '',
           sets: asNumber(item.sets),
           reps: item.reps || '',
           durationSeconds: asNumber(item.durationSeconds),

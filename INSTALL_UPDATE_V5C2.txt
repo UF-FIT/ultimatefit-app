@@ -1,0 +1,19 @@
+ULTIMATE FIT APP v5C.2 — INSTALAÇÃO
+
+1. No Supabase SQL Editor, executar:
+   supabase/migrations/20260808_011_manual_exercises_and_picker.sql
+
+2. Criar New query e executar:
+   supabase/migrations/20260808_011_manual_exercises_and_picker_verify.sql
+
+3. Só depois carregar/substituir os ficheiros deste pacote no GitHub e fazer commit para main.
+   Sugestão de commit: Ultimate Fit APP v5C.2 — exercise picker + texto livre
+
+4. No Vercel, confirmar que esse commit fica Ready.
+
+5. Testes:
+   - Criar plano e pesquisar "agachamento".
+   - Filtrar por grupo muscular.
+   - Selecionar exercício e confirmar miniatura.
+   - Criar um item em Texto livre e publicar.
+   - Entrar como aluno e confirmar que Texto livre não abre vídeo.
