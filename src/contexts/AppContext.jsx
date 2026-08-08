@@ -4,7 +4,7 @@ import {useAuth} from './AuthContext';
 import {seedUsers} from '../data/seed';
 import {fetchStudents} from '../lib/students';
 import {fetchAssessments} from '../lib/assessments';
-import {fetchExercises,fetchWorkoutPlans,fetchMuscleGroups,fetchWorkoutBlockTypes} from '../lib/training';
+import {fetchExercises,fetchWorkoutPlans,fetchMuscleGroups,fetchWorkoutBlockTypes,fetchWorkoutCompletions} from '../lib/training';
 
 const AppContext=createContext(null);
 const demoInitial={users:seedUsers,exercises:[],settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
@@ -22,6 +22,7 @@ function buildInitial(){
   muscleGroups:[],
   blockTypes:[],
   plans:[],
+  workoutCompletions:[],
   nutrition:[],
   goals:[],
   messages:[],
@@ -39,7 +40,7 @@ export function AppProvider({children}){
  const [trainingError,setTrainingError]=useState('');
 
  useEffect(()=>{
-  const {students,assessments,exercises,muscleGroups,blockTypes,plans,nutrition,goals,messages,...safeToStore}=data;
+  const {students,assessments,exercises,muscleGroups,blockTypes,plans,workoutCompletions,nutrition,goals,messages,...safeToStore}=data;
   save('ultimatefit-mvp',safeToStore);
  },[data]);
 
@@ -71,15 +72,15 @@ export function AppProvider({children}){
  }
 
  async function refreshTraining(){
-  if(!profile){setData(d=>({...d,exercises:[],muscleGroups:[],blockTypes:[],plans:[]}));setTrainingLoading(false);return {exercises:[],muscleGroups:[],blockTypes:[],plans:[]}}
+  if(!profile){setData(d=>({...d,exercises:[],muscleGroups:[],blockTypes:[],plans:[],workoutCompletions:[]}));setTrainingLoading(false);return {exercises:[],muscleGroups:[],blockTypes:[],plans:[],workoutCompletions:[]}}
   setTrainingLoading(true);setTrainingError('');
   try{
-   const [exercises,muscleGroups,blockTypes,plans]=await Promise.all([fetchExercises(),fetchMuscleGroups(),fetchWorkoutBlockTypes(),fetchWorkoutPlans()]);
-   setData(d=>({...d,exercises,muscleGroups,blockTypes,plans}));
-   return {exercises,muscleGroups,blockTypes,plans};
+   const [exercises,muscleGroups,blockTypes,plans,workoutCompletions]=await Promise.all([fetchExercises(),fetchMuscleGroups(),fetchWorkoutBlockTypes(),fetchWorkoutPlans(),fetchWorkoutCompletions()]);
+   setData(d=>({...d,exercises,muscleGroups,blockTypes,plans,workoutCompletions}));
+   return {exercises,muscleGroups,blockTypes,plans,workoutCompletions};
   }catch(error){
    setTrainingError(error.message||'Não foi possível carregar os planos e a biblioteca de exercícios.');
-   return {exercises:[],muscleGroups:[],blockTypes:[],plans:[]};
+   return {exercises:[],muscleGroups:[],blockTypes:[],plans:[],workoutCompletions:[]};
   }finally{setTrainingLoading(false)}
  }
 

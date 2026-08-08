@@ -7,7 +7,7 @@ import {
 import { useApp } from '../contexts/AppContext';
 import ExerciseMedia from './ExerciseMedia';
 import {
-  archiveWorkoutPlan, canManageWorkoutPlans, formatSeconds, saveWorkoutPlan
+  archiveWorkoutPlan, canManageWorkoutPlans, formatSeconds, saveWorkoutPlan, recordWorkoutCompletion
 } from '../lib/training';
 
 const cx = (...items) => items.filter(Boolean).join(' ');
@@ -56,6 +56,7 @@ function getExerciseMedia(exercise, compact = false) {
 }
 
 function itemExerciseName(item) { return item?.exercise?.name || item?.manualName || 'Exercício'; }
+function localToday() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 function ExercisePrescription({ item }) {
   const details = [];
@@ -66,10 +67,11 @@ function ExercisePrescription({ item }) {
   return <div className="prescriptionLine">{details.join(' · ') || 'Prescrição por definir'}</div>;
 }
 
-function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit, onArchive, onDuplicate, onPreview, previewMode = false, onExitPreview }) {
+function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit, onArchive, onDuplicate, onPreview, previewMode = false, onExitPreview, studentView = false, completions = [], completionBusy = false, onCompleteSession }) {
   const [openExercise, setOpenExercise] = useState(null);
   const [label, tone] = planStatus(plan);
   const typeByCode = Object.fromEntries(blockTypes.map(type => [type.code, type]));
+  const todayCompletion = completions.find(item => item.completedOn === localToday());
   return <div className={cx('trainingViewer', previewMode && 'studentPreviewMode')}>
     {previewMode ? <div className="studentPreviewBanner"><div><Eye size={18}/><span><b>Pré-visualização · visão do aluno</b><small>Estás a ver este plano sem os controlos de edição do professor.</small></span></div><button className="secondary" onClick={onExitPreview}>Voltar à visão do professor</button></div> : <button className="backButton" onClick={onBack}><ArrowLeft size={17}/>Voltar aos planos</button>}
     <section className="trainingPlanHero card pad">
@@ -98,6 +100,7 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
             </button>)}
           </div>})}
         </div>
+        {(studentView || previewMode) && <div className="trainingCompleteArea">{todayCompletion ? <div className="trainingCompletedToday"><CheckCircle2 size={20}/><div><b>Treino registado hoje</b><small>{todayCompletion.source==='trainer'?'Registado pelo teu professor.':'Marcado por ti como concluído.'}</small></div></div> : <button className="completeWorkoutButton" disabled={previewMode || completionBusy} onClick={()=>onCompleteSession?.(session)}><CheckCircle2 size={20}/>{previewMode?'Treino concluído':'Marcar treino como concluído'}</button>}</div>}
       </section>)}
     </div>
 
@@ -254,6 +257,7 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
   const [previewMode, setPreviewMode] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateStudentId, setDuplicateStudentId] = useState('');
+  const [completionBusy, setCompletionBusy] = useState(false);
   const [filterStudent, setFilterStudent] = useState(context.studentId || 'all');
   const [q, setQ] = useState('');
   const [error, setError] = useState('');
@@ -281,7 +285,7 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
       setDuplicateOpen(false);setPreviewMode(false);setActivePlanId('');setEditing(duplicatePlanFor(activePlan,target));
     };
     return <>
-      <PlanViewer plan={activePlan} student={student} canManage={canManage && !previewMode} blockTypes={data.blockTypes||[]} previewMode={previewMode} onExitPreview={()=>setPreviewMode(false)} onBack={() => {setPreviewMode(false);setActivePlanId('')}} onPreview={()=>setPreviewMode(true)} onDuplicate={openDuplicate} onEdit={() => setEditing(deepCopyPlan(activePlan))} onArchive={async () => { if (!window.confirm('Arquivar este plano? O aluno deixará de o ver como plano ativo.')) return; try { await archiveWorkoutPlan(activePlan.id); await refreshTraining(); setActivePlanId(''); } catch (err) { setError(err.message); } }}/>
+      <PlanViewer plan={activePlan} student={student} canManage={canManage && !previewMode} blockTypes={data.blockTypes||[]} previewMode={previewMode} studentView={currentUser.role==='aluno'} completions={(data.workoutCompletions||[]).filter(item=>item.studentId===activePlan.studentId)} completionBusy={completionBusy} onCompleteSession={async session=>{if(!student||currentUser.role!=='aluno')return;setCompletionBusy(true);setError('');try{await recordWorkoutCompletion({studentId:student.id,planId:activePlan.id,sessionId:session.id,completedOn:localToday(),source:'student'});await refreshTraining()}catch(err){setError(err.message||'Não foi possível registar o treino.')}finally{setCompletionBusy(false)}}} onExitPreview={()=>setPreviewMode(false)} onBack={() => {setPreviewMode(false);setActivePlanId('')}} onPreview={()=>setPreviewMode(true)} onDuplicate={openDuplicate} onEdit={() => setEditing(deepCopyPlan(activePlan))} onArchive={async () => { if (!window.confirm('Arquivar este plano? O aluno deixará de o ver como plano ativo.')) return; try { await archiveWorkoutPlan(activePlan.id); await refreshTraining(); setActivePlanId(''); } catch (err) { setError(err.message); } }}/>
       {duplicateOpen && <div className="overlay" onClick={()=>setDuplicateOpen(false)}><div className="modal duplicatePlanModal" onClick={event=>event.stopPropagation()}><div className="title"><div><span className="eyebrow">DUPLICAR PLANO</span><h2>Aplicar a outro aluno</h2></div><button className="iconButton" onClick={()=>setDuplicateOpen(false)}><X/></button></div><p>É criada uma nova cópia em rascunho. O plano original não é alterado.</p><label className="duplicatePlanStudent">Aluno<select value={duplicateStudentId} onChange={event=>setDuplicateStudentId(event.target.value)}>{visibleStudents.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="modalActions"><button className="secondary" onClick={()=>setDuplicateOpen(false)}>Cancelar</button><button className="primary" onClick={confirmDuplicate}><Copy size={16}/>Criar cópia</button></div></div></div>}
     </>;
   }

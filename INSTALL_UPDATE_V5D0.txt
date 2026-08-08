@@ -1,0 +1,16 @@
+ULTIMATE FIT APP — INSTALAÇÃO v5D.0
+
+IMPORTANTE: aplicar primeiro a Migration 012 no Supabase.
+
+1. Supabase > SQL Editor > New query.
+2. Executar:
+   supabase/migrations/20260808_012_workout_completion_calendar.sql
+3. Confirmar Success.
+4. Criar outra New query e executar:
+   supabase/migrations/20260808_012_workout_completion_calendar_verify.sql
+5. Confirmar que não existem erros.
+6. Só depois substituir os ficheiros do GitHub por este pacote.
+7. Commit sugerido:
+   Ultimate Fit APP v5D.0 — Calendário + Treino Concluído
+8. Aguardar Vercel Ready.
+9. Testar com conta de aluno e conta de professor.

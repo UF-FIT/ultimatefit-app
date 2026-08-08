@@ -1,0 +1,14 @@
+ULTIMATE FIT APP — v5D.0
+
+Módulo de consistência / assiduidade de treino:
+- Calendário mensal com marcação dos dias em que houve treino.
+- Resumo semanal: "Treinos feitos esta semana: X/7" + emoji progressivo.
+- Contagem de treinos/dias no mês atual.
+- Contagem global de dias de treino.
+- Botão "Marcar treino como concluído" na visão real do aluno.
+- Pré-visualização do professor mostra o mesmo botão sem efetuar registos.
+- Registo manual de treino presencial pelo professor no perfil do aluno.
+- Registos manuais do PT contam no mesmo calendário, semana, mês e total.
+- Um dia conta uma vez, evitando duplicações acidentais do mesmo dia.
+
+Esta versão inclui integralmente as melhorias da v5C.3.

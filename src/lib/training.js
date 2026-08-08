@@ -417,3 +417,47 @@ export function formatSeconds(value) {
   if (seconds % 60 === 0) return `${seconds / 60} min`;
   return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
+
+export function mapWorkoutCompletion(row) {
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    planId: row.plan_id || '',
+    sessionId: row.session_id || '',
+    completedOn: row.completed_on,
+    source: row.source || 'student',
+    notes: row.notes || '',
+    createdBy: row.created_by || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function fetchWorkoutCompletions() {
+  const { data, error } = await supabase
+    .from('workout_completions')
+    .select('id,student_id,plan_id,session_id,completed_on,source,notes,created_by,created_at,updated_at')
+    .order('completed_on', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapWorkoutCompletion);
+}
+
+export async function recordWorkoutCompletion({
+  studentId,
+  planId = '',
+  sessionId = '',
+  completedOn = '',
+  source = 'student',
+  notes = '',
+}) {
+  const { data, error } = await supabase.rpc('record_workout_completion', {
+    target_student_id: studentId,
+    target_plan_id: planId || null,
+    target_session_id: sessionId || null,
+    target_completed_on: completedOn || null,
+    requested_source: source,
+    target_notes: notes || null,
+  });
+  if (error) throw error;
+  return data;
+}

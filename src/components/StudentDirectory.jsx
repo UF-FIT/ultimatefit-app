@@ -8,12 +8,14 @@ import {
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../contexts/AppContext';
 import ParqStatusCard from './ParqStatusCard';
+import TrainingActivityCalendar from './TrainingActivityCalendar';
 import {
   buildStudentAccessMessage, fetchAvailableTrainers, invokeStudentAction,
   sexOptions, studentStatusLabels, trackingTypeOptions, uploadStudentAvatar,
   whatsappUrl,
 } from '../lib/students';
 import { fetchChallenges } from '../lib/challenges';
+import { recordWorkoutCompletion } from '../lib/training';
 
 const trackingLabels = Object.fromEntries(trackingTypeOptions.map(item => [item.value, item.label]));
 
@@ -262,9 +264,14 @@ function AssessmentSnapshot({ assessments = [], onOpen }) {
 }
 
 function StudentProfile({ student, currentUser, trainers, assessments, onBack, onEdit, onRefresh, onNavigate }) {
+  const { data, refreshTraining } = useApp();
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showTrainingLog, setShowTrainingLog] = useState(false);
+  const [trainingDate, setTrainingDate] = useState(()=>new Date().toISOString().slice(0,10));
+  const [trainingNotes, setTrainingNotes] = useState('');
+  const studentCompletions=(data.workoutCompletions||[]).filter(item=>item.studentId===student.id);
   const isAdmin = currentUser.role === 'admin';
   const canDelete = isAdmin && !student.deletedAt;
   const isRemoved = Boolean(student.deletedAt);
@@ -283,15 +290,17 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
   return <div className="studentProfilePage">
     <button className="backButton profileBack" onClick={onBack}><ArrowLeft size={18}/>Voltar aos alunos</button>
     {message && <div className="successBanner"><CheckCircle2 size={18}/>{message}</div>}{error && <div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
-    <section className="studentProfileHero profileHeroV2"><StudentPhoto student={student} large/><div className="profileIdentity"><span className="eyebrow">{student.studentCode}</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {formatDate(student.birth)}</p><div className="profileChips"><span>{trackingLabels[student.trackingType] || 'Acompanhamento por definir'}</span><span>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</span><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span></div></div><div className="profileQuickActions"><button onClick={onEdit}><Edit3 size={19}/><span>Editar perfil</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone, buildStudentAccessMessage(student)))} disabled={!canWhatsappStudent}><Send size={19}/><span>Enviar app</span></button><button onClick={() => onNavigate?.('assessments',{studentId:student.id})}><Activity size={19}/><span>Avaliação física</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone))} disabled={!canWhatsappStudent}><MessageCircle size={19}/><span>WhatsApp</span></button></div></section>
+    <section className="studentProfileHero profileHeroV2"><StudentPhoto student={student} large/><div className="profileIdentity"><span className="eyebrow">{student.studentCode}</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {formatDate(student.birth)}</p><div className="profileChips"><span>{trackingLabels[student.trackingType] || 'Acompanhamento por definir'}</span><span>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</span><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span></div></div><div className="profileQuickActions"><button onClick={onEdit}><Edit3 size={19}/><span>Editar perfil</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone, buildStudentAccessMessage(student)))} disabled={!canWhatsappStudent}><Send size={19}/><span>Enviar app</span></button><button onClick={() => onNavigate?.('assessments',{studentId:student.id})}><Activity size={19}/><span>Avaliação física</span></button><button onClick={()=>setShowTrainingLog(true)}><CheckCircle2 size={19}/><span>Registar treino</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone))} disabled={!canWhatsappStudent}><MessageCircle size={19}/><span>WhatsApp</span></button></div></section>
 
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate}/>
+    <TrainingActivityCalendar completions={studentCompletions}/>
     <div className="grid two profileOverviewGrid"><AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/><AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/></div>
     <div className="grid two profileOverviewGrid"><StudentGoalPanel student={student} editable={currentUser.role !== 'aluno'} onRefresh={onRefresh}/><StudentDetailsPanel student={student}/></div>
     <ParqStatusCard studentId={student.id} studentName={student.name}/>
     <ProfileSummaryChart assessments={assessments}/>
 
     <section className="card pad accessPanel profileAccessPanel"><div className="panelTitle"><div><span className="eyebrow">GESTÃO</span><h2>Acesso à aplicação</h2><p>Convite, estado e ciclo de vida da conta.</p></div><Power size={24}/></div><div className="accessStatus"><div><small>ESTADO</small><strong>{studentStatusLabels[student.deletedAt ? 'removed' : student.status] || student.status}</strong><span>{student.invitation?.status === 'pending' ? 'Convite pendente' : student.active ? 'Acesso disponível' : 'Sem acesso'}</span></div><div className="accessButtons">{isRemoved ? <span className="removedNotice">Registo removido com histórico preservado.</span> : <><button className="secondary" onClick={async()=>{setBusy('resend');try{const r=await invokeStudentAction({action:'resend_access',studentId:student.id});setMessage(r.message)}catch(e){setError(e.message)}finally{setBusy('')}}} disabled={busy==='resend'}><Mail size={16}/>Novo link</button>{student.active ? <button className="secondary" onClick={()=>action('deactivate')} disabled={busy}><Power size={16}/>Desativar</button> : <button className="primary" onClick={()=>action('reactivate')} disabled={busy}><RefreshCw size={16}/>Reativar</button>}<button className="secondary" onClick={()=>action('archive')} disabled={busy}><Archive size={16}/>Arquivar</button>{canDelete && <button className="dangerButton" onClick={()=>action('delete')} disabled={busy}><Trash2 size={16}/>Eliminar acesso</button>}</>}</div></div></section>
+    {showTrainingLog&&<Modal title={`Registar treino · ${student.name}`} close={()=>setShowTrainingLog(false)}><form className="manualTrainingForm" onSubmit={async event=>{event.preventDefault();setBusy('training');setError('');try{await recordWorkoutCompletion({studentId:student.id,completedOn:trainingDate,source:'trainer',notes:trainingNotes});await refreshTraining();setMessage(`Treino de ${formatDate(trainingDate)} registado com sucesso.`);setTrainingNotes('');setShowTrainingLog(false)}catch(err){setError(err.message||'Não foi possível registar o treino.')}finally{setBusy('')}}}><label>Data do treino<input type="date" max={new Date().toISOString().slice(0,10)} value={trainingDate} onChange={event=>setTrainingDate(event.target.value)} required/></label><label>Nota opcional<textarea value={trainingNotes} onChange={event=>setTrainingNotes(event.target.value)} placeholder="Ex.: treino presencial de Personal Training"/></label><div className="modalActions"><button type="button" className="secondary" onClick={()=>setShowTrainingLog(false)}>Cancelar</button><button type="submit" className="primary" disabled={busy==='training'}><CheckCircle2 size={16}/>Registar treino</button></div></form></Modal>}
   </div>;
 }
 
@@ -361,7 +370,7 @@ export default function StudentDirectory({ onNavigate }) {
 }
 
 export function StudentSelfHome({ student, assessments = [], onNavigate, onRefresh }) {
-  const { currentUser } = useApp();
+  const { currentUser, data } = useApp();
   const [editing, setEditing] = useState(false);
   const [trainers, setTrainers] = useState([]);
   const [notice, setNotice] = useState('');
@@ -371,6 +380,7 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
   return <div className="studentSelfProfilePage">
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     <section className="studentSelfHero profileHeroV2"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {trackingLabels[student.trackingType] || 'Acompanhamento ULTIMATE FIT'}</p><div className="profileChips"><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span></div></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
+    <TrainingActivityCalendar completions={(data.workoutCompletions||[]).filter(item=>item.studentId===student.id)}/>
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate} studentView/>
     <AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/>
     <div className="grid two profileOverviewGrid"><AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/><StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/></div>
