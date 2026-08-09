@@ -83,6 +83,7 @@ function Shell(){
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
   <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>navigate('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
   <div className="content"><PageRouter page={page} context={pageContext} onNavigate={navigate}/></div>
+  <footer className="appCopyrightFooter">© {new Date().getFullYear()} Ultimate Fit. Todos os direitos reservados.</footer>
   {currentUser.role==='aluno'&&<StudentNoticePopup/>}
   <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
   </main>

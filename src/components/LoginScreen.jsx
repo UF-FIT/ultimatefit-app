@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import BrandLogo from './BrandLogo';
-import AppFooter from './AppFooter';
 
 export default function LoginScreen() {
   const { signIn, authError, requestPasswordReset } = useAuth();
@@ -52,7 +51,7 @@ export default function LoginScreen() {
         </div>
         <div className="loginIntroBottom">
           <div className="loginStatus">AMBIENTE PRIVADO DE DESENVOLVIMENTO</div>
-          <AppFooter className="loginFooter"/>
+          <div className="loginCopyrightFooter">© {new Date().getFullYear()} Ultimate Fit. Todos os direitos reservados.</div>
         </div>
       </section>
 

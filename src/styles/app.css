@@ -150,3 +150,63 @@ input[type="date"]{color-scheme:dark}input[type="date"]::-webkit-calendar-picker
 .assessmentReferenceNote{margin:4px 0 14px;padding:12px 14px;border-left:3px solid var(--y);background:rgba(255,217,8,.045);display:grid;gap:4px}.assessmentReferenceNote>b{color:#fff}.assessmentReferenceNote>span{color:#777;font-size:10px;line-height:1.5}
 .assessmentReadHint{display:block;margin-top:5px;color:#777;font-size:10px;line-height:1.35}.assessmentBibliography{margin-top:13px;padding:12px 14px;background:#09090a;border:1px solid rgba(255,255,255,.07);border-radius:6px;display:grid;gap:5px}.assessmentBibliography>b{color:var(--y);font-size:11px}.assessmentBibliography>span,.assessmentBibliography>em{color:#777;font-size:10px;line-height:1.45;font-style:normal}
 @media(max-width:800px){.assessmentAutoRiskResult{grid-template-columns:1fr}}
+
+
+/* ULTIMATE FIT APP · copyright footer global · v5D.5.6.2 */
+.appShell>.main{
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+.appShell>.main>.content{
+  flex:1 0 auto;
+  width:100%;
+}
+.appCopyrightFooter{
+  flex:0 0 auto;
+  width:calc(100% - 60px);
+  max-width:1440px;
+  margin:18px auto 0;
+  padding:20px 0 26px;
+  border-top:1px solid rgba(255,255,255,.07);
+  color:#737986;
+  font-size:13px;
+  font-weight:400;
+  line-height:1.4;
+  letter-spacing:.01em;
+  position:relative;
+  z-index:2;
+}
+.loginIntroBottom{
+  position:relative;
+  z-index:3;
+  display:grid;
+  gap:10px;
+}
+.loginCopyrightFooter{
+  color:#737986;
+  font-size:12px;
+  font-weight:400;
+  line-height:1.4;
+  letter-spacing:.01em;
+  position:relative;
+  z-index:3;
+}
+@media(max-width:900px){
+  .loginCopyrightFooter{
+    font-size:11px;
+  }
+}
+@media(max-width:760px){
+  .appCopyrightFooter{
+    width:calc(100% - 28px);
+    margin-top:8px;
+    padding:18px 0 92px;
+    font-size:11px;
+    text-align:center;
+  }
+  .loginCopyrightFooter{
+    font-size:10px;
+    text-align:left;
+  }
+}
