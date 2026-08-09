@@ -80,7 +80,7 @@ export default function NutritionModule({ context = {} }) {
             {item.notes && <p>{item.notes}</p>}
             <div className="nutritionDocMeta"><span>{fmtDate(item.createdAt)}</span><span>{item.uploadedByName}</span>{item.fileSizeBytes ? <span>{sizeLabel(item.fileSizeBytes)}</span> : null}</div>
           </div>
-          <div className="nutritionDocActions"><button className="secondary" onClick={()=>openDocument(item)}><ExternalLink size={16}/>Abrir PDF</button><button className="iconDanger" title="Eliminar documento" onClick={()=>remove(item)}><Trash2 size={17}/></button></div>
+          <div className="nutritionDocActions"><button className="secondary" onClick={()=>openDocument(item)}><ExternalLink size={16}/>Abrir PDF</button>{!isStudent&&<button className="iconDanger" title="Eliminar documento" onClick={()=>remove(item)}><Trash2 size={17}/></button>}</div>
         </article>;
       }) : <div className="card pad nutritionEmpty"><Apple size={34}/><h2>Ainda não existe um plano alimentar</h2><p>Adiciona o PDF mais recente para o manter acessível ao aluno e à equipa que o acompanha.</p></div>}
     </div>

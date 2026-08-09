@@ -66,6 +66,10 @@ function normalizePermissions(value: unknown) {
   }))
 }
 
+function retiredEmail(profileId: string) {
+  return `removed-${profileId}@deleted.ultimatefit.pt`
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405)
@@ -137,6 +141,25 @@ Deno.serve(async (req) => {
 
   let createdAuthUserId: string | null = null
 
+  async function releaseRemovedEmail(profile: { id: string; email?: string | null }) {
+    const nextEmail = retiredEmail(profile.id)
+    if (cleanEmail(profile.email) === cleanEmail(nextEmail)) return nextEmail
+
+    const { error: authEmailError } = await admin.auth.admin.updateUserById(profile.id, {
+      email: nextEmail,
+      email_confirm: true,
+    })
+    if (authEmailError) throw authEmailError
+
+    const { error: profileEmailError } = await admin
+      .from('profiles')
+      .update({ email: nextEmail })
+      .eq('id', profile.id)
+    if (profileEmailError) throw profileEmailError
+
+    return nextEmail
+  }
+
   try {
     if (action === 'invite') {
       const email = cleanEmail(payload.email)
@@ -156,13 +179,20 @@ Deno.serve(async (req) => {
 
       const { data: existingProfile } = await admin
         .from('profiles')
-        .select('id,deleted_at')
+        .select('id,email,deleted_at')
         .ilike('email', email)
         .maybeSingle()
-      if (existingProfile) {
-        return json({ error: existingProfile.deleted_at
-          ? 'Este email pertence a uma conta removida. Contacta o proprietário.'
-          : 'Já existe uma conta com este email.' }, 409)
+      if (existingProfile?.deleted_at) {
+        // Contas removidas preservam o histórico profissional, mas o email original
+        // é libertado para poder voltar a ser usado num novo convite.
+        await releaseRemovedEmail(existingProfile)
+        await admin
+          .from('team_invitations')
+          .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+          .ilike('email', email)
+          .eq('status', 'pending')
+      } else if (existingProfile) {
+        return json({ error: 'Já existe uma conta com este email.' }, 409)
       }
 
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
@@ -304,7 +334,10 @@ Deno.serve(async (req) => {
       })
       if (archiveError) throw archiveError
 
+      const releasedEmail = retiredEmail(target.id)
       const { error: banError } = await admin.auth.admin.updateUserById(target.id, {
+        email: releasedEmail,
+        email_confirm: true,
         ban_duration: '876000h',
         app_metadata: { removed: true, app_role: target.role },
       })
@@ -313,7 +346,7 @@ Deno.serve(async (req) => {
       const now = new Date().toISOString()
       const { error: profileError } = await admin
         .from('profiles')
-        .update({ is_active: false, deleted_at: now })
+        .update({ email: releasedEmail, is_active: false, deleted_at: now })
         .eq('id', target.id)
       if (profileError) throw profileError
 
@@ -325,7 +358,7 @@ Deno.serve(async (req) => {
 
       return json({
         ok: true,
-        message: 'Acesso eliminado. A autoria e o histórico profissional foram preservados.',
+        message: 'Acesso eliminado. O histórico profissional foi preservado e o email ficou disponível para uma nova conta.',
       })
     }
 

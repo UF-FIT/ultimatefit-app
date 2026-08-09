@@ -54,9 +54,17 @@ const pagePaths={
 };
 
 function routeFromPath(pathname,role){
- const path=(pathname||'/').toLowerCase().replace(/\/+$/,'')||'/';
- const activityMatch=(pathname||'').match(/^\/atividades\/([^/?#]+)/i);
+ const rawPath=pathname||'/';
+ const path=rawPath.toLowerCase().replace(/\/+$/,'')||'/';
+ const activityMatch=rawPath.match(/^\/atividades\/([^/?#]+)/i);
  if(activityMatch) return {page:'activities',context:{slug:decodeURIComponent(activityMatch[1])}};
+ const challengeMatch=rawPath.match(/^\/desafios\/([^/?#]+)/i);
+ if(challengeMatch) return {page:'challenges',context:{challengeId:decodeURIComponent(challengeMatch[1])}};
+ const backofficeMatch=rawPath.match(/^\/backoffice\/(definicoes|professores|avisos)/i);
+ if(backofficeMatch){
+  const tabBySlug={definicoes:'settings',professores:'trainers',avisos:'notices'};
+  return {page:'settings',context:{tab:tabBySlug[backofficeMatch[1].toLowerCase()]||'settings'}};
+ }
  if(path==='/inicio'||path==='/dashboard'||path==='/') return {page:'dashboard',context:{}};
  if(path.startsWith('/perfil')) return {page:'profile',context:{}};
  if(path.startsWith('/alunos')) return {page:'students',context:{}};
@@ -66,12 +74,17 @@ function routeFromPath(pathname,role){
  if(path.startsWith('/desafios')) return {page:'challenges',context:{}};
  if(path.startsWith('/atividades')) return {page:'activities',context:{}};
  if(path.startsWith('/biblioteca')) return {page:'exercises',context:{}};
- if(path.startsWith('/backoffice')) return {page:'settings',context:{}};
+ if(path.startsWith('/backoffice')) return {page:'settings',context:{tab:'settings'}};
  return {page:'dashboard',context:{}};
 }
 
 function pathForPage(key,role,context={}){
  if(key==='activities'&&context?.slug) return `/atividades/${encodeURIComponent(context.slug)}`;
+ if(key==='challenges'&&context?.challengeId) return `/desafios/${encodeURIComponent(context.challengeId)}`;
+ if(key==='settings'&&context?.tab){
+  const slugByTab={settings:'definicoes',trainers:'professores',notices:'avisos'};
+  return `/backoffice/${slugByTab[context.tab]||'definicoes'}`;
+ }
  const item=pagePaths[key]||pagePaths.dashboard;
  return (role==='aluno'&&item.aluno)||item.default||'/';
 }
@@ -82,7 +95,8 @@ function Shell(){
  const location=useLocation();
  const routeNavigate=useNavigate();
  const challengeHost=typeof window!=='undefined'&&window.location.hostname.toLowerCase().startsWith('desafios.');
- const resolved=challengeHost?{page:'challenges',context:{}}:routeFromPath(location.pathname,currentUser.role);
+ const pathResolved=routeFromPath(location.pathname,currentUser.role);
+ const resolved=challengeHost?(pathResolved.page==='challenges'?pathResolved:{page:'challenges',context:{}}):pathResolved;
  const page=resolved.page;
  const pageContext=location.state?.pageContext||resolved.context||{};
  const navigate=(key,context={})=>{
@@ -102,7 +116,7 @@ function Shell(){
 }
 
 function PageRouter({page,context,onNavigate}){
- const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage/>,profile:<Profile onNavigate={onNavigate}/>};
+ const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}
@@ -195,7 +209,7 @@ function Trainers(){
 
  return <>
   <Heading title="Professores" sub="Contas reais, convites, hierarquia, permissões e estado de acesso." action={<button className="primary" onClick={()=>setOpen(true)}><Plus size={17}/>{isOwner?'Adicionar membro':'Adicionar professor'}</button>}/>
-  <Card className="pad teamRules"><ShieldCheck size={30}/><div><h3>Hierarquia protegida</h3><p><b>Proprietário:</b> pode criar e gerir Administradores globais e Professores. <b>Administrador global:</b> pode criar, gerir e eliminar Professores, mas não pode criar outro Administrador nem alterar o Proprietário.</p></div></Card>
+  <Card className="pad teamRules"><ShieldCheck size={30}/><div><h3>Sistema de hierarquia protegida</h3></div></Card>
   {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
   {error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
   {loading?<Card className="pad loadingCard"><div className="loader"/><p>A carregar equipa…</p></Card>:<div className="grid three section">{members.map(member=><Card className="pad teamCard" key={member.id}>
@@ -204,7 +218,7 @@ function Trainers(){
    <div className={member.trainerProfile?.whatsapp_phone?'teamWhatsapp':'teamWhatsapp missing'}><MessageSquare size={15}/><span>{member.trainerProfile?.whatsapp_phone||'WhatsApp obrigatório em falta'}</span>{(member.id===currentUser.id||canManage(member))&&<button className="textButton" onClick={()=>setWhatsappEditing(member)}>Editar</button>}</div>
    {member.trainerProfile?.social_url&&<a className="teamSocialLink" href={member.trainerProfile.social_url} target="_blank" rel="noreferrer"><ExternalLink size={15}/>{member.trainerProfile.social_url}</a>}
    {member.role==='owner'&&<div className="protectedNote"><ShieldCheck size={16}/>Conta principal protegida</div>}
-   {member.role==='trainer'&&<button className="secondary full" onClick={()=>openPermissions(member)}><SlidersHorizontal size={16}/>Editar permissões</button>}
+   {member.role==='trainer'&&canManage(member)&&<button className="secondary full" onClick={()=>openPermissions(member)}><SlidersHorizontal size={16}/>Gerir permissões · {member.permissions.length}/{trainerPermissionOptions.length}</button>}
    {canManage(member)&&<div className="teamActions">
     <button className="secondary" onClick={()=>setConfirming({action:member.is_active?'deactivate':'reactivate',member})}>{member.is_active?<><Power size={16}/>Desativar</>:<><RefreshCw size={16}/>Reativar</>}</button>
     <button className="dangerButton" onClick={()=>setConfirming({action:'delete',member})}><Trash2 size={16}/>Eliminar acesso</button>
@@ -218,9 +232,8 @@ function Trainers(){
    <Select name="role" label="Tipo de acesso" value={newRole} onChange={e=>setNewRole(e.target.value)} options={isOwner?[{value:'trainer',label:'Professor'},{value:'admin',label:'Administrador global'}]:[{value:'trainer',label:'Professor'}]}/>
    <Input name="professionalTitle" label="Função profissional" defaultValue="Personal Trainer"/>
    <Input name="whatsappPhone" label="WhatsApp profissional *" required/>
-   <div className="wide inviteExplanation"><Mail size={20}/><div><b>O utilizador receberá um convite por email</b><p>Ao abrir o link, define a sua própria palavra-passe. Tu nunca precisas de conhecer ou enviar a password.</p></div></div>{isOwner?<div className="wide roleCreationNote"><ShieldCheck size={19}/><p>Como Proprietário, podes criar Professores ou Administradores globais. Só o Proprietário pode atribuir acesso de Administrador global.</p></div>:<div className="wide roleCreationNote"><ShieldCheck size={19}/><p>Como Administrador global, podes criar e gerir Professores. A criação de novos Administradores globais está reservada ao Proprietário.</p></div>}
+   <div className="wide inviteExplanation"><Mail size={20}/><div><b>O utilizador receberá um convite por email</b><p>Ao abrir o link, define a sua própria palavra-passe. Tu nunca precisas de conhecer ou enviar a password.</p></div></div>
    {newRole==='trainer'&&<PermissionEditor selected={permissions} onToggle={key=>togglePermission(key)} />}
-   {newRole==='admin'&&<div className="wide adminAccessNote"><ShieldCheck size={19}/><p>O Administrador global terá os mesmos privilégios operacionais do Manuel: poderá criar, gerir e eliminar Professores. Não poderá criar outro Administrador global nem alterar, desativar ou eliminar o Proprietário.</p></div>}
    <button className="primary full wide" disabled={submitting}>{submitting?'A enviar convite…':'Criar conta e enviar convite'}</button>
   </form></Modal>}
 
@@ -246,14 +259,16 @@ function Goals(){const {data,currentUser}=useApp();const student=data.students.f
 function Exercises(){const {data}=useApp();const [q,setQ]=useState('');const [group,setGroup]=useState('Todos');const groups=['Todos',...new Set(data.exercises.map(e=>e.group))];const list=data.exercises.filter(e=>(group==='Todos'||e.group===group)&&e.name.toLowerCase().includes(q.toLowerCase()));return <><Heading title="Biblioteca de exercícios" sub={`${data.exercises.length} exercícios iniciais, preparados para GIFs/vídeos próprios.`}/><div className="filters"><div className="search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Pesquisar exercício..."/></div><select value={group} onChange={e=>setGroup(e.target.value)}>{groups.map(g=><option key={g}>{g}</option>)}</select></div><div className="grid three">{list.map(e=><Card className="exerciseCard" key={e.id}><div className="exerciseMedia">GIF / VÍDEO</div><div className="pad"><Badge tone="yellow">{e.group}</Badge><h3>{e.name}</h3><small>{e.equipment} · {e.type} · {e.level}</small><p>{e.description}</p></div></Card>)}</div></>}
 function Messages(){const {data,currentUser}=useApp();const student=data.students.find(s=>s.userId===currentUser.id);const items=currentUser.role==='aluno'?data.messages.filter(m=>m.studentId===student?.id):data.messages;return <><Heading title="Avisos" sub="Comunicação assíncrona entre professor e aluno."/><div className="section">{items.map(m=><Card className="pad message" key={m.id}><MessageSquare className="yellow"/><div><h3>{m.title}</h3><p>{m.body}</p><small>{m.date}</small></div></Card>)}</div></>}
 function Reports(){const {data}=useApp();return <><Heading title="Relatórios PDF" sub="Geração automática a partir das avaliações físicas."/><Card className="pad section"><h2>Relatório de avaliação</h2><p>Seleciona um aluno e duas avaliações para criar um documento com dados, diferenças, gráficos, observações e identidade ULTIMATE FIT.</p><div className="formGrid"><Select label="Aluno" options={data.students.map(s=>s.name)}/><Select label="Avaliação inicial" options={data.assessments.map(a=>a.date)}/><Select label="Avaliação atual" options={data.assessments.map(a=>a.date)}/><button className="primary full"><FileText size={17}/>Gerar relatório demonstrativo</button></div></Card></>}
-function SettingsPage(){
- const [section,setSection]=useState('settings');
+function SettingsPage({context={},onNavigate}){
+ const [section,setSection]=useState(context?.tab||'settings');
+ useEffect(()=>{setSection(context?.tab||'settings')},[context?.tab]);
+ const changeSection=next=>{setSection(next);onNavigate?.('settings',{tab:next})};
  const [runtime,setRuntime]=useState({maintenanceMode:false,maintenanceMessage:'Estamos a realizar uma atualização. Voltamos dentro de momentos.'});
  const [runtimeLoading,setRuntimeLoading]=useState(true),[runtimeSaving,setRuntimeSaving]=useState(false),[runtimeMessage,setRuntimeMessage]=useState(''),[runtimeError,setRuntimeError]=useState('');
  useEffect(()=>{let live=true;fetchRuntimeSettings().then(value=>live&&setRuntime(value)).catch(err=>live&&setRuntimeError(err.message)).finally(()=>live&&setRuntimeLoading(false));return()=>{live=false}},[]);
  async function persistRuntime(){setRuntimeSaving(true);setRuntimeMessage('');setRuntimeError('');try{const saved=await saveRuntimeSettings(runtime);setRuntime(saved);setRuntimeMessage(saved.maintenanceMode?'Modo manutenção ativado. Alunos e professores verão o ecrã de manutenção.':'Modo manutenção desativado. A app voltou ao funcionamento normal.')}catch(err){setRuntimeError(err.message||'Não foi possível guardar a definição.')}finally{setRuntimeSaving(false)}}
  return <div className="backofficePage"><Heading title="Backoffice" sub="Gestão administrativa e definições globais da aplicação."/>
-  <div className="backofficeTabs"><button className={section==='settings'?'active':''} onClick={()=>setSection('settings')}><Settings size={16}/>Definições</button><button className={section==='trainers'?'active':''} onClick={()=>setSection('trainers')}><UserCog size={16}/>Professores</button><button className={section==='notices'?'active':''} onClick={()=>setSection('notices')}><MessageSquare size={16}/>Avisos</button></div>
+  <div className="backofficeTabs"><button className={section==='settings'?'active':''} onClick={()=>changeSection('settings')}><Settings size={16}/>Definições</button><button className={section==='trainers'?'active':''} onClick={()=>changeSection('trainers')}><UserCog size={16}/>Professores</button><button className={section==='notices'?'active':''} onClick={()=>changeSection('notices')}><MessageSquare size={16}/>Avisos</button></div>
   {section==='trainers'?<div className="backofficeEmbedded"><Trainers/></div>:section==='notices'?<div className="backofficeEmbedded"><NoticeManager/></div>:<div className="grid two section">
    <Card className="pad maintenanceSettings"><div className="maintenanceSettingsHead"><div><h2>Modo manutenção</h2><p>Usa esta opção durante atualizações ou intervenções técnicas. A administração mantém acesso para concluir a manutenção.</p></div><button disabled={runtimeLoading} className={runtime.maintenanceMode?'toggle on':'toggle'} onClick={()=>setRuntime(v=>({...v,maintenanceMode:!v.maintenanceMode}))}><span/></button></div><label>Mensagem apresentada na app<textarea rows="4" value={runtime.maintenanceMessage||''} onChange={e=>setRuntime(v=>({...v,maintenanceMessage:e.target.value}))} placeholder="Ex.: Estamos a atualizar a ULTIMATE FIT APP. Voltamos às 22h."/></label>{runtimeError&&<div className="errorBanner">{runtimeError}</div>}{runtimeMessage&&<div className="successBanner"><CheckCircle2 size={17}/>{runtimeMessage}</div>}<button className="primary" disabled={runtimeLoading||runtimeSaving} onClick={persistRuntime}>{runtimeSaving?'A guardar…':'Guardar modo manutenção'}</button></Card>
    <Card className="pad"><h2>Perfis da aplicação</h2><p><b>Administrador:</b> gestão global da aplicação.</p><p><b>Professor:</b> gestão dos alunos atribuídos e das áreas autorizadas.</p><p><b>Aluno:</b> acesso apenas aos próprios dados, planos, avaliações, atividades e comunicações.</p></Card>
