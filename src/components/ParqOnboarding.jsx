@@ -62,7 +62,7 @@ export default function ParqOnboarding({ profile, children }) {
   if (status === 'complete' && !completedNow) return children;
 
   if (status === 'loading') {
-    return <main className="parqGate"><section className="parqGateCard compact"><BrandLogo/><div className="loader"/><h1>A preparar o teu acesso</h1><p>A confirmar o questionário inicial.</p></section></main>;
+    return <main className="appState"><div className="logo"><BrandLogo/></div><div className="loader"/><p>A preparar a aplicação…</p></main>;
   }
 
   if (status === 'error') {

@@ -28,6 +28,17 @@ const cx=(...a)=>a.filter(Boolean).join(' ');
 function Card({children,className=''}){return <div className={cx('card',className)}>{children}</div>}
 function Badge({children,tone='gray'}){return <span className={`badge ${tone}`}>{children}</span>}
 function Logo(){return <div className="logo"><BrandLogo/></div>}
+function UnifiedAppLoading(){return <div className="appState"><Logo/><div className="loader"/><p>A preparar a aplicação…</p></div>}
+
+function AppDataGate({children}){
+ const {currentUser,studentsLoading,assessmentsLoading,trainingLoading,communityLoading}=useApp();
+ const [initialReady,setInitialReady]=useState(false);
+ useEffect(()=>{
+  if(!studentsLoading&&!assessmentsLoading&&!trainingLoading&&!communityLoading) setInitialReady(true);
+ },[studentsLoading,assessmentsLoading,trainingLoading,communityLoading]);
+ if(currentUser.role==='aluno'&&!initialReady) return <UnifiedAppLoading/>;
+ return children;
+}
 
 const pagePaths={
  dashboard:{aluno:'/inicio',default:'/dashboard'},
@@ -264,7 +275,7 @@ function AppGate(){
  const path=window.location.pathname.replace(/\/$/,'')||'/';
  useEffect(()=>{if(!configured){setRuntimeLoading(false);return;}let live=true;const loadRuntime=()=>fetchRuntimeSettings().then(value=>live&&setRuntime(value)).catch(()=>live&&setRuntime({maintenanceMode:false,maintenanceMessage:''})).finally(()=>live&&setRuntimeLoading(false));loadRuntime();const timer=setInterval(loadRuntime,30000);window.addEventListener('focus',loadRuntime);return()=>{live=false;clearInterval(timer);window.removeEventListener('focus',loadRuntime)}},[configured,profile?.id]);
  if(!configured) return <div className="appState"><Logo/><h1>Configuração em falta</h1><p>As variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY ainda não estão disponíveis neste deployment.</p></div>;
- if(loading||runtimeLoading) return <div className="appState"><Logo/><div className="loader"/><p>A preparar a aplicação…</p></div>;
+ if(loading||runtimeLoading) return <UnifiedAppLoading/>;
  if(path==='/repor-palavra-passe') return <PasswordSetupScreen mode="recovery"/>;
  if(path==='/definir-palavra-passe') return <PasswordSetupScreen mode="invite"/>;
  const adminRole=profile?.role==='owner'||profile?.role==='admin';
@@ -274,7 +285,7 @@ function AppGate(){
  if(runtime?.maintenanceMode&&!adminRole) return <MaintenanceScreen message={runtime.maintenanceMessage} onAdminAccess={async()=>{await signOut();setMaintenanceBypass(true)}}/>;
  if(profile.deleted_at) return <div className="appState"><Logo/><h1>Acesso eliminado</h1><p>Esta conta já não faz parte da equipa ULTIMATE FIT.</p></div>;
  if(!profile.is_active) return <div className="appState"><Logo/><h1>Conta desativada</h1><p>Contacta a administração do ULTIMATE FIT.</p></div>;
- if(profile.role==='student') return <ParqOnboarding profile={profile}><AppProvider><Shell/></AppProvider></ParqOnboarding>;
+ if(profile.role==='student') return <ParqOnboarding profile={profile}><AppProvider><AppDataGate><Shell/></AppDataGate></AppProvider></ParqOnboarding>;
  return <AppProvider><Shell/></AppProvider>;
 }
 

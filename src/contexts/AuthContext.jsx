@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 
 const AuthContext = createContext(null);
@@ -9,9 +9,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const profileRef = useRef(null);
 
   async function loadProfile(user) {
     if (!user || !supabase) {
+      profileRef.current = null;
       setProfile(null);
       return null;
     }
@@ -23,6 +25,7 @@ export function AuthProvider({ children }) {
       .single();
 
     if (error) {
+      profileRef.current = null;
       setProfile(null);
       setAuthError('A conta existe, mas não foi possível carregar o perfil da aplicação.');
       return null;
@@ -42,6 +45,7 @@ export function AuthProvider({ children }) {
 
     const hydrated = { ...data, avatar_url: avatarUrl, avatar_thumb_url: avatarThumbUrl };
     setAuthError('');
+    profileRef.current = hydrated;
     setProfile(hydrated);
     return hydrated;
   }
@@ -62,12 +66,29 @@ export function AuthProvider({ children }) {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      // Auth events can expose the new session a few milliseconds before
-      // the profile query finishes. Mark the whole auth/profile transition
-      // as loading so the UI never renders a false missing-profile state.
-      setLoading(true);
       setSession(nextSession);
       if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
+
+      // A token refresh or a repeated SIGNED_IN event for the same account must
+      // not tear down the whole application. Supabase can emit these events
+      // when the tab regains focus, even though the user never left the app.
+      const sameUser = Boolean(nextSession?.user?.id && profileRef.current?.id === nextSession.user.id);
+      if (event === 'TOKEN_REFRESHED' || (event === 'SIGNED_IN' && sameUser)) return;
+
+      if (event === 'USER_UPDATED' && sameUser) {
+        window.setTimeout(() => loadProfile(nextSession?.user ?? null), 0);
+        return;
+      }
+
+      if (event === 'SIGNED_OUT' || !nextSession) {
+        profileRef.current = null;
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      // Real account transitions remain blocking until the matching profile is ready.
+      setLoading(true);
       window.setTimeout(async () => {
         await loadProfile(nextSession?.user ?? null);
         setLoading(false);
@@ -137,6 +158,7 @@ export function AuthProvider({ children }) {
   async function signOut() {
     if (!supabase) return;
     await supabase.auth.signOut();
+    profileRef.current = null;
     setProfile(null);
     setRecoveryMode(false);
   }
