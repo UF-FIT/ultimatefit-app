@@ -1,0 +1,44 @@
+/* ULTIMATE FIT APP · footer global */
+.appFooter{
+  max-width:1500px;
+  width:100%;
+  margin:8px auto 0;
+  padding:24px 30px 30px;
+  color:#6f7480;
+  font-size:13px;
+  font-weight:400;
+  letter-spacing:.01em;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+
+.loginPage>.loginFooter{
+  position:absolute;
+  left:0;
+  bottom:0;
+  z-index:2;
+  width:62%;
+  max-width:none;
+  margin:0;
+  padding:20px 48px 24px;
+  border-top:0;
+  color:#687083;
+  font-size:12px;
+}
+
+@media(max-width:760px){
+  .appFooter{
+    padding:18px 14px 92px;
+    font-size:11px;
+    text-align:center;
+  }
+  .loginPage>.loginFooter{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    width:100%;
+    padding:14px 18px 18px;
+    text-align:center;
+    font-size:10px;
+  }
+}
