@@ -9,6 +9,7 @@ import ExerciseMedia from './ExerciseMedia';
 import {
   archiveWorkoutPlan, canManageWorkoutPlans, deleteWorkoutPlanPermanently, formatSeconds, saveWorkoutPlan, recordWorkoutCompletion
 } from '../lib/training';
+import { getSessionStretchingRecommendations, stretchingRules } from '../lib/stretching';
 
 const cx = (...items) => items.filter(Boolean).join(' ');
 
@@ -67,6 +68,40 @@ function ExercisePrescription({ item }) {
   return <div className="prescriptionLine">{details.join(' · ') || 'Prescrição por definir'}</div>;
 }
 
+function AutomaticStretching({ session }) {
+  const recommendations = getSessionStretchingRecommendations(session);
+  if (!recommendations.length) return null;
+
+  return <section className="automaticStretching">
+    <div className="automaticStretchingHead">
+      <div>
+        <span className="eyebrow">RECUPERAÇÃO</span>
+        <h3>Alongamentos recomendados</h3>
+        <p>Selecionados automaticamente a partir dos grupos musculares trabalhados nesta sessão.</p>
+      </div>
+      <span className="autoStretchBadge">AUTOMÁTICO</span>
+    </div>
+
+    <div className="stretchingRules">
+      {stretchingRules.map(rule => <div key={rule.label}><strong>{rule.label}</strong><span>{rule.detail}</span></div>)}
+    </div>
+
+    <div className="stretchingGrid">
+      {recommendations.map(stretch => <article className="stretchingCard" key={stretch.key}>
+        <div className="stretchingImage"><img src={stretch.image} alt={`Alongamento — ${stretch.title}`} loading="lazy"/></div>
+        <div className="stretchingCopy">
+          <div className="stretchingTitleRow"><div><small>ALONGAMENTO</small><h4>{stretch.title}</h4></div><span>20–30 s</span></div>
+          <b>{stretch.subtitle}</b>
+          <p>{stretch.description}</p>
+          {!!stretch.matchedGroups?.length && <div className="stretchingReason">Incluído porque treinaste: {stretch.matchedGroups.join(', ')}</div>}
+        </div>
+      </article>)}
+    </div>
+
+    <div className="stretchingSafety"><CheckCircle2 size={17}/><span><b>Alongar não deve doer.</b> Mantém uma tensão confortável, respira normalmente e evita movimentos bruscos.</span></div>
+  </section>;
+}
+
 function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit, onArchive, onDelete, onDuplicate, onPreview, previewMode = false, onExitPreview, studentView = false, completions = [], completionBusy = false, onCompleteSession }) {
   const [openExercise, setOpenExercise] = useState(null);
   const [label, tone] = planStatus(plan);
@@ -100,6 +135,7 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
             </button>)}
           </div>})}
         </div>
+        <AutomaticStretching session={session}/>
         {(studentView || previewMode) && <div className="trainingCompleteArea">{todayCompletion ? <div className="trainingCompletedToday"><CheckCircle2 size={20}/><div><b>Treino registado hoje</b><small>{todayCompletion.source==='trainer'?'Registado pelo teu professor.':'Marcado por ti como concluído.'}</small></div></div> : <button className="completeWorkoutButton" disabled={previewMode || completionBusy} onClick={()=>onCompleteSession?.(session)}><CheckCircle2 size={20}/>{previewMode?'Treino concluído':'Marcar treino como concluído'}</button>}</div>}
       </section>)}
     </div>
