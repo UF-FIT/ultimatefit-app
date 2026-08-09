@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {Bell,CheckCircle2,Edit3,Plus,Power,Trash2,X} from 'lucide-react';
 import {useApp} from '../contexts/AppContext';
 import CommunityImageField from './CommunityImageField';
@@ -9,12 +9,41 @@ function Modal({title,onClose,children}){return <div className="overlay"><div cl
 function localParts(value){if(!value)return {date:'',time:''};const d=new Date(value);if(Number.isNaN(d.getTime()))return {date:'',time:''};const pad=n=>String(n).padStart(2,'0');return {date:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:`${pad(d.getHours())}:${pad(d.getMinutes())}`};}
 function dateTimeIso(date,time,defaultTime='00:00'){if(!date)return null;const d=new Date(`${date}T${time||defaultTime}:00`);return Number.isNaN(d.getTime())?null:d.toISOString();}
 
+const NOTICE_POPUP_COOLDOWN_MS = 5 * 60 * 60 * 1000;
+
+function noticeDismissKey(currentUser){
+ const userKey=currentUser?.id||currentUser?.profileId||currentUser?.email||'student';
+ return `ultimatefit:notice-popup-dismissed:${userKey}`;
+}
+function readNoticeDismissals(key){
+ try{const raw=window.localStorage.getItem(key);const parsed=raw?JSON.parse(raw):{};return parsed&&typeof parsed==='object'?parsed:{}}catch{return {}}
+}
+function writeNoticeDismissals(key,value){try{window.localStorage.setItem(key,JSON.stringify(value))}catch{}}
+
 export function StudentNoticePopup(){
- const {data,currentUser}=useApp(); const [dismissed,setDismissed]=useState([]);
+ const {data,currentUser}=useApp();
+ const storageKey=noticeDismissKey(currentUser);
+ const [dismissedAt,setDismissedAt]=useState(()=>readNoticeDismissals(storageKey));
+ const [clock,setClock]=useState(()=>Date.now());
+
+ useEffect(()=>{setDismissedAt(readNoticeDismissals(storageKey));setClock(Date.now())},[storageKey]);
+ useEffect(()=>{
+  const times=Object.values(dismissedAt).filter(value=>Number.isFinite(Number(value))).map(Number);
+  if(!times.length)return undefined;
+  const nextExpiry=Math.min(...times.map(value=>value+NOTICE_POPUP_COOLDOWN_MS).filter(value=>value>Date.now()));
+  if(!Number.isFinite(nextExpiry))return undefined;
+  const timer=window.setTimeout(()=>setClock(Date.now()),Math.max(250,nextExpiry-Date.now()+50));
+  return ()=>window.clearTimeout(timer);
+ },[dismissedAt]);
+
  const notices=data.notices.filter(n=>n.active&&n.showPopup&&(n.targetAudience==='students'||n.targetAudience==='all'));
- const notice=currentUser.role==='aluno'?notices.find(n=>!dismissed.includes(n.id)):null;
+ const notice=currentUser.role==='aluno'?notices.find(n=>{const lastClosed=Number(dismissedAt[n.id]||0);return !lastClosed||(clock-lastClosed)>=NOTICE_POPUP_COOLDOWN_MS}):null;
  if(!notice)return null;
- function close(){setDismissed(current=>[...current,notice.id])}
+ function close(){
+  const next={...dismissedAt,[notice.id]:Date.now()};
+  setDismissedAt(next);
+  writeNoticeDismissals(storageKey,next);
+ }
  if(notice.imageUrl)return <div className="noticePopupOverlay noticePopupOverlayImage"><div className="noticeImagePopup"><img src={notice.imageUrl} alt={notice.title}/><button className="noticeImagePopupClose" onClick={close} aria-label="Fechar aviso"><X/></button></div></div>;
  return <div className="noticePopupOverlay"><div className="noticePopup"><button className="noticePopupClose" onClick={close}><X/></button><div className="noticePopupIcon"><Bell/></div><span className="eyebrow">AVISO ULTIMATE FIT</span><h2>{notice.title}</h2><p>{notice.body}</p><button className="primary" onClick={close}>Fechar</button></div></div>
 }
@@ -47,7 +76,7 @@ function NoticeForm({notice,onClose,onSaved}){
   <div className="wide dateTimePair"><label>Fim (opcional) · data<input name="activeUntilDate" type="date" defaultValue={end.date}/></label><label>Hora<input name="activeUntilTime" type="time" defaultValue={end.time||'23:59'}/></label></div>
   <CommunityImageField label="Imagem/cartaz do aviso (opcional)" existingUrl={notice?.imageUrl||''} value={image} onChange={setImage}/>
   <div className="wide noticeImageRule"><b>Com imagem:</b> o pop-up mostra apenas o cartaz e o botão X. O título e a mensagem continuam disponíveis no dashboard.</div>
-  <label className="checkLine"><input name="showPopup" type="checkbox" defaultChecked={notice?.showPopup!==false}/> Mostrar como pop-up ao entrar</label><label className="checkLine"><input name="showDashboard" type="checkbox" defaultChecked={notice?.showDashboard!==false}/> Manter no dashboard</label>
+  <label className="checkLine"><input name="showPopup" type="checkbox" defaultChecked={notice?.showPopup!==false}/> Mostrar como pop-up (intervalo mínimo de 5 h após fechar)</label><label className="checkLine"><input name="showDashboard" type="checkbox" defaultChecked={notice?.showDashboard!==false}/> Manter no dashboard</label>
   {error&&<div className="errorBanner wide">{error}</div>}<div className="modalActions wide"><button type="button" className="secondary" onClick={onClose}>Cancelar</button><button className="primary" disabled={busy}>{busy?'A otimizar e guardar…':'Guardar aviso'}</button></div>
  </form></Modal>
 }

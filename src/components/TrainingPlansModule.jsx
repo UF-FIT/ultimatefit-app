@@ -68,7 +68,7 @@ function ExercisePrescription({ item }) {
   return <div className="prescriptionLine">{details.join(' · ') || 'Prescrição por definir'}</div>;
 }
 
-function AutomaticStretching({ session }) {
+function AutomaticStretching({ session, hideAutomationBadge = false }) {
   const recommendations = getSessionStretchingRecommendations(session);
   const [openStretch, setOpenStretch] = useState(null);
   if (!recommendations.length) return null;
@@ -80,7 +80,7 @@ function AutomaticStretching({ session }) {
         <h3>Alongamentos recomendados</h3>
         <p>Selecionados automaticamente a partir dos grupos musculares trabalhados nesta sessão.</p>
       </div>
-      <span className="autoStretchBadge">AUTOMÁTICO</span>
+      {!hideAutomationBadge && <span className="autoStretchBadge">AUTOMÁTICO</span>}
     </div>
 
     <div className="stretchingRules">
@@ -147,7 +147,7 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
             </button>)}
           </div>})}
         </div>
-        {plan.autoStretchingEnabled !== false && <AutomaticStretching session={session}/>} 
+        {plan.autoStretchingEnabled !== false && <AutomaticStretching session={session} hideAutomationBadge={studentView || previewMode}/>} 
         {(studentView || previewMode) && <div className="trainingCompleteArea">{todayCompletion ? <div className="trainingCompletedToday"><CheckCircle2 size={20}/><div><b>Treino registado hoje</b><small>{todayCompletion.source==='trainer'?'Registado pelo teu professor.':'Marcado por ti como concluído.'}</small></div></div> : <button className="completeWorkoutButton" disabled={previewMode || completionBusy} onClick={()=>onCompleteSession?.(session)}><CheckCircle2 size={20}/>{previewMode?'Treino concluído':'Marcar treino como concluído'}</button>}</div>}
       </section>)}
     </div>
