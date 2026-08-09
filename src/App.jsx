@@ -112,10 +112,11 @@ function Dashboard({onNavigate}){
  const {data,currentUser}=useApp();
  const student=data.students.find(s=>s.userId===currentUser.id)||data.students[0];
  if(currentUser.role==='aluno') return <StudentDashboard student={student} onNavigate={onNavigate}/>;
- const visibleStudents=currentUser.role==='admin'?data.students:data.students.filter(s=>s.trainerIds?.includes(currentUser.id));
+ const allowedStudents=(currentUser.role==='admin'?data.students:data.students.filter(s=>s.trainerIds?.includes(currentUser.id))).filter(s=>!s.deletedAt);
+ const visibleStudents=allowedStudents;
  return <><Heading title={`Olá, ${currentUser.name.split(' ')[0]}`} sub="Visão geral da plataforma."/>
  <div className="grid four"><Kpi icon={Users} label="Alunos ativos" value={visibleStudents.filter(s=>s.active).length}/><Kpi icon={Dumbbell} label="Planos ativos" value={data.plans.filter(p=>p.status==='published'&&p.active).length}/><Kpi icon={ClipboardList} label="Avaliações" value={data.assessments.length}/><Kpi icon={BookOpen} label="Exercícios" value={data.exercises.length}/></div>
- <div className="section"><Card className="pad dashboardRecentStudents"><h2>Alunos recentes</h2>{visibleStudents.length?visibleStudents.slice(0,6).map(s=><div className="listRow" key={s.id}><div className="avatar small">{s.thumbUrl?<img src={s.thumbUrl} alt={s.name}/>:s.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><b>{s.name}</b><small>{s.objective||'Objetivo por definir'}</small></div><Badge tone={s.active?'green':'gray'}>{s.active?'Ativo':'Sem acesso'}</Badge></div>):<div className="notice">Ainda não existem alunos reais. Cria o primeiro registo na secção Alunos.</div>}</Card></div></>;
+ <div className="section"><Card className="pad dashboardRecentStudents"><h2>Alunos recentes</h2>{visibleStudents.length?visibleStudents.slice(0,6).map(s=><div className="listRow" key={s.id}><div className="avatar small">{s.thumbUrl?<img src={s.thumbUrl} alt={s.name}/>:s.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div><div className="grow"><b>{s.name}</b><small>{s.objective||'Objetivo por definir'}</small></div><Badge tone={s.active?'green':'gray'}>{s.active?'Ativo':s.status==='archived'?'Arquivado':'Sem acesso'}</Badge></div>):<div className="notice">Ainda não existem alunos reais. Cria o primeiro registo na secção Alunos.</div>}</Card></div></>;
 }
 function StudentDashboard({student,onNavigate}){const {data,refreshStudents}=useApp();return <><StudentNoticeBoard/><StudentSelfHome student={student} assessments={data.assessments.filter(a=>a.studentId===student?.id)} onNavigate={onNavigate} onRefresh={refreshStudents}/></>;}
 

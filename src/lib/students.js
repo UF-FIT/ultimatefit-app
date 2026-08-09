@@ -13,7 +13,6 @@ export const studentStatusLabels = {
   inactive: 'Inativo',
   paused: 'Pausado',
   archived: 'Arquivado',
-  removed: 'Removido',
 };
 
 export const sexOptions = [
@@ -55,6 +54,7 @@ export async function fetchStudents() {
   const { data: studentRows, error: studentError } = await supabase
     .from('student_profiles')
     .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,emergency_contact_phone,start_date,status,notes,main_goal,postal_code,city,tracking_type,archived_at,deleted_at,created_at')
+    .is('deleted_at', null)
     .order('student_number', { ascending: true });
   if (studentError) throw studentError;
   if (!studentRows?.length) return [];
@@ -66,7 +66,8 @@ export async function fetchStudents() {
     supabase
       .from('profiles')
       .select('id,email,full_name,first_name,last_name,phone,avatar_path,avatar_thumb_path,is_active,deleted_at,created_at')
-      .in('id', profileIds),
+      .in('id', profileIds)
+      .is('deleted_at', null),
     supabase
       .from('trainer_students')
       .select('id,trainer_id,student_id,is_primary,assigned_at')
@@ -121,7 +122,8 @@ export async function fetchStudents() {
     if (!latestInviteByStudent.has(invite.student_id)) latestInviteByStudent.set(invite.student_id, invite);
   }
 
-  return Promise.all(studentRows.map(async row => {
+  const visibleStudentRows = studentRows.filter(row => profileById.has(row.profile_id));
+  return Promise.all(visibleStudentRows.map(async row => {
     const profile = profileById.get(row.profile_id) || {};
     const studentAssignments = assignments.filter(item => item.student_id === row.id);
     const trainers = studentAssignments.map(assignment => {

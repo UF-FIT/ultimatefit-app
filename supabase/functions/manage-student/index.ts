@@ -170,6 +170,15 @@ Deno.serve(async (req) => {
     return data as any
   }
 
+  async function removeStoragePaths(bucket: string, rawPaths: Array<string | null | undefined>) {
+    const paths = [...new Set(rawPaths.map((value) => String(value ?? '').trim()).filter(Boolean))]
+    if (!paths.length) return
+    for (let index = 0; index < paths.length; index += 100) {
+      const { error } = await admin.storage.from(bucket).remove(paths.slice(index, index + 100))
+      if (error) throw new Error(`Não foi possível eliminar ficheiros de ${bucket}: ${error.message}`)
+    }
+  }
+
   async function isAssigned(studentId: string) {
     if (!callerTrainer?.id) return false
     const { data } = await admin
@@ -506,7 +515,10 @@ Deno.serve(async (req) => {
         .single()
       if (!primary?.trainer_id) throw new Error('Define primeiro um professor principal.')
       await requireTrainerWhatsApp(primary.trainer_id)
-      const { error: unbanError } = await admin.auth.admin.updateUserById(student.profile_id, { ban_duration: 'none' })
+      const { error: unbanError } = await admin.auth.admin.updateUserById(student.profile_id, {
+        ban_duration: 'none',
+        app_metadata: { app_role: 'student', removed: false },
+      })
       if (unbanError) throw unbanError
       await admin.from('profiles').update({ is_active: true, deleted_at: null }).eq('id', student.profile_id)
       await admin.from('student_profiles').update({ status: 'active', archived_at: null, deleted_at: null }).eq('id', studentId)
@@ -526,32 +538,49 @@ Deno.serve(async (req) => {
 
     if (action === 'delete') {
       if (!['owner', 'admin'].includes(caller.role)) {
-        return json({ error: 'A eliminação segura é reservada à administração.' }, 403)
+        return json({ error: 'A eliminação definitiva é reservada à administração.' }, 403)
       }
-      const now = new Date().toISOString()
+
+      // Bloqueia imediatamente a conta antes da remoção irreversível.
       const { error: banError } = await admin.auth.admin.updateUserById(student.profile_id, {
         ban_duration: '876000h',
         app_metadata: { app_role: 'student', removed: true },
       })
       if (banError) throw banError
 
-      await admin.from('trainer_students').update({
-        ended_at: now,
-        ended_by: caller.id,
-        is_primary: false,
-        end_reason: 'student_removed',
-      }).eq('student_id', studentId).is('ended_at', null)
+      // Recolhe os caminhos dos ficheiros antes de apagar as linhas da base de dados.
+      const [assessmentPhotosResult, nutritionDocumentsResult] = await Promise.all([
+        admin.from('assessment_photos').select('image_path,thumb_path').eq('student_id', studentId),
+        admin.from('nutrition_documents').select('file_path').eq('student_id', studentId),
+      ])
+      if (assessmentPhotosResult.error) throw assessmentPhotosResult.error
+      if (nutritionDocumentsResult.error) throw nutritionDocumentsResult.error
 
-      await admin.from('profiles').update({ is_active: false, deleted_at: now }).eq('id', student.profile_id)
-      await admin.from('student_profiles').update({
-        status: 'archived',
-        archived_at: now,
-        deleted_at: now,
-      }).eq('id', studentId)
-      await admin.from('student_invitations').update({ status: 'revoked', revoked_at: now }).eq('student_id', studentId).eq('status', 'pending')
-      await admin.from('student_activity_log').insert({ student_id: studentId, actor_id: caller.id, action: 'student_safely_removed' })
+      await removeStoragePaths('student-avatars', [
+        student.profile?.avatar_path,
+        student.profile?.avatar_thumb_path,
+      ])
+      await removeStoragePaths('assessment-photos', (assessmentPhotosResult.data || []).flatMap((photo: any) => [photo.image_path, photo.thumb_path]))
+      await removeStoragePaths('nutrition-documents', (nutritionDocumentsResult.data || []).map((doc: any) => doc.file_path))
 
-      return json({ ok: true, message: 'Acesso eliminado com preservação do histórico.' })
+      // A função SQL elimina todas as dependências públicas: avaliações, planos,
+      // histórico de treinos, desafios, PAR-Q, inscrições, documentos, logs, etc.
+      const { error: purgeError } = await admin.rpc('hard_delete_student_data', {
+        target_student_id: studentId,
+      })
+      if (purgeError) throw purgeError
+
+      // Por fim remove também a identidade da Supabase Auth.
+      const { error: authDeleteError } = await admin.auth.admin.deleteUser(student.profile_id)
+      if (authDeleteError) {
+        console.error('Dados públicos eliminados, mas a primeira tentativa de apagar Auth falhou:', authDeleteError)
+        const retry = await admin.auth.admin.deleteUser(student.profile_id)
+        if (retry.error) {
+          throw new Error('Os dados do aluno foram eliminados, mas a conta Auth permaneceu bloqueada. Elimina essa conta em Authentication > Users.')
+        }
+      }
+
+      return json({ ok: true, message: 'Aluno eliminado definitivamente. Todos os dados e ficheiros associados foram removidos.' })
     }
 
     return json({ error: 'Ação desconhecida.' }, 400)
