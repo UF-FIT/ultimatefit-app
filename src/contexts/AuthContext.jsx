@@ -62,6 +62,10 @@ export function AuthProvider({ children }) {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      // Auth events can expose the new session a few milliseconds before
+      // the profile query finishes. Mark the whole auth/profile transition
+      // as loading so the UI never renders a false missing-profile state.
+      setLoading(true);
       setSession(nextSession);
       if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
       window.setTimeout(async () => {
@@ -79,8 +83,16 @@ export function AuthProvider({ children }) {
   async function signIn(email, password) {
     if (!supabase) return { error: new Error('Supabase não configurado.') };
     setAuthError('');
+    // Keep the gate in a neutral loading state while Supabase creates the
+    // session and the matching application profile is hydrated. Without
+    // this, AppGate can briefly see `session` before `profile` and flash
+    // the "Perfil indisponível" error even though the profile exists.
+    setLoading(true);
     const result = await supabase.auth.signInWithPassword({ email, password });
-    if (result.error) setAuthError(result.error.message);
+    if (result.error) {
+      setAuthError(result.error.message);
+      setLoading(false);
+    }
     return result;
   }
 

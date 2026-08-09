@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
+import {useLocation,useNavigate} from 'react-router-dom';
 import {AppProvider,useApp} from './contexts/AppContext';
 import {AuthProvider,useAuth} from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
@@ -28,23 +29,55 @@ function Card({children,className=''}){return <div className={cx('card',classNam
 function Badge({children,tone='gray'}){return <span className={`badge ${tone}`}>{children}</span>}
 function Logo(){return <div className="logo"><BrandLogo/></div>}
 
+const pagePaths={
+ dashboard:{aluno:'/inicio',default:'/dashboard'},
+ profile:{aluno:'/perfil',default:'/perfil'},
+ students:{default:'/alunos'},
+ assessments:{default:'/avaliacoes'},
+ plans:{aluno:'/treino',default:'/planos'},
+ nutrition:{default:'/nutricao'},
+ challenges:{default:'/desafios'},
+ activities:{default:'/atividades'},
+ exercises:{default:'/biblioteca'},
+ settings:{default:'/backoffice'},
+};
+
+function routeFromPath(pathname,role){
+ const path=(pathname||'/').toLowerCase().replace(/\/+$/,'')||'/';
+ const activityMatch=(pathname||'').match(/^\/atividades\/([^/?#]+)/i);
+ if(activityMatch) return {page:'activities',context:{slug:decodeURIComponent(activityMatch[1])}};
+ if(path==='/inicio'||path==='/dashboard'||path==='/') return {page:'dashboard',context:{}};
+ if(path.startsWith('/perfil')) return {page:'profile',context:{}};
+ if(path.startsWith('/alunos')) return {page:'students',context:{}};
+ if(path.startsWith('/avaliacoes')) return {page:'assessments',context:{}};
+ if(path.startsWith('/treino')||path.startsWith('/planos')) return {page:'plans',context:{}};
+ if(path.startsWith('/nutricao')) return {page:'nutrition',context:{}};
+ if(path.startsWith('/desafios')) return {page:'challenges',context:{}};
+ if(path.startsWith('/atividades')) return {page:'activities',context:{}};
+ if(path.startsWith('/biblioteca')) return {page:'exercises',context:{}};
+ if(path.startsWith('/backoffice')) return {page:'settings',context:{}};
+ return {page:'dashboard',context:{}};
+}
+
+function pathForPage(key,role,context={}){
+ if(key==='activities'&&context?.slug) return `/atividades/${encodeURIComponent(context.slug)}`;
+ const item=pagePaths[key]||pagePaths.dashboard;
+ return (role==='aluno'&&item.aluno)||item.default||'/';
+}
+
 function Shell(){
  const {currentUser}=useApp();
  const {signOut}=useAuth();
- const [page,setPage]=useState(()=>{
-  if(typeof window==='undefined') return 'dashboard';
-  const challengeHost=window.location.hostname.toLowerCase().startsWith('desafios.');
-  const path=window.location.pathname.toLowerCase();
-  if(path.startsWith('/atividades')) return 'activities';
-  if(challengeHost||path.startsWith('/desafios')) return 'challenges';
-  return 'dashboard';
- });
- const [pageContext,setPageContext]=useState(()=>{
-  if(typeof window==='undefined') return {};
-  const match=window.location.pathname.match(/^\/atividades\/([^/?#]+)/i);
-  return match?{slug:decodeURIComponent(match[1])}:{};
- });
- const navigate=(key,context={})=>{setPage(key);setPageContext(context||{})};
+ const location=useLocation();
+ const routeNavigate=useNavigate();
+ const challengeHost=typeof window!=='undefined'&&window.location.hostname.toLowerCase().startsWith('desafios.');
+ const resolved=challengeHost?{page:'challenges',context:{}}:routeFromPath(location.pathname,currentUser.role);
+ const page=resolved.page;
+ const pageContext=location.state?.pageContext||resolved.context||{};
+ const navigate=(key,context={})=>{
+  const nextContext=context||{};
+  routeNavigate(pathForPage(key,currentUser.role,nextContext),{state:{pageContext:nextContext}});
+ };
  const nav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
