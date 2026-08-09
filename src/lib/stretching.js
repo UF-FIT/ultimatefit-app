@@ -1,4 +1,4 @@
-const STRETCHES = [
+export const automaticStretchingCatalog = [
   {
     key: 'neck',
     title: 'Pescoço',
@@ -152,7 +152,7 @@ export function getSessionStretchingRecommendations(session) {
     addCardioNameHints(selected, item);
   });
 
-  return STRETCHES
+  return automaticStretchingCatalog
     .filter(stretch => selected.has(stretch.key))
     .map(stretch => ({
       ...stretch,

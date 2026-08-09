@@ -27,7 +27,7 @@ function emptySession(index = 0) {
   return { title: `Treino ${String.fromCharCode(65 + index)}`, description: '', blocks: [emptyBlock()] };
 }
 function emptyPlan(studentId = '') {
-  return { id: '', studentId, title: '', description: '', goal: '', status: 'draft', active: true, startDate: '', endDate: '', sessions: [emptySession(0)] };
+  return { id: '', studentId, title: '', description: '', goal: '', status: 'draft', active: true, startDate: '', endDate: '', autoStretchingEnabled: true, sessions: [emptySession(0)] };
 }
 function deepCopyPlan(plan) {
   return JSON.parse(JSON.stringify(plan));
@@ -147,7 +147,7 @@ function PlanViewer({ plan, student, canManage, blockTypes = [], onBack, onEdit,
             </button>)}
           </div>})}
         </div>
-        <AutomaticStretching session={session}/>
+        {plan.autoStretchingEnabled !== false && <AutomaticStretching session={session}/>} 
         {(studentView || previewMode) && <div className="trainingCompleteArea">{todayCompletion ? <div className="trainingCompletedToday"><CheckCircle2 size={20}/><div><b>Treino registado hoje</b><small>{todayCompletion.source==='trainer'?'Registado pelo teu professor.':'Marcado por ti como concluído.'}</small></div></div> : <button className="completeWorkoutButton" disabled={previewMode || completionBusy} onClick={()=>onCompleteSession?.(session)}><CheckCircle2 size={20}/>{previewMode?'Treino concluído':'Marcar treino como concluído'}</button>}</div>}
       </section>)}
     </div>
@@ -271,6 +271,18 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
       <label>Data de fim<input type="date" value={draft.endDate || ''} onChange={event => patchPlan({ endDate: event.target.value })}/></label>
       <label className="wide">Objetivo do plano<input value={draft.goal} onChange={event => patchPlan({ goal: event.target.value })} placeholder="Ex.: ganho de força, redução de dor, hipertrofia…"/></label>
       <label className="wide">Notas gerais<textarea value={draft.description} onChange={event => patchPlan({ description: event.target.value })} placeholder="Indicações gerais para o aluno."/></label>
+      <div className="wide automaticStretchingPlanOption">
+        <div>
+          <span className="eyebrow">RECUPERAÇÃO AUTOMÁTICA</span>
+          <b>Alongamentos automáticos no final do treino</b>
+          <small>Quando ligado, a app escolhe os alongamentos adequados a partir dos grupos musculares trabalhados em cada sessão.</small>
+        </div>
+        <label className="switchControl" title="Ativar ou desativar alongamentos automáticos">
+          <input type="checkbox" checked={draft.autoStretchingEnabled !== false} onChange={event => patchPlan({ autoStretchingEnabled: event.target.checked })}/>
+          <span aria-hidden="true"></span>
+          <strong>{draft.autoStretchingEnabled !== false ? 'Ligado' : 'Desligado'}</strong>
+        </label>
+      </div>
     </div></section>
 
     <div className="trainingSessionsEditor">

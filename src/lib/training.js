@@ -88,6 +88,7 @@ function sortNestedPlan(row) {
     active: row.is_active !== false,
     startDate: row.start_date || '',
     endDate: row.end_date || '',
+    autoStretchingEnabled: row.auto_stretching_enabled !== false,
     publishedAt: row.published_at,
     archivedAt: row.archived_at,
     createdAt: row.created_at,
@@ -111,7 +112,7 @@ export async function fetchWorkoutPlans() {
   const { data, error } = await supabase
     .from('workout_plans')
     .select(`
-      id,student_id,trainer_id,title,description,goal,status,is_active,start_date,end_date,published_at,archived_at,created_at,updated_at,
+      id,student_id,trainer_id,title,description,goal,status,is_active,start_date,end_date,auto_stretching_enabled,published_at,archived_at,created_at,updated_at,
       workout_sessions(
         id,title,description,sort_order,
         workout_blocks(
@@ -286,6 +287,7 @@ export async function saveWorkoutPlan(plan) {
     isActive: plan.active !== false,
     startDate: plan.startDate || '',
     endDate: plan.endDate || '',
+    autoStretchingEnabled: plan.autoStretchingEnabled !== false,
     sessions: (plan.sessions || []).map(session => ({
       title: session.title,
       description: session.description || '',
