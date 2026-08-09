@@ -70,6 +70,7 @@ function ExercisePrescription({ item }) {
 
 function AutomaticStretching({ session }) {
   const recommendations = getSessionStretchingRecommendations(session);
+  const [openStretch, setOpenStretch] = useState(null);
   if (!recommendations.length) return null;
 
   return <section className="automaticStretching">
@@ -88,7 +89,10 @@ function AutomaticStretching({ session }) {
 
     <div className="stretchingGrid">
       {recommendations.map(stretch => <article className="stretchingCard" key={stretch.key}>
-        <div className="stretchingImage"><img src={stretch.image} alt={`Alongamento — ${stretch.title}`} loading="lazy"/></div>
+        <button type="button" className="stretchingImage" onClick={() => setOpenStretch(stretch)} aria-label={`Ampliar alongamento de ${stretch.title}`}>
+          <img src={stretch.image} alt={`Alongamento — ${stretch.title}`} loading="lazy"/>
+          <span className="stretchingZoomHint">Ampliar</span>
+        </button>
         <div className="stretchingCopy">
           <div className="stretchingTitleRow"><div><small>ALONGAMENTO</small><h4>{stretch.title}</h4></div><span>20–30 s</span></div>
           <b>{stretch.subtitle}</b>
@@ -99,6 +103,14 @@ function AutomaticStretching({ session }) {
     </div>
 
     <div className="stretchingSafety"><CheckCircle2 size={17}/><span><b>Alongar não deve doer.</b> Mantém uma tensão confortável, respira normalmente e evita movimentos bruscos.</span></div>
+
+    {openStretch && <div className="overlay stretchingLightbox" onClick={() => setOpenStretch(null)}>
+      <div className="stretchingLightboxCard" onClick={event => event.stopPropagation()}>
+        <button className="iconButton stretchingLightboxClose" onClick={() => setOpenStretch(null)} aria-label="Fechar"><X/></button>
+        <div className="stretchingLightboxImage"><img src={openStretch.image} alt={`Alongamento — ${openStretch.title}`}/></div>
+        <div className="stretchingLightboxCopy"><span className="eyebrow">ALONGAMENTO</span><h3>{openStretch.title}</h3><b>{openStretch.subtitle}</b><p>{openStretch.description}</p><strong>20–30 s · 1–2 séries por lado</strong></div>
+      </div>
+    </div>}
   </section>;
 }
 
