@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import BrandLogo from './BrandLogo';
+import AppFooter from './AppFooter';
 
 export default function LoginScreen() {
   const { signIn, authError, requestPasswordReset } = useAuth();
@@ -49,7 +50,10 @@ export default function LoginScreen() {
           <h1>BE STRONG.<br />BE ULTIMATE.</h1>
           <p>A plataforma do estúdio para avaliações, evolução, treino, nutrição, objetivos e desafios.</p>
         </div>
-        <div className="loginStatus">AMBIENTE PRIVADO DE DESENVOLVIMENTO</div>
+        <div className="loginIntroBottom">
+          <div className="loginStatus">AMBIENTE PRIVADO DE DESENVOLVIMENTO</div>
+          <AppFooter className="loginFooter"/>
+        </div>
       </section>
 
       <section className="loginPanel">
