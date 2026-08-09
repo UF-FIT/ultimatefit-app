@@ -4,10 +4,36 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './styles/app.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>
-);
+const hostname = window.location.hostname.toLowerCase();
+const canonicalAppOrigin = 'https://app.ultimatefit.pt';
+
+function canonicalEntryPath(host, pathname) {
+  const cleanPath = pathname && pathname !== '/' ? pathname : '';
+  if (host === 'desafios.ultimatefit.pt') {
+    if (!cleanPath || cleanPath === '/desafios') return '/desafios';
+    return cleanPath.startsWith('/desafios') ? cleanPath : `/desafios${cleanPath}`;
+  }
+  if (host === 'atividades.ultimatefit.pt') {
+    if (!cleanPath || cleanPath === '/atividades') return '/atividades';
+    return cleanPath.startsWith('/atividades') ? cleanPath : `/atividades${cleanPath}`;
+  }
+  return null;
+}
+
+const entryPath = canonicalEntryPath(hostname, window.location.pathname);
+
+if (entryPath) {
+  // Keep one canonical browser origin for authentication. The short branded
+  // subdomains are entry links only, so a session already open on
+  // app.ultimatefit.pt is immediately reused after this redirect.
+  const target = `${canonicalAppOrigin}${entryPath}${window.location.search}${window.location.hash}`;
+  window.location.replace(target);
+} else {
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </React.StrictMode>
+  );
+}

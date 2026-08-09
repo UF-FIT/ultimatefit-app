@@ -45,7 +45,7 @@ function ActivityForm({activity,onClose,onSaved}){
 
 function QrModal({activity,onClose}){
  const [src,setSrc]=useState('');
- const link=`${window.location.origin}/atividades/${activity.slug}`;
+ const link=`https://atividades.ultimatefit.pt/${activity.slug}`;
  useEffect(()=>{QRCode.toDataURL(link,{width:420,margin:2,errorCorrectionLevel:'M',color:{dark:'#050505',light:'#ffffff'}}).then(setSrc)},[link]);
  return <Modal title="QR CODE DA ATIVIDADE" onClose={onClose}><div className="activityQr"><p>Coloca este QR Code nas TVs do estúdio. O aluno abre diretamente a atividade e pode inscrever-se.</p>{src&&<img src={src} alt={`QR Code ${activity.title}`}/>}<b>{activity.title}</b><small>{link}</small><button className="primary" onClick={()=>navigator.clipboard?.writeText(link)}><Clipboard size={16}/>Copiar link</button><a className="secondary" href={src} download={`QR-${activity.slug}.png`}>Guardar QR Code</a></div></Modal>
 }
