@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { assessmentMetrics, assessmentModuleLabels, activityLevelLabel, bmiCategory, riskResultLabel, skinfoldSum } from './assessments';
+import { activityLevelDescription, activityLevelLabel, ageAtAssessment, assessmentMetrics, assessmentModuleLabels, assessmentReferences, automaticRiskSummary, bmiCategory, bodyFatCategory, bodyFatReferenceTable, riskResultLabel, skinfoldSum } from './assessments';
 
 const YELLOW = [255, 217, 8];
 const BLACK = [10, 10, 10];
@@ -145,12 +145,15 @@ function comparisonCard(doc,x,y,w,h,label,current,previous,unit='') {
     change:previous===null||previous===undefined?null:delta(current,previous,unit),
   });
 }
-function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, logoData}) {
+function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, logoData, student=null, assessmentDate=null}) {
   let y=sectionTitle(doc,title,startY); const x=14; const widths=[69,39,36,38]; const headers=['Indicador','Atual','Anterior','Evolução'];
+  const assessmentAge=ageAtAssessment(student?.birth,assessmentDate);
   const drawHeader=()=>{doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+3,y+5.2);cx+=widths[i]});y+=8;};
   drawHeader();
   for(let i=0;i<rows.length;i++){
-    const [label,key,defaultUnit='']=rows[i]; const unit=unitByKey[key]??defaultUnit; const a=current?.[key],b=previous?.[key]; const isBmi=key==='bmi' && bmiCategory(a); const rowH=isBmi?14:8;
+    const [label,key,defaultUnit='']=rows[i]; const unit=unitByKey[key]??defaultUnit; const a=current?.[key],b=previous?.[key];
+    const classification=key==='bmi'?bmiCategory(a):key==='body_fat_pct'?bodyFatCategory(a,assessmentAge,student?.sex):'';
+    const rowH=classification?14:8;
     if(y+rowH>278){doc.addPage();contentHeader(doc,title,logoData);y=30;drawHeader();}
     doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,rowH,'F');
     const cells=[pdfText(label),pdfText(safe(a,unit)),pdfText(safe(b,unit)),pdfText(delta(a,b,unit))]; let cx=x;
@@ -159,10 +162,19 @@ function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, lo
       const maxW=widths[j]-6; const lines=doc.splitTextToSize(cells[j],maxW); doc.text(lines.slice(0,2),cx+3,y+5.1);
       cx+=widths[j];
     }
-    if(isBmi){doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(88);const bmiLines=doc.splitTextToSize(pdfText(`Classificação: ${bmiCategory(a)}`),34);doc.text(bmiLines.slice(0,2),x+72,y+9.2);}
+    if(classification){doc.setFont('helvetica','normal');doc.setFontSize(6.4);doc.setTextColor(88);const lines=doc.splitTextToSize(pdfText(`Classificação: ${classification}`),34);doc.text(lines.slice(0,2),x+72,y+9.2);}
     y+=rowH;
   }
   return y+5;
+}
+function drawBodyFatReferenceTable(doc,startY){
+  let y=sectionTitle(doc,'Referência do percentual de gordura',startY); const x=14; const widths=[24,25,29,38,35,31]; const headers=['Sexo','Idade','Baixo','Normal/Saudável','Sobrepeso','Obeso'];
+  doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(6.7);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+2,y+5.2,{maxWidth:widths[i]-4});cx+=widths[i]});y+=8;
+  const rows=[];
+  const add=(sex,label)=>bodyFatReferenceTable[sex].forEach(row=>rows.push([label,`${row.minAge}-${row.maxAge}`,`<${row.low}`,`${row.low}-${row.healthyMax}`,`>${row.healthyMax}-${row.overweightMax}`,`>${row.overweightMax}`]));
+  add('male','Homens');add('female','Mulheres');
+  rows.forEach((row,i)=>{doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,8,'F');let px=x;row.forEach((cell,j)=>{doc.setFont('helvetica',j===0?'bold':'normal');doc.setFontSize(6.8);doc.setTextColor(...(j===0?BLACK:MID));doc.text(pdfText(cell),px+2,y+5.2,{maxWidth:widths[j]-4});px+=widths[j]});y+=8;});
+  doc.setFont('helvetica','italic');doc.setFontSize(6.2);doc.setTextColor(100);const ref=doc.splitTextToSize(pdfText(`Fonte: ${assessmentReferences.bodyFat} Os intervalos são referências provisórias derivadas de limiares de IMC e devem ser interpretados no contexto do método de medição.`),182);doc.text(ref,14,y+5);return y+5+ref.length*3.2;
 }
 function narrative(doc, title, text, y) {
   y=sectionTitle(doc,title,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);const lines=doc.splitTextToSize(pdfText(text||'-'),178);doc.text(lines,14,y);return y+lines.length*4.7+5;
@@ -214,7 +226,8 @@ export async function buildAssessmentPdf(student, assessment, previousAssessment
   // BIOIMPEDÂNCIA
   if(getModule(assessment,'bioimpedance')){
     doc.addPage();contentHeader(doc,'Bioimpedância TANITA',logoData);pageTitle(doc,'Composição corporal','Valores atuais, referência anterior e diferença entre avaliações.');
-    table(doc,{title:'Bioimpedância - TANITA',rows:bioRows,current:getModule(assessment,'bioimpedance'),previous:getModule(previousAssessment,'bioimpedance'),startY:52,logoData});
+    const bioEnd=table(doc,{title:'Bioimpedância - TANITA',rows:bioRows,current:getModule(assessment,'bioimpedance'),previous:getModule(previousAssessment,'bioimpedance'),startY:52,logoData,student,assessmentDate:assessment.date});
+    if(bioEnd<205) drawBodyFatReferenceTable(doc,bioEnd+3); else { doc.addPage();contentHeader(doc,'Referência de composição corporal',logoData);pageTitle(doc,'Percentual de gordura','Tabela de referência por sexo e idade.');drawBodyFatReferenceTable(doc,52); }
   }
   // PERIMETRIA
   if(getModule(assessment,'perimetry')){
@@ -230,7 +243,7 @@ export async function buildAssessmentPdf(student, assessment, previousAssessment
   // CONTEXTO
   if(getModule(assessment,'anamnesis')||getModule(assessment,'posture')||assessment.notes){
     doc.addPage();contentHeader(doc,'Contexto da avaliação',logoData);pageTitle(doc,'Contexto e observações','Informação complementar registada durante a avaliação.');y=53;
-    const anam=getModule(assessment,'anamnesis'); if(anam){y=sectionTitle(doc,'Anamnese',y);doc.setFillColor(...LIGHT);doc.roundedRect(14,y,182,34,2,2,'F');infoBlock(doc,19,y+8,'Nível de atividade',activityLevelLabel(anam.physical_activity_level),70);infoBlock(doc,105,y+8,'Estratificação registada',riskResultLabel(anam.risk_result),80);infoBlock(doc,19,y+22,'Fumador',anam.smoker===true?'Sim':anam.smoker===false?'Não':'-',70);infoBlock(doc,105,y+22,'Dor muscular',anam.muscle_pain===true?'Sim':anam.muscle_pain===false?'Não':'-',80);y+=44;}
+    const anam=getModule(assessment,'anamnesis'); if(anam){const autoRisk=automaticRiskSummary(anam);y=sectionTitle(doc,'Anamnese',y);doc.setFillColor(...LIGHT);doc.roundedRect(14,y,182,43,2,2,'F');infoBlock(doc,19,y+8,'Nível de atividade',activityLevelLabel(anam.physical_activity_level),76);infoBlock(doc,105,y+8,'Estratificação automática',riskResultLabel(autoRisk.result||anam.risk_result),80);doc.setFont('helvetica','normal');doc.setFontSize(6.7);doc.setTextColor(90);doc.text(doc.splitTextToSize(pdfText(activityLevelDescription(anam.physical_activity_level)||'-'),76).slice(0,2),19,y+15);infoBlock(doc,19,y+29,'Fumador',anam.smoker===true?'Sim':anam.smoker===false?'Não':'-',70);infoBlock(doc,105,y+29,'Dor muscular',anam.muscle_pain===true?'Sim':anam.muscle_pain===false?'Não':'-',80);y+=49;y=sectionTitle(doc,'Referências da triagem',y);doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(85);let refs=doc.splitTextToSize(pdfText(`${assessmentReferences.activity} ${assessmentReferences.risk} Resultado informativo: não substitui avaliação, diagnóstico ou autorização médica.`),182);doc.text(refs,14,y);y+=refs.length*3.3+5;}
     const posture=getModule(assessment,'posture'); if(posture){const text=[['Anterior',posture.anterior_notes],['Posterior',posture.posterior_notes],['Perfil direito',posture.lateral_right_notes],['Perfil esquerdo',posture.lateral_left_notes]].filter(([,v])=>v).map(([l,v])=>`${l}: ${v}`).join('\n');if(text)y=narrative(doc,'Análise postural',text,y);}
     if(assessment.notes)y=narrative(doc,'Observações do professor',assessment.notes,y);
     y=sectionTitle(doc,'Contacto ULTIMATE FIT',Math.min(y+5,250));doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);doc.text(pdfText(`Professor: ${assessor?.name||'Equipa ULTIMATE FIT'} | ${cleanPhone(assessor?.phone)||assessor?.email||'ultimatefit.pt'}`),14,y,{maxWidth:182});doc.text('Website: ultimatefit.pt',14,y+6);
