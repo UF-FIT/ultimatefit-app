@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { activityLevelDescription, activityLevelLabel, assessmentMetrics, assessmentModuleLabels, assessmentReferences, automaticRiskSummary, bioimpedanceIndicator, bmiCategory, bodyFatReferenceTable, riskResultLabel, skinfoldSum } from './assessments';
+import { activityLevelDescription, activityLevelLabel, assessmentMetrics, assessmentModuleLabels, assessmentReferences, automaticRiskSummary, bioimpedanceIndicator, bmiCategory, bodyFatReferenceTable, effectiveBmi, riskResultLabel, skinfoldSum } from './assessments';
 
 const YELLOW = [255, 217, 8];
 const BLACK = [10, 10, 10];
@@ -19,7 +19,7 @@ const perimetryRows = [
   ['Gémeo dir.','calf_right_cm','cm'],['Gémeo esq.','calf_left_cm','cm'],
 ];
 const bioRows = [
-  ['Altura','height_cm','cm'],['Peso','weight_kg','kg'],['IMC','bmi',''],['Massa gorda','body_fat_pct','%'],
+  ['Altura','height_cm','cm'],['Peso','weight_kg','kg'],['IMC','bmi','kg/m²'],['Massa gorda','body_fat_pct','%'],
   ['Massa muscular','muscle_mass_kg','kg'],['Água corporal','water_pct','%'],['Peso ósseo','bone_mass_kg','kg'],
   ['Metabolismo basal','basal_metabolic_rate_kcal','kcal'],['Idade metabólica','metabolic_age','anos'],['Gordura visceral','visceral_fat_rating',''],
 ];
@@ -150,7 +150,7 @@ function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, lo
   const drawHeader=()=>{doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+3,y+5.2);cx+=widths[i]});y+=8;};
   drawHeader();
   for(let i=0;i<rows.length;i++){
-    const [label,key,defaultUnit='']=rows[i]; const unit=unitByKey[key]??defaultUnit; const a=current?.[key],b=previous?.[key];
+    const [label,key,defaultUnit='']=rows[i]; const unit=unitByKey[key]??defaultUnit; const a=key==='bmi'?(effectiveBmi(current)??current?.[key]):current?.[key],b=key==='bmi'?(effectiveBmi(previous)??previous?.[key]):previous?.[key];
     const classification=student?bioimpedanceIndicator(key,a,current,student,assessmentDate):'';
     const rowH=classification?17:8;
     if(y+rowH>278){doc.addPage();contentHeader(doc,title,logoData);y=30;drawHeader();}
@@ -179,7 +179,7 @@ function drawBodyFatReferenceTable(doc,startY){
 function drawBioimpedanceReferences(doc,startY){
   let y=sectionTitle(doc,'Referências da bioimpedância',startY);
   doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(90);
-  const text=`${assessmentReferences.weight} ${assessmentReferences.water} ${assessmentReferences.visceral} ${assessmentReferences.bone} ${assessmentReferences.muscle} ${assessmentReferences.biaCaution}`;
+  const text=`${assessmentReferences.weight} ${assessmentReferences.water} ${assessmentReferences.visceral} ${assessmentReferences.bone} ${assessmentReferences.muscle} ${assessmentReferences.metabolism} ${assessmentReferences.biaCaution}`;
   const lines=doc.splitTextToSize(pdfText(text),182);
   doc.text(lines,14,y);
   return y+lines.length*3.2+4;

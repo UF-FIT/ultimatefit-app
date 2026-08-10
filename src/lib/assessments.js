@@ -60,6 +60,7 @@ export const assessmentReferences = {
   visceral: 'TANITA DC-360. Visceral Fat Rating: 1–12 = faixa saudável; 13–59 = excesso de gordura visceral. Não constitui diagnóstico médico.',
   bone: 'TANITA DC-360 / RD-953. Massa óssea estimada: comparação com médias por sexo e peso; não mede densidade, resistência óssea nem risco de fratura.',
   muscle: 'Enquadramento complementar pela massa isenta de gordura ajustada à altura (FFMI), com percentis por sexo e idade de Schutz Y, Kyle UUG, Pichard C. Int J Obes Relat Metab Disord. 2002;26(7):953–960. doi:10.1038/sj.ijo.0802033. O FFMI é um indicador de massa magra total, não o Muscle Score TANITA nem uma medição direta de músculo esquelético.',
+  metabolism: 'Comparação do metabolismo basal TANITA com a estimativa de gasto energético de repouso pela equação de Mifflin–St Jeor: Mifflin MD, St Jeor ST, Hill LA, Scott BJ, Daugherty SA, Koh YO. Am J Clin Nutr. 1990;51(2):241–247. doi:10.1093/ajcn/51.2.241. O intervalo comparativo de ±10% é usado em estudos de validação como critério de concordância de previsões, não como diagnóstico clínico. Frankenfield D, Roth-Yousey L, Compher C. J Am Diet Assoc. 2005;105(5):775–789. doi:10.1016/j.jada.2005.02.005.',
   biaCaution: 'A bioimpedância varia com hidratação, exercício, refeições e outras condições. Comparar preferencialmente medições realizadas em condições semelhantes.',
 };
 
@@ -270,6 +271,27 @@ export function muscleMassContext(value, bio = {}, student = {}, assessmentDate 
   return 'Muito acima da referência';
 }
 
+
+export function mifflinStJeorRmr(bio = {}, student = {}, assessmentDate = null) {
+  const weight = Number(bio?.weight_kg);
+  const height = Number(bio?.height_cm);
+  const age = ageAtAssessment(student?.birth, assessmentDate);
+  const sx = normalizedSex(student?.sex);
+  if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(height) || height <= 0 || !Number.isFinite(age) || age < 18 || !sx) return null;
+  const sexConstant = sx === 'male' ? 5 : -161;
+  return (10 * weight) + (6.25 * height) - (5 * age) + sexConstant;
+}
+
+export function basalMetabolicRateContext(value, bio = {}, student = {}, assessmentDate = null) {
+  const measured = Number(value);
+  const predicted = mifflinStJeorRmr(bio, student, assessmentDate);
+  if (!Number.isFinite(measured) || measured <= 0 || !Number.isFinite(predicted) || predicted <= 0) return '';
+  const ratio = measured / predicted;
+  if (ratio < 0.9) return 'Abaixo do valor estimado';
+  if (ratio > 1.1) return 'Acima do valor estimado';
+  return 'Dentro do intervalo estimado';
+}
+
 export function bioimpedanceIndicator(key, value, bio = {}, student = {}, assessmentDate = null) {
   const age = ageAtAssessment(student?.birth, assessmentDate);
   if (key === 'weight_kg' || key === 'bmi') return bmiCategory(effectiveBmi({ ...bio, [key]: value }));
@@ -278,6 +300,7 @@ export function bioimpedanceIndicator(key, value, bio = {}, student = {}, assess
   if (key === 'visceral_fat_rating') return visceralFatCategory(value, age);
   if (key === 'bone_mass_kg') return boneMassContext(value, bio?.weight_kg, student?.sex);
   if (key === 'muscle_mass_kg') return muscleMassContext(value, bio, student, assessmentDate);
+  if (key === 'basal_metabolic_rate_kcal') return basalMetabolicRateContext(value, bio, student, assessmentDate);
   return '';
 }
 
@@ -369,6 +392,26 @@ export function bioimpedanceInterpretation(key, value, bio = {}, student = {}, a
     return {
       label,
       detail: `Enquadramento por FFMI: ${decimalPt(ffmi, 1)} kg/m². Intervalo central de referência (P25–P75) para ${sexLabel(student?.sex)}, ${ref.minAge}–${ref.maxAge === 120 ? '75+' : ref.maxAge} anos: ${decimalPt(ref.p25, 1)}–${decimalPt(ref.p75, 1)} kg/m²; mediana ${decimalPt(ref.p50, 1)}. O FFMI avalia massa magra total e não equivale ao Muscle Score TANITA nem a uma medição direta de músculo esquelético.`,
+    };
+  }
+
+
+  if (key === 'basal_metabolic_rate_kcal') {
+    const measured = Number(value);
+    const predicted = mifflinStJeorRmr(bio, student, assessmentDate);
+    if (!Number.isFinite(measured) || !Number.isFinite(predicted) || predicted <= 0) {
+      return {
+        label,
+        detail: 'Para obter o enquadramento automático são necessários peso, altura, idade e sexo.',
+      };
+    }
+    const deltaPct = ((measured - predicted) / predicted) * 100;
+    const low = predicted * 0.9;
+    const high = predicted * 1.1;
+    const signed = `${deltaPct >= 0 ? '+' : '−'}${decimalPt(Math.abs(deltaPct), 1)}%`;
+    return {
+      label,
+      detail: `Estimativa Mifflin–St Jeor: ${Math.round(predicted).toLocaleString('pt-PT')} kcal/dia; TANITA: ${Math.round(measured).toLocaleString('pt-PT')} kcal/dia (${signed}). Intervalo comparativo ±10%: ${Math.round(low).toLocaleString('pt-PT')}–${Math.round(high).toLocaleString('pt-PT')} kcal/dia. Não corresponde às necessidades calóricas diárias totais.`,
     };
   }
 
