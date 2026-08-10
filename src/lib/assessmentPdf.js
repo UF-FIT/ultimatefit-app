@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { activityLevelDescription, activityLevelLabel, ageAtAssessment, assessmentMetrics, assessmentModuleLabels, assessmentReferences, automaticRiskSummary, bmiCategory, bodyFatCategory, bodyFatReferenceTable, riskResultLabel, skinfoldSum } from './assessments';
+import { activityLevelDescription, activityLevelLabel, assessmentMetrics, assessmentModuleLabels, assessmentReferences, automaticRiskSummary, bioimpedanceIndicator, bmiCategory, bodyFatReferenceTable, riskResultLabel, skinfoldSum } from './assessments';
 
 const YELLOW = [255, 217, 8];
 const BLACK = [10, 10, 10];
@@ -147,13 +147,12 @@ function comparisonCard(doc,x,y,w,h,label,current,previous,unit='') {
 }
 function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, logoData, student=null, assessmentDate=null}) {
   let y=sectionTitle(doc,title,startY); const x=14; const widths=[69,39,36,38]; const headers=['Indicador','Atual','Anterior','Evolução'];
-  const assessmentAge=ageAtAssessment(student?.birth,assessmentDate);
   const drawHeader=()=>{doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+3,y+5.2);cx+=widths[i]});y+=8;};
   drawHeader();
   for(let i=0;i<rows.length;i++){
     const [label,key,defaultUnit='']=rows[i]; const unit=unitByKey[key]??defaultUnit; const a=current?.[key],b=previous?.[key];
-    const classification=key==='bmi'?bmiCategory(a):key==='body_fat_pct'?bodyFatCategory(a,assessmentAge,student?.sex):'';
-    const rowH=classification?14:8;
+    const classification=student?bioimpedanceIndicator(key,a,current,student,assessmentDate):'';
+    const rowH=classification?17:8;
     if(y+rowH>278){doc.addPage();contentHeader(doc,title,logoData);y=30;drawHeader();}
     doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,rowH,'F');
     const cells=[pdfText(label),pdfText(safe(a,unit)),pdfText(safe(b,unit)),pdfText(delta(a,b,unit))]; let cx=x;
@@ -162,20 +161,30 @@ function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, lo
       const maxW=widths[j]-6; const lines=doc.splitTextToSize(cells[j],maxW); doc.text(lines.slice(0,2),cx+3,y+5.1);
       cx+=widths[j];
     }
-    if(classification){doc.setFont('helvetica','normal');doc.setFontSize(6.4);doc.setTextColor(88);const lines=doc.splitTextToSize(pdfText(`Classificação: ${classification}`),34);doc.text(lines.slice(0,2),x+72,y+9.2);}
+    if(classification){doc.setFont('helvetica','normal');doc.setFontSize(5.9);doc.setTextColor(88);const lines=doc.splitTextToSize(pdfText(`Referência: ${classification}`),34);doc.text(lines.slice(0,3),x+72,y+9.2);}
     y+=rowH;
   }
   return y+5;
 }
 function drawBodyFatReferenceTable(doc,startY){
-  let y=sectionTitle(doc,'Referência do percentual de gordura',startY); const x=14; const widths=[24,25,29,38,35,31]; const headers=['Sexo','Idade','Baixo','Normal/Saudável','Sobrepeso','Obeso'];
-  doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(6.7);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+2,y+5.2,{maxWidth:widths[i]-4});cx+=widths[i]});y+=8;
+  let y=sectionTitle(doc,'Referência do percentual de gordura',startY); const x=14; const widths=[21,22,24,28,28,31,28]; const headers=['Sexo','Idade','Baixo','Saudável (−)','Saudável (+)','Excesso gordura','Obesidade'];
+  doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(5.9);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+1.5,y+5.2,{maxWidth:widths[i]-3});cx+=widths[i]});y+=8;
   const rows=[];
-  const add=(sex,label)=>bodyFatReferenceTable[sex].forEach(row=>rows.push([label,`${row.minAge}-${row.maxAge}`,`<${row.low}`,`${row.low}-${row.healthyMax}`,`>${row.healthyMax}-${row.overweightMax}`,`>${row.overweightMax}`]));
+  const range=(min,max)=>`${min}–${(max-0.1).toFixed(1).replace('.',',')}`;
+  const add=(sex,label)=>bodyFatReferenceTable[sex].forEach(row=>rows.push([label,`${row.minAge}-${row.maxAge}`,`<${row.low}`,range(row.low,row.standardPlus),range(row.standardPlus,row.overfat),range(row.overfat,row.obese),`≥${row.obese}`]));
   add('male','Homens');add('female','Mulheres');
-  rows.forEach((row,i)=>{doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,8,'F');let px=x;row.forEach((cell,j)=>{doc.setFont('helvetica',j===0?'bold':'normal');doc.setFontSize(6.8);doc.setTextColor(...(j===0?BLACK:MID));doc.text(pdfText(cell),px+2,y+5.2,{maxWidth:widths[j]-4});px+=widths[j]});y+=8;});
-  doc.setFont('helvetica','italic');doc.setFontSize(6.2);doc.setTextColor(100);const ref=doc.splitTextToSize(pdfText(`Fonte: ${assessmentReferences.bodyFat} Os intervalos são referências provisórias derivadas de limiares de IMC e devem ser interpretados no contexto do método de medição.`),182);doc.text(ref,14,y+5);return y+5+ref.length*3.2;
+  rows.forEach((row,i)=>{doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,8,'F');let px=x;row.forEach((cell,j)=>{doc.setFont('helvetica',j===0?'bold':'normal');doc.setFontSize(6.0);doc.setTextColor(...(j===0?BLACK:MID));doc.text(pdfText(cell),px+1.5,y+5.2,{maxWidth:widths[j]-3});px+=widths[j]});y+=8;});
+  doc.setFont('helvetica','italic');doc.setFontSize(6.2);doc.setTextColor(100);const ref=doc.splitTextToSize(pdfText(`Fonte: ${assessmentReferences.bodyFat} As categorias Saudável (−) e Saudável (+) pertencem ambas à faixa saudável TANITA; a divisão reproduz o gráfico oficial do fabricante.`),182);doc.text(ref,14,y+5);return y+5+ref.length*3.2;
 }
+function drawBioimpedanceReferences(doc,startY){
+  let y=sectionTitle(doc,'Referências da bioimpedância',startY);
+  doc.setFont('helvetica','normal');doc.setFontSize(6.2);doc.setTextColor(90);
+  const text=`${assessmentReferences.weight} ${assessmentReferences.water} ${assessmentReferences.visceral} ${assessmentReferences.bone} ${assessmentReferences.muscle} ${assessmentReferences.biaCaution}`;
+  const lines=doc.splitTextToSize(pdfText(text),182);
+  doc.text(lines,14,y);
+  return y+lines.length*3.2+4;
+}
+
 function narrative(doc, title, text, y) {
   y=sectionTitle(doc,title,y);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);const lines=doc.splitTextToSize(pdfText(text||'-'),178);doc.text(lines,14,y);return y+lines.length*4.7+5;
 }
@@ -227,7 +236,9 @@ export async function buildAssessmentPdf(student, assessment, previousAssessment
   if(getModule(assessment,'bioimpedance')){
     doc.addPage();contentHeader(doc,'Bioimpedância TANITA',logoData);pageTitle(doc,'Composição corporal','Valores atuais, referência anterior e diferença entre avaliações.');
     const bioEnd=table(doc,{title:'Bioimpedância - TANITA',rows:bioRows,current:getModule(assessment,'bioimpedance'),previous:getModule(previousAssessment,'bioimpedance'),startY:52,logoData,student,assessmentDate:assessment.date});
-    if(bioEnd<205) drawBodyFatReferenceTable(doc,bioEnd+3); else { doc.addPage();contentHeader(doc,'Referência de composição corporal',logoData);pageTitle(doc,'Percentual de gordura','Tabela de referência por sexo e idade.');drawBodyFatReferenceTable(doc,52); }
+    let bioRefEnd=bioEnd;
+    if(bioEnd<226) bioRefEnd=drawBioimpedanceReferences(doc,bioEnd+2);
+    if(bioRefEnd<205) drawBodyFatReferenceTable(doc,bioRefEnd+3); else { doc.addPage();contentHeader(doc,'Referência de composição corporal',logoData);pageTitle(doc,'Percentual de gordura','Tabela de referência por sexo e idade.');drawBodyFatReferenceTable(doc,52); }
   }
   // PERIMETRIA
   if(getModule(assessment,'perimetry')){

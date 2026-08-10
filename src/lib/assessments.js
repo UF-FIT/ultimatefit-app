@@ -54,7 +54,13 @@ export function riskResultLabel(value) {
 export const assessmentReferences = {
   activity: 'World Health Organization. Guidelines on physical activity and sedentary behaviour. Geneva: WHO; 2020. Enquadramento complementar: recomendações ACSM/CDC para atividade física em adultos.',
   risk: 'Estratificação auxiliar baseada no modelo clássico de fatores de risco do ACSM. Atualização de segurança: Riebe D, Franklin BA, Thompson PD, et al. Med Sci Sports Exerc. 2015;47(11):2473–2479. doi:10.1249/MSS.0000000000000664 — o algoritmo ACSM atual deixou de usar a simples contagem de fatores de risco para decidir autorização médica.',
-  bodyFat: 'Gallagher D, Heymsfield SB, Heo M, Jebb SA, Murgatroyd PR, Sakamoto Y. Am J Clin Nutr. 2000;72(3):694–701. doi:10.1093/ajcn/72.3.694.',
+  bodyFat: 'TANITA RD-953. Healthy Body Fat Range: Baixo, Saudável (−), Saudável (+), Excesso de gordura e Obesidade, por sexo e idade. Base indicada pelo fabricante: Gallagher D, Heymsfield SB, Heo M, Jebb SA, Murgatroyd PR, Sakamoto Y. Am J Clin Nutr. 2000;72(3):694–701. doi:10.1093/ajcn/72.3.694; orientações NIH/WHO de IMC.',
+  weight: 'World Health Organization / WHO Europe. BMI em adultos: <18,5 baixo peso; 18,5–24,9 peso normal; 25,0–29,9 excesso de peso; ≥30 obesidade.',
+  water: 'TANITA DC-360 / Understanding your measurements. Água corporal total em adultos: mulheres 45–60%; homens 50–65%. Deve ser interpretada como referência e acompanhada ao longo do tempo.',
+  visceral: 'TANITA DC-360. Visceral Fat Rating: 1–12 = faixa saudável; 13–59 = excesso de gordura visceral. Não constitui diagnóstico médico.',
+  bone: 'TANITA DC-360 / RD-953. Massa óssea estimada: comparação com médias por sexo e peso; não mede densidade, resistência óssea nem risco de fratura.',
+  muscle: 'TANITA RD-953. A classificação muscular TANITA usa a massa muscular relativa à altura e um Muscle Score proprietário de −4 a +4 (baixo −4 a −2; médio −1 a +1; alto +2 a +4). A massa muscular total TANITA inclui água e músculo não esquelético.',
+  biaCaution: 'A bioimpedância varia com hidratação, exercício, refeições e outras condições. Comparar preferencialmente medições realizadas em condições semelhantes.',
 };
 
 export function activityLevelDescription(value) {
@@ -90,14 +96,14 @@ export function automaticRiskResult(anamnesis = {}) {
 
 export const bodyFatReferenceTable = {
   male: [
-    { minAge:20, maxAge:39, low:8, healthyMax:20, overweightMax:25 },
-    { minAge:40, maxAge:59, low:11, healthyMax:22, overweightMax:28 },
-    { minAge:60, maxAge:79, low:13, healthyMax:25, overweightMax:30 },
+    { minAge:20, maxAge:39, low:8, standardPlus:14, overfat:20, obese:25 },
+    { minAge:40, maxAge:59, low:11, standardPlus:17, overfat:22, obese:28 },
+    { minAge:60, maxAge:99, low:13, standardPlus:19, overfat:25, obese:30 },
   ],
   female: [
-    { minAge:20, maxAge:39, low:21, healthyMax:33, overweightMax:39 },
-    { minAge:40, maxAge:59, low:23, healthyMax:34, overweightMax:40 },
-    { minAge:60, maxAge:79, low:24, healthyMax:36, overweightMax:42 },
+    { minAge:20, maxAge:39, low:21, standardPlus:27, overfat:33, obese:39 },
+    { minAge:40, maxAge:59, low:23, standardPlus:29, overfat:34, obese:40 },
+    { minAge:60, maxAge:99, low:24, standardPlus:30, overfat:36, obese:42 },
   ],
 };
 
@@ -125,9 +131,10 @@ export function bodyFatCategory(value, age, sex) {
   const ref = bodyFatReference(age, sex);
   if (!Number.isFinite(fat) || fat < 0 || !ref) return '';
   if (fat < ref.low) return 'Baixo';
-  if (fat <= ref.healthyMax) return 'Normal/Saudável';
-  if (fat <= ref.overweightMax) return 'Sobrepeso';
-  return 'Obeso';
+  if (fat < ref.standardPlus) return 'Saudável (−)';
+  if (fat < ref.overfat) return 'Saudável (+)';
+  if (fat < ref.obese) return 'Excesso de gordura';
+  return 'Obesidade';
 }
 
 export function assessmentModuleLabels(assessment) {
@@ -152,10 +159,91 @@ export function bmiCategory(value) {
   const bmi = Number(value);
   if (!Number.isFinite(bmi) || bmi <= 0) return '';
   if (bmi < 18.5) return 'Abaixo do peso';
-  if (bmi <= 25) return 'Peso normal';
-  if (bmi <= 30) return 'Sobrepeso';
-  if (bmi < 40) return 'Obesidade';
-  return 'Obesidade mórbida';
+  if (bmi < 25) return 'Peso normal';
+  if (bmi < 30) return 'Excesso de peso';
+  if (bmi < 35) return 'Obesidade grau I';
+  if (bmi < 40) return 'Obesidade grau II';
+  return 'Obesidade grau III';
+}
+
+function normalizedSex(sex) {
+  if (sex === 'Masculino' || sex === 'male' || sex === 'M') return 'male';
+  if (sex === 'Feminino' || sex === 'female' || sex === 'F') return 'female';
+  return '';
+}
+
+export function effectiveBmi(bio = {}) {
+  const height = Number(bio?.height_cm);
+  const weight = Number(bio?.weight_kg);
+  if (Number.isFinite(height) && height > 0 && Number.isFinite(weight) && weight > 0) {
+    return weight / ((height / 100) ** 2);
+  }
+  const entered = Number(bio?.bmi);
+  return Number.isFinite(entered) && entered > 0 ? entered : null;
+}
+
+export function bodyWaterCategory(value, age, sex) {
+  const water = Number(value);
+  const years = Number(age);
+  const sx = normalizedSex(sex);
+  if (!Number.isFinite(water) || water <= 0 || !Number.isFinite(years) || years < 18 || !sx) return '';
+  const min = sx === 'female' ? 45 : 50;
+  const max = sx === 'female' ? 60 : 65;
+  if (water < min) return 'Abaixo da faixa de referência';
+  if (water <= max) return 'Faixa de referência';
+  return 'Acima da faixa de referência';
+}
+
+export function visceralFatCategory(value, age) {
+  const rating = Number(value);
+  const years = Number(age);
+  if (!Number.isFinite(rating) || rating <= 0 || !Number.isFinite(years) || years < 18) return '';
+  if (rating < 13) return 'Faixa saudável';
+  return 'Excesso de gordura visceral';
+}
+
+export function boneMassReference(weight, sex) {
+  const kg = Number(weight);
+  const sx = normalizedSex(sex);
+  if (!Number.isFinite(kg) || kg <= 0 || !sx) return null;
+  if (sx === 'female') {
+    if (kg < 50) return 1.95;
+    if (kg < 75) return 2.40;
+    return 2.95;
+  }
+  if (kg < 65) return 2.66;
+  if (kg < 95) return 3.29;
+  return 3.69;
+}
+
+export function boneMassContext(value, weight, sex) {
+  const measured = Number(value);
+  const ref = boneMassReference(weight, sex);
+  if (!Number.isFinite(measured) || measured <= 0 || ref === null) return '';
+  const delta = measured - ref;
+  const refText = ref.toFixed(2).replace('.', ',');
+  const deltaText = `${delta > 0 ? '+' : ''}${delta.toFixed(2).replace('.', ',')} kg`;
+  if (Math.abs(delta) < 0.005) return `Igual à ref. média TANITA (${refText} kg)`;
+  return `${delta < 0 ? 'Abaixo' : 'Acima'} da ref. média TANITA (${deltaText}; ref. ${refText} kg)`;
+}
+
+export function muscleMassContext(value, height) {
+  const muscle = Number(value);
+  const cm = Number(height);
+  if (!Number.isFinite(muscle) || muscle <= 0 || !Number.isFinite(cm) || cm <= 0) return '';
+  const index = muscle / ((cm / 100) ** 2);
+  return `Índice muscular ${index.toFixed(1).replace('.', ',')} kg/m² · nível TANITA requer Muscle Score`;
+}
+
+export function bioimpedanceIndicator(key, value, bio = {}, student = {}, assessmentDate = null) {
+  const age = ageAtAssessment(student?.birth, assessmentDate);
+  if (key === 'weight_kg' || key === 'bmi') return bmiCategory(effectiveBmi({ ...bio, [key]: value }));
+  if (key === 'body_fat_pct') return bodyFatCategory(value, age, student?.sex);
+  if (key === 'water_pct') return bodyWaterCategory(value, age, student?.sex);
+  if (key === 'visceral_fat_rating') return visceralFatCategory(value, age);
+  if (key === 'bone_mass_kg') return boneMassContext(value, bio?.weight_kg, student?.sex);
+  if (key === 'muscle_mass_kg') return muscleMassContext(value, bio?.height_cm);
+  return '';
 }
 
 export function assessmentMetrics(assessment) {
