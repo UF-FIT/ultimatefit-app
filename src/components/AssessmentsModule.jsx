@@ -257,14 +257,31 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   const [notice,setNotice]=useState('');
   const [error,setError]=useState('');
 
-  useEffect(()=>{if(context.studentId)setSelectedStudentId(context.studentId)},[context.studentId]);
+  useEffect(()=>{
+    if(context.studentId)setSelectedStudentId(context.studentId);
+    else if(!isStudent)setSelectedStudentId('');
+  },[context.studentId,isStudent]);
+  useEffect(()=>{
+    if(context.assessmentId){
+      const found=data.assessments.find(item=>item.id===context.assessmentId);
+      if(found){setViewing(found);setMode('home');setEditing(null);}
+    }else setViewing(null);
+  },[context.assessmentId,data.assessments]);
   useEffect(()=>{if(isStudent&&ownStudent?.id)setSelectedStudentId(ownStudent.id)},[isStudent,ownStudent?.id]);
   const selectedStudent=data.students.find(item=>item.id===selectedStudentId);
   const assessments=useMemo(()=>data.assessments.filter(item=>item.studentId===selectedStudentId).sort((a,b)=>a.date.localeCompare(b.date)),[data.assessments,selectedStudentId]);
   const list=useMemo(()=>data.students.filter(student=>student.name.toLowerCase().includes(query.toLowerCase().trim())),[data.students,query]);
   const canManage=!isStudent;
 
-  async function saved(message,id){setNotice(message);setError('');setMode('home');setEditing(null);await refreshAssessments(); if(id){const rows=await refreshAssessments(); const found=rows?.find?.(x=>x.id===id); if(found&&message.startsWith('Avaliação publicada')) setViewing(found);}}
+  async function saved(message,id){
+    setNotice(message);setError('');setMode('home');setEditing(null);
+    const rows=await refreshAssessments();
+    if(id&&message.startsWith('Avaliação publicada')){
+      const found=rows?.find?.(x=>x.id===id);
+      if(found){setViewing(found);onNavigate?.('assessments',{studentId:selectedStudentId,assessmentId:id});return;}
+    }
+    if(selectedStudentId) onNavigate?.('assessments',{studentId:selectedStudentId});
+  }
   async function archive(item){if(!window.confirm('Arquivar esta avaliação? O aluno deixará de a ver.'))return;try{await archiveAssessment(item.id);setNotice('Avaliação arquivada.');setViewing(null);await refreshAssessments()}catch(err){setError(err.message)}}
   async function removeAssessment(item){if(!window.confirm('Eliminar definitivamente esta avaliação? Esta ação não pode ser anulada e elimina também as fotografias associadas.'))return;try{await deleteAssessmentPermanently(item);setNotice('Avaliação eliminada definitivamente.');setViewing(null);await refreshAssessments()}catch(err){setError(err.message||'Não foi possível eliminar a avaliação.')}}
   async function exportPdf(item){
@@ -281,9 +298,9 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   if(isStudent&&!ownStudent) return <Empty>O teu perfil ainda não está associado a um registo de aluno.</Empty>;
 
   if(mode==='form'&&selectedStudent) return <AssessmentForm student={selectedStudent} assessment={editing} assessments={assessments} onCancel={()=>{setMode('home');setEditing(null)}} onSaved={saved}/>;
-  if(viewing&&selectedStudent){const previousAssessment=[...assessments].filter(a=>a.id!==viewing.id&&a.status==='published'&&(a.date<viewing.date||(a.date===viewing.date&&String(a.createdAt||'')<String(viewing.createdAt||'')))).at(-1)||null;return <AssessmentDetail assessment={viewing} previousAssessment={previousAssessment} student={selectedStudent} canManage={canManage} onBack={()=>setViewing(null)} onEdit={()=>{setEditing(viewing);setViewing(null);setMode('form')}} onArchive={()=>archive(viewing)} onDelete={()=>removeAssessment(viewing)} onExport={()=>exportPdf(viewing)}/>;}
+  if(viewing&&selectedStudent){const previousAssessment=[...assessments].filter(a=>a.id!==viewing.id&&a.status==='published'&&(a.date<viewing.date||(a.date===viewing.date&&String(a.createdAt||'')<String(viewing.createdAt||'')))).at(-1)||null;return <AssessmentDetail assessment={viewing} previousAssessment={previousAssessment} student={selectedStudent} canManage={canManage} onBack={()=>{setViewing(null);onNavigate?.('assessments',{studentId:selectedStudent.id})}} onEdit={()=>{setEditing(viewing);setViewing(null);setMode('form')}} onArchive={()=>archive(viewing)} onDelete={()=>removeAssessment(viewing)} onExport={()=>exportPdf(viewing)}/>;}
 
-  if(selectedStudent) return <>{notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}{error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}<StudentAssessmentHome student={selectedStudent} assessments={assessments} canManage={canManage} onNew={()=>{setEditing(null);setMode('form')}} onView={setViewing} onEdit={item=>{setEditing(item);setMode('form')}} onArchive={archive} onDeleteAssessment={removeAssessment} onBackToStudents={()=>isStudent?onNavigate?.('dashboard'):(setSelectedStudentId(''))}/></>;
+  if(selectedStudent) return <>{notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}{error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}<StudentAssessmentHome student={selectedStudent} assessments={assessments} canManage={canManage} onNew={()=>{setEditing(null);setMode('form')}} onView={item=>{setViewing(item);onNavigate?.('assessments',{studentId:selectedStudent.id,assessmentId:item.id})}} onEdit={item=>{setEditing(item);setMode('form')}} onArchive={archive} onDeleteAssessment={removeAssessment} onBackToStudents={()=>isStudent?onNavigate?.('dashboard'):(setSelectedStudentId(''),onNavigate?.('assessments'))}/></>;
 
-  return <><Heading title="Avaliações físicas" sub="Anamnese, perimetria, dobras cutâneas, TANITA, postura, evolução fotográfica e gráficos comparativos."/><div className="assessmentStudentPicker"><div className="search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar aluno…"/></div>{list.length?<div className="assessmentStudentPickerGrid">{list.map(student=>{const rows=data.assessments.filter(a=>a.studentId===student.id);const last=rows.filter(a=>a.status==='published').at(-1);return <button key={student.id} onClick={()=>setSelectedStudentId(student.id)}><StudentAvatar student={student}/><div><b>{student.name}</b><span>{rows.length} avaliação(ões) · última {last?fmt(last.date):'—'}</span></div><ChevronRight/></button>})}</div>:<Empty>Não existem alunos disponíveis.</Empty>}</div></>;
+  return <><Heading title="Avaliações físicas" sub="Anamnese, perimetria, dobras cutâneas, TANITA, postura, evolução fotográfica e gráficos comparativos."/><div className="assessmentStudentPicker"><div className="search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar aluno…"/></div>{list.length?<div className="assessmentStudentPickerGrid">{list.map(student=>{const rows=data.assessments.filter(a=>a.studentId===student.id);const last=rows.filter(a=>a.status==='published').at(-1);return <button key={student.id} onClick={()=>{setSelectedStudentId(student.id);onNavigate?.('assessments',{studentId:student.id})}}><StudentAvatar student={student}/><div><b>{student.name}</b><span>{rows.length} avaliação(ões) · última {last?fmt(last.date):'—'}</span></div><ChevronRight/></button>})}</div>:<Empty>Não existem alunos disponíveis.</Empty>}</div></>;
 }

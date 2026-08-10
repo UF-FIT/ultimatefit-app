@@ -60,6 +60,10 @@ function routeFromPath(pathname,role){
  if(activityMatch) return {page:'activities',context:{slug:decodeURIComponent(activityMatch[1])}};
  const challengeMatch=rawPath.match(/^\/desafios\/([^/?#]+)/i);
  if(challengeMatch) return {page:'challenges',context:{challengeId:decodeURIComponent(challengeMatch[1])}};
+ const assessmentDetailMatch=rawPath.match(/^\/avaliacoes\/aluno\/([^/?#]+)\/avaliacao\/([^/?#]+)/i);
+ if(assessmentDetailMatch) return {page:'assessments',context:{studentId:decodeURIComponent(assessmentDetailMatch[1]),assessmentId:decodeURIComponent(assessmentDetailMatch[2])}};
+ const assessmentStudentMatch=rawPath.match(/^\/avaliacoes\/aluno\/([^/?#]+)/i);
+ if(assessmentStudentMatch) return {page:'assessments',context:{studentId:decodeURIComponent(assessmentStudentMatch[1])}};
  const backofficeMatch=rawPath.match(/^\/backoffice\/(definicoes|professores|avisos)/i);
  if(backofficeMatch){
   const tabBySlug={definicoes:'settings',professores:'trainers',avisos:'notices'};
@@ -81,6 +85,8 @@ function routeFromPath(pathname,role){
 function pathForPage(key,role,context={}){
  if(key==='activities'&&context?.slug) return `/atividades/${encodeURIComponent(context.slug)}`;
  if(key==='challenges'&&context?.challengeId) return `/desafios/${encodeURIComponent(context.challengeId)}`;
+ if(key==='assessments'&&context?.studentId&&context?.assessmentId) return `/avaliacoes/aluno/${encodeURIComponent(context.studentId)}/avaliacao/${encodeURIComponent(context.assessmentId)}`;
+ if(key==='assessments'&&context?.studentId) return `/avaliacoes/aluno/${encodeURIComponent(context.studentId)}`;
  if(key==='settings'&&context?.tab){
   const slugByTab={settings:'definicoes',trainers:'professores',notices:'avisos'};
   return `/backoffice/${slugByTab[context.tab]||'definicoes'}`;
