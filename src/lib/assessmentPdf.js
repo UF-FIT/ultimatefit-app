@@ -10,7 +10,7 @@ const WHITE = [255, 255, 255];
 const PT = new Intl.DateTimeFormat('pt-PT');
 
 const perimetryRows = [
-  ['Estatura','height_cm','cm'],['Pescoço','neck_cm','cm'],['Ombros','shoulder_cm','cm'],['Tórax','chest_cm','cm'],
+  ['Pescoço','neck_cm','cm'],['Ombros','shoulder_cm','cm'],['Tórax','chest_cm','cm'],
   ['Cintura','waist_cm','cm'],['Abdominal','abdominal_cm','cm'],['Quadril / anca','hip_cm','cm'],
   ['Braço dir. relaxado','arm_right_relaxed_cm','cm'],['Braço dir. contraído','arm_right_flexed_cm','cm'],
   ['Braço esq. relaxado','arm_left_relaxed_cm','cm'],['Braço esq. contraído','arm_left_flexed_cm','cm'],

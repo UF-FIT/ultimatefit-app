@@ -21,7 +21,7 @@ const boolValue = value => value === true ? 'true' : value === false ? 'false' :
 const cx = (...items) => items.filter(Boolean).join(' ');
 
 const perimetryFields = [
-  ['height_cm','Estatura','cm'],['neck_cm','Pescoço','cm'],['shoulder_cm','Ombro','cm'],['chest_cm','Tórax','cm'],
+  ['neck_cm','Pescoço','cm'],['shoulder_cm','Ombro','cm'],['chest_cm','Tórax','cm'],
   ['waist_cm','Cintura','cm'],['abdominal_cm','Abdominal','cm'],['hip_cm','Quadril','cm'],
   ['arm_right_relaxed_cm','Braço dir. relaxado','cm'],['arm_right_flexed_cm','Braço dir. contraído','cm'],
   ['arm_left_relaxed_cm','Braço esq. relaxado','cm'],['arm_left_flexed_cm','Braço esq. contraído','cm'],
@@ -70,7 +70,7 @@ function ModuleSelector({ selected, onToggle, firstAssessment }) {
   return <section className="assessmentModuleSelector"><div className="assessmentSectionTitle"><div><span className="eyebrow">MÓDULOS</span><h2>O que vais avaliar hoje?</h2><p>Podes preencher apenas os módulos que fizerem sentido nesta reavaliação.</p></div></div><div className="assessmentModuleGrid">{cards.map(([key,label,Icon,desc])=>{
     const locked = key==='anamnesis' && firstAssessment;
     return <button type="button" key={key} className={cx('assessmentModuleCard',selected[key]&&'selected',locked&&'locked')} onClick={()=>!locked&&onToggle(key)}><Icon/><div><b>{label}</b><span>{desc}</span></div><div className="moduleCheck">{selected[key]?'✓':''}</div>{locked&&<small className="requiredTag">Obrigatória</small>}</button>;
-  })}</div><div className="parqTeaser"><ShieldCheck/><div><b>PAR-Q e aceitação do aluno</b><span>Será ativado no Update 5B.1 e ficará obrigatório na primeira entrada do aluno.</span></div><span className="assessmentSoon">5B.1</span></div></section>;
+  })}</div><div className="parqTeaser"><ShieldCheck/><div><b>PAR-Q e aceitação do aluno</b><span>O aluno conclui o PAR-Q no primeiro acesso à APP. A avaliação do professor não fica condicionada.</span></div><span className="assessmentSoon">ATIVO</span></div></section>;
 }
 
 function AnamnesisSection({ values = {} }) {
@@ -190,7 +190,7 @@ function AssessmentForm({ student, assessment, assessments, onCancel, onSaved })
     {error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
     <ModuleSelector selected={selected} onToggle={toggle} firstAssessment={firstAssessment}/>
     {selected.anamnesis&&<AnamnesisSection values={assessment?.modules?.anamnesis}/>} {selected.perimetry&&<PerimetrySection values={assessment?.modules?.perimetry}/>} {selected.skinfolds&&<SkinfoldsSection values={assessment?.modules?.skinfolds}/>} {selected.bioimpedance&&<BioSection values={assessment?.modules?.bioimpedance} student={student} assessmentDate={assessmentDate}/>} {selected.posture&&<PostureSection values={assessment?.modules?.posture}/>} {selected.photos&&<PhotosSection files={files} setFiles={setFiles} existing={assessment?.photos}/>} 
-    <div className="assessmentFormActions"><button type="button" className="secondary" onClick={onCancel}>Cancelar</button>{(!assessment || assessment.status==='draft')&&<button type="submit" className="secondary" disabled={busy}><Save size={17}/>{busy==='draft'?'A guardar…':'Guardar rascunho'}</button>}<button type="button" className="primary" disabled={busy} onClick={event=>submit({preventDefault:()=>{},currentTarget:event.currentTarget.closest('form')},assessment?.status==='published'?false:assessment?.status==='archived'?false:true)}><CheckCircle2 size={17}/>{busy==='publish'?'A publicar…':assessment&&assessment.status!=='draft'?'Guardar alterações':'Publicar avaliação'}</button></div>
+    <div className="assessmentFormActions"><button type="button" className="secondary" onClick={onCancel}>Cancelar</button>{(!assessment || assessment.status==='draft')&&<button type="submit" className="secondary" disabled={busy}><Save size={17}/>{busy==='draft'?'A guardar…':'Guardar rascunho'}</button>}<button type="button" className="primary" disabled={Boolean(busy)} onClick={event=>submit({preventDefault:()=>{},currentTarget:event.currentTarget.closest('form')},assessment?.status==='published'?false:assessment?.status==='archived'?false:true)}><CheckCircle2 size={17}/>{busy==='publish'?'A publicar…':assessment&&assessment.status!=='draft'?'Guardar alterações':'Publicar avaliação'}</button></div>
   </form>;
 }
 
