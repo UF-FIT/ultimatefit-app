@@ -167,14 +167,14 @@ function table(doc, {title, rows, current, previous, startY=48, unitByKey={}, lo
   return y+5;
 }
 function drawBodyFatReferenceTable(doc,startY){
-  let y=sectionTitle(doc,'Referência do percentual de gordura',startY); const x=14; const widths=[21,22,24,28,28,31,28]; const headers=['Sexo','Idade','Baixo','Saudável (−)','Saudável (+)','Excesso gordura','Obesidade'];
+  let y=sectionTitle(doc,'Referência do percentual de gordura',startY); const x=14; const widths=[21,22,24,28,28,31,28]; const headers=['Sexo','Idade','Baixo','Saudável (inferior)','Saudável (superior)','Excesso gordura','Obesidade'];
   doc.setFillColor(...BLACK);doc.rect(x,y,182,8,'F');let cx=x;doc.setFont('helvetica','bold');doc.setFontSize(5.9);doc.setTextColor(...WHITE);headers.forEach((h,i)=>{doc.text(pdfText(h),cx+1.5,y+5.2,{maxWidth:widths[i]-3});cx+=widths[i]});y+=8;
   const rows=[];
   const range=(min,max)=>`${min}–${(max-0.1).toFixed(1).replace('.',',')}`;
   const add=(sex,label)=>bodyFatReferenceTable[sex].forEach(row=>rows.push([label,`${row.minAge}-${row.maxAge}`,`<${row.low}`,range(row.low,row.standardPlus),range(row.standardPlus,row.overfat),range(row.overfat,row.obese),`≥${row.obese}`]));
   add('male','Homens');add('female','Mulheres');
   rows.forEach((row,i)=>{doc.setFillColor(...(i%2?[250,250,250]:[242,242,242]));doc.rect(x,y,182,8,'F');let px=x;row.forEach((cell,j)=>{doc.setFont('helvetica',j===0?'bold':'normal');doc.setFontSize(6.0);doc.setTextColor(...(j===0?BLACK:MID));doc.text(pdfText(cell),px+1.5,y+5.2,{maxWidth:widths[j]-3});px+=widths[j]});y+=8;});
-  doc.setFont('helvetica','italic');doc.setFontSize(6.2);doc.setTextColor(100);const ref=doc.splitTextToSize(pdfText(`Fonte: ${assessmentReferences.bodyFat} As categorias Saudável (−) e Saudável (+) pertencem ambas à faixa saudável TANITA; a divisão reproduz o gráfico oficial do fabricante.`),182);doc.text(ref,14,y+5);return y+5+ref.length*3.2;
+  doc.setFont('helvetica','italic');doc.setFontSize(6.2);doc.setTextColor(100);const ref=doc.splitTextToSize(pdfText(`Fonte: ${assessmentReferences.bodyFat} As categorias Saudável (inferior) e Saudável (superior) pertencem ambas à faixa saudável TANITA; a divisão reproduz o gráfico oficial do fabricante.`),182);doc.text(ref,14,y+5);return y+5+ref.length*3.2;
 }
 function drawBioimpedanceReferences(doc,startY){
   let y=sectionTitle(doc,'Referências da bioimpedância',startY);

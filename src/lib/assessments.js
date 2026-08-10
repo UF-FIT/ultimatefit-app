@@ -54,12 +54,12 @@ export function riskResultLabel(value) {
 export const assessmentReferences = {
   activity: 'World Health Organization. Guidelines on physical activity and sedentary behaviour. Geneva: WHO; 2020. Enquadramento complementar: recomendações ACSM/CDC para atividade física em adultos.',
   risk: 'Estratificação auxiliar baseada no modelo clássico de fatores de risco do ACSM. Atualização de segurança: Riebe D, Franklin BA, Thompson PD, et al. Med Sci Sports Exerc. 2015;47(11):2473–2479. doi:10.1249/MSS.0000000000000664 — o algoritmo ACSM atual deixou de usar a simples contagem de fatores de risco para decidir autorização médica.',
-  bodyFat: 'TANITA RD-953. Healthy Body Fat Range: Baixo, Saudável (−), Saudável (+), Excesso de gordura e Obesidade, por sexo e idade. Base indicada pelo fabricante: Gallagher D, Heymsfield SB, Heo M, Jebb SA, Murgatroyd PR, Sakamoto Y. Am J Clin Nutr. 2000;72(3):694–701. doi:10.1093/ajcn/72.3.694; orientações NIH/WHO de IMC.',
+  bodyFat: 'TANITA RD-953. Faixas de gordura corporal por sexo e idade: Baixo, Saudável — faixa inferior, Saudável — faixa superior, Excesso de gordura e Obesidade. As duas faixas “Saudável” correspondem ao intervalo saudável TANITA. Base indicada pelo fabricante: Gallagher D, Heymsfield SB, Heo M, Jebb SA, Murgatroyd PR, Sakamoto Y. Am J Clin Nutr. 2000;72(3):694–701. doi:10.1093/ajcn/72.3.694; orientações NIH/WHO de IMC.',
   weight: 'World Health Organization / WHO Europe. BMI em adultos: <18,5 baixo peso; 18,5–24,9 peso normal; 25,0–29,9 excesso de peso; ≥30 obesidade.',
   water: 'TANITA DC-360 / Understanding your measurements. Água corporal total em adultos: mulheres 45–60%; homens 50–65%. Deve ser interpretada como referência e acompanhada ao longo do tempo.',
   visceral: 'TANITA DC-360. Visceral Fat Rating: 1–12 = faixa saudável; 13–59 = excesso de gordura visceral. Não constitui diagnóstico médico.',
   bone: 'TANITA DC-360 / RD-953. Massa óssea estimada: comparação com médias por sexo e peso; não mede densidade, resistência óssea nem risco de fratura.',
-  muscle: 'TANITA RD-953. A classificação muscular TANITA usa a massa muscular relativa à altura e um Muscle Score proprietário de −4 a +4 (baixo −4 a −2; médio −1 a +1; alto +2 a +4). A massa muscular total TANITA inclui água e músculo não esquelético.',
+  muscle: 'Enquadramento complementar pela massa isenta de gordura ajustada à altura (FFMI), com percentis por sexo e idade de Schutz Y, Kyle UUG, Pichard C. Int J Obes Relat Metab Disord. 2002;26(7):953–960. doi:10.1038/sj.ijo.0802033. O FFMI é um indicador de massa magra total, não o Muscle Score TANITA nem uma medição direta de músculo esquelético.',
   biaCaution: 'A bioimpedância varia com hidratação, exercício, refeições e outras condições. Comparar preferencialmente medições realizadas em condições semelhantes.',
 };
 
@@ -131,8 +131,8 @@ export function bodyFatCategory(value, age, sex) {
   const ref = bodyFatReference(age, sex);
   if (!Number.isFinite(fat) || fat < 0 || !ref) return '';
   if (fat < ref.low) return 'Baixo';
-  if (fat < ref.standardPlus) return 'Saudável (−)';
-  if (fat < ref.overfat) return 'Saudável (+)';
+  if (fat < ref.standardPlus) return 'Saudável · faixa inferior';
+  if (fat < ref.overfat) return 'Saudável · faixa superior';
   if (fat < ref.obese) return 'Excesso de gordura';
   return 'Obesidade';
 }
@@ -189,17 +189,17 @@ export function bodyWaterCategory(value, age, sex) {
   if (!Number.isFinite(water) || water <= 0 || !Number.isFinite(years) || years < 18 || !sx) return '';
   const min = sx === 'female' ? 45 : 50;
   const max = sx === 'female' ? 60 : 65;
-  if (water < min) return 'Abaixo da faixa de referência';
-  if (water <= max) return 'Faixa de referência';
-  return 'Acima da faixa de referência';
+  if (water < min) return 'Abaixo do intervalo esperado';
+  if (water <= max) return 'Dentro do intervalo esperado';
+  return 'Acima do intervalo esperado';
 }
 
 export function visceralFatCategory(value, age) {
   const rating = Number(value);
   const years = Number(age);
   if (!Number.isFinite(rating) || rating <= 0 || !Number.isFinite(years) || years < 18) return '';
-  if (rating < 13) return 'Faixa saudável';
-  return 'Excesso de gordura visceral';
+  if (rating < 13) return 'Nível saudável';
+  return 'Nível elevado';
 }
 
 export function boneMassReference(weight, sex) {
@@ -221,18 +221,53 @@ export function boneMassContext(value, weight, sex) {
   const ref = boneMassReference(weight, sex);
   if (!Number.isFinite(measured) || measured <= 0 || ref === null) return '';
   const delta = measured - ref;
-  const refText = ref.toFixed(2).replace('.', ',');
-  const deltaText = `${delta > 0 ? '+' : ''}${delta.toFixed(2).replace('.', ',')} kg`;
-  if (Math.abs(delta) < 0.005) return `Igual à ref. média TANITA (${refText} kg)`;
-  return `${delta < 0 ? 'Abaixo' : 'Acima'} da ref. média TANITA (${deltaText}; ref. ${refText} kg)`;
+  if (Math.abs(delta) < 0.005) return 'Na média de referência';
+  return `${delta < 0 ? 'Abaixo' : 'Acima'} da média de referência`;
 }
 
-export function muscleMassContext(value, height) {
+const ffmiReferenceTable = {
+  male: [
+    { minAge: 18, maxAge: 34, p5: 16.8, p25: 18.0, p50: 18.9, p75: 19.8, p95: 21.1 },
+    { minAge: 35, maxAge: 54, p5: 17.2, p25: 18.3, p50: 19.2, p75: 20.1, p95: 21.7 },
+    { minAge: 55, maxAge: 74, p5: 17.0, p25: 18.4, p50: 19.4, p75: 20.3, p95: 22.1 },
+    { minAge: 75, maxAge: 120, p5: 16.6, p25: 17.6, p50: 18.5, p75: 19.4, p95: 21.2 },
+  ],
+  female: [
+    { minAge: 18, maxAge: 34, p5: 13.8, p25: 14.7, p50: 15.4, p75: 16.2, p95: 17.6 },
+    { minAge: 35, maxAge: 54, p5: 14.4, p25: 15.3, p50: 15.9, p75: 16.7, p95: 18.0 },
+    { minAge: 55, maxAge: 74, p5: 14.1, p25: 15.4, p50: 16.2, p75: 17.4, p95: 19.0 },
+    { minAge: 75, maxAge: 120, p5: 12.9, p25: 14.7, p50: 15.9, p75: 17.0, p95: 18.7 },
+  ],
+};
+
+export function ffmiReference(age, sex) {
+  const years = Number(age);
+  const sx = normalizedSex(sex);
+  if (!Number.isFinite(years) || years < 18 || !sx) return null;
+  return ffmiReferenceTable[sx]?.find(row => years >= row.minAge && years <= row.maxAge) || null;
+}
+
+export function fatFreeMassIndex(bio = {}) {
+  const weight = Number(bio?.weight_kg);
+  const fat = Number(bio?.body_fat_pct);
+  const heightCm = Number(bio?.height_cm);
+  if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(fat) || fat < 0 || fat >= 100 || !Number.isFinite(heightCm) || heightCm <= 0) return null;
+  const heightM = heightCm / 100;
+  return (weight * (1 - fat / 100)) / (heightM * heightM);
+}
+
+export function muscleMassContext(value, bio = {}, student = {}, assessmentDate = null) {
   const muscle = Number(value);
-  const cm = Number(height);
-  if (!Number.isFinite(muscle) || muscle <= 0 || !Number.isFinite(cm) || cm <= 0) return '';
-  const index = muscle / ((cm / 100) ** 2);
-  return `Índice muscular ${index.toFixed(1).replace('.', ',')} kg/m² · nível TANITA requer Muscle Score`;
+  if (!Number.isFinite(muscle) || muscle <= 0) return '';
+  const age = ageAtAssessment(student?.birth, assessmentDate);
+  const ffmi = fatFreeMassIndex(bio);
+  const ref = ffmiReference(age, student?.sex);
+  if (!Number.isFinite(ffmi) || !ref) return '';
+  if (ffmi < ref.p5) return 'Muito abaixo da referência';
+  if (ffmi < ref.p25) return 'Abaixo da referência';
+  if (ffmi <= ref.p75) return 'Dentro da referência';
+  if (ffmi <= ref.p95) return 'Acima da referência';
+  return 'Muito acima da referência';
 }
 
 export function bioimpedanceIndicator(key, value, bio = {}, student = {}, assessmentDate = null) {
@@ -242,8 +277,102 @@ export function bioimpedanceIndicator(key, value, bio = {}, student = {}, assess
   if (key === 'water_pct') return bodyWaterCategory(value, age, student?.sex);
   if (key === 'visceral_fat_rating') return visceralFatCategory(value, age);
   if (key === 'bone_mass_kg') return boneMassContext(value, bio?.weight_kg, student?.sex);
-  if (key === 'muscle_mass_kg') return muscleMassContext(value, bio?.height_cm);
+  if (key === 'muscle_mass_kg') return muscleMassContext(value, bio, student, assessmentDate);
   return '';
+}
+
+
+function decimalPt(value, digits = 1) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  return n.toFixed(digits).replace('.', ',');
+}
+
+function sexLabel(sex) {
+  const sx = normalizedSex(sex);
+  return sx === 'female' ? 'mulher' : sx === 'male' ? 'homem' : 'adulto';
+}
+
+export function bioimpedanceInterpretation(key, value, bio = {}, student = {}, assessmentDate = null) {
+  const age = ageAtAssessment(student?.birth, assessmentDate);
+  const label = bioimpedanceIndicator(key, value, bio, student, assessmentDate);
+  if (!label) return { label: '', detail: '' };
+
+  if (key === 'weight_kg') {
+    const bmi = effectiveBmi({ ...bio, weight_kg: value });
+    return {
+      label,
+      detail: bmi ? `Classificação pelo IMC calculado: ${decimalPt(bmi, 1)} kg/m².` : '',
+    };
+  }
+
+  if (key === 'bmi') return { label, detail: '' };
+
+  if (key === 'body_fat_pct') {
+    const ref = bodyFatReference(age, student?.sex);
+    if (!ref) return { label, detail: '' };
+    const fat = Number(value);
+    const healthyRange = `${ref.low}–${decimalPt(ref.overfat - 0.1, 1)}%`;
+    const ageRange = `${ref.minAge}–${ref.maxAge} anos`;
+    let currentBand = '';
+    let bandName = '';
+    if (fat >= ref.low && fat < ref.standardPlus) {
+      currentBand = `${ref.low}–${decimalPt(ref.standardPlus - 0.1, 1)}%`;
+      bandName = 'faixa inferior';
+    } else if (fat >= ref.standardPlus && fat < ref.overfat) {
+      currentBand = `${ref.standardPlus}–${decimalPt(ref.overfat - 0.1, 1)}%`;
+      bandName = 'faixa superior';
+    }
+    return {
+      label,
+      detail: currentBand
+        ? `Intervalo saudável TANITA: ${healthyRange}; este valor está na ${bandName} (${currentBand}) para ${sexLabel(student?.sex)}, ${ageRange}.`
+        : `Intervalo saudável TANITA: ${healthyRange} para ${sexLabel(student?.sex)}, ${ageRange}.`,
+    };
+  }
+
+  if (key === 'water_pct') {
+    const sx = normalizedSex(student?.sex);
+    const range = sx === 'female' ? '45–60%' : sx === 'male' ? '50–65%' : '';
+    return {
+      label,
+      detail: range ? `Intervalo TANITA para ${sexLabel(student?.sex)} adulta/o: ${range}.` : '',
+    };
+  }
+
+  if (key === 'visceral_fat_rating') {
+    return {
+      label,
+      detail: 'Escala TANITA: 1–12 = nível saudável; 13–59 = nível elevado.',
+    };
+  }
+
+  if (key === 'bone_mass_kg') {
+    const ref = boneMassReference(bio?.weight_kg, student?.sex);
+    return {
+      label,
+      detail: ref
+        ? `Média TANITA estimada para ${sexLabel(student?.sex)} com este peso: ${decimalPt(ref, 2)} kg. Não corresponde a densidade óssea.`
+        : '',
+    };
+  }
+
+  if (key === 'muscle_mass_kg') {
+    const ffmi = fatFreeMassIndex(bio);
+    const ref = ffmiReference(age, student?.sex);
+    if (!Number.isFinite(ffmi) || !ref) {
+      return {
+        label,
+        detail: 'Para obter a classificação automática são necessários altura, peso, percentual de gordura, idade e sexo.',
+      };
+    }
+    return {
+      label,
+      detail: `Enquadramento por FFMI: ${decimalPt(ffmi, 1)} kg/m². Intervalo central de referência (P25–P75) para ${sexLabel(student?.sex)}, ${ref.minAge}–${ref.maxAge === 120 ? '75+' : ref.maxAge} anos: ${decimalPt(ref.p25, 1)}–${decimalPt(ref.p75, 1)} kg/m²; mediana ${decimalPt(ref.p50, 1)}. O FFMI avalia massa magra total e não equivale ao Muscle Score TANITA nem a uma medição direta de músculo esquelético.`,
+    };
+  }
+
+  return { label, detail: '' };
 }
 
 export function assessmentMetrics(assessment) {
