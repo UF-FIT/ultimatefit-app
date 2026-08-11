@@ -219,16 +219,19 @@ Deno.serve(async (req) => {
     if (error || !data) throw new Error('Professor não encontrado.')
     if (!data.profile?.is_active || data.profile?.deleted_at) throw new Error('O professor selecionado não está ativo.')
     if (!cleanPhone(data.whatsapp_phone)) {
-      throw new Error(`${data.profile?.full_name || 'O professor principal'} tem de registar o WhatsApp antes de receber alunos.`)
+      throw new Error(`${data.profile?.full_name || 'O professor responsável'} tem de registar o WhatsApp antes de receber alunos.`)
     }
     return data
   }
 
   async function replaceAssignments(studentId: string, trainerIds: string[], primaryTrainerId: string) {
-    if (!trainerIds.length || !primaryTrainerId || !trainerIds.includes(primaryTrainerId)) {
-      throw new Error('Seleciona pelo menos um professor e define o professor principal.')
+    const uniqueTrainerIds = [...new Set(trainerIds.filter(Boolean))]
+    if (uniqueTrainerIds.length !== 1 || !primaryTrainerId || uniqueTrainerIds[0] !== primaryTrainerId) {
+      throw new Error('Seleciona um único professor responsável.')
     }
-    await requireTrainerWhatsApp(primaryTrainerId)
+
+    const responsibleTrainerId = primaryTrainerId
+    await requireTrainerWhatsApp(responsibleTrainerId)
 
     const now = new Date().toISOString()
     const { error: endError } = await admin
@@ -238,20 +241,19 @@ Deno.serve(async (req) => {
       .is('ended_at', null)
     if (endError) throw endError
 
-    const rows = trainerIds.map((trainerId) => ({
-      trainer_id: trainerId,
+    const { error: insertError } = await admin.from('trainer_students').insert({
+      trainer_id: responsibleTrainerId,
       student_id: studentId,
-      is_primary: trainerId === primaryTrainerId,
+      is_primary: true,
       assigned_by: caller.id,
-    }))
-    const { error: insertError } = await admin.from('trainer_students').insert(rows)
+    })
     if (insertError) throw insertError
 
     await admin.from('student_activity_log').insert({
       student_id: studentId,
       actor_id: caller.id,
-      action: 'trainers_assigned',
-      metadata: { trainer_ids: trainerIds, primary_trainer_id: primaryTrainerId },
+      action: 'responsible_trainer_assigned',
+      metadata: { trainer_id: responsibleTrainerId },
     })
   }
 
@@ -286,8 +288,8 @@ Deno.serve(async (req) => {
         trainerIds = [callerTrainer.id]
         primaryTrainerId = callerTrainer.id
       }
-      if (!trainerIds.length || !primaryTrainerId || !trainerIds.includes(primaryTrainerId)) {
-        return json({ error: 'Define o professor principal do aluno.' }, 400)
+      if (trainerIds.length !== 1 || !primaryTrainerId || trainerIds[0] !== primaryTrainerId) {
+        return json({ error: 'Seleciona um único professor responsável pelo aluno.' }, 400)
       }
       await requireTrainerWhatsApp(primaryTrainerId)
 
@@ -480,7 +482,7 @@ Deno.serve(async (req) => {
         normalizeTrainerIds(payload.trainerIds),
         cleanText(payload.primaryTrainerId, 64),
       )
-      return json({ ok: true, message: 'Professores atribuídos.' })
+      return json({ ok: true, message: 'Professor responsável atualizado.' })
     }
 
     if (action === 'resend_access') {
@@ -513,7 +515,7 @@ Deno.serve(async (req) => {
         .eq('is_primary', true)
         .is('ended_at', null)
         .single()
-      if (!primary?.trainer_id) throw new Error('Define primeiro um professor principal.')
+      if (!primary?.trainer_id) throw new Error('Define primeiro o professor responsável.')
       await requireTrainerWhatsApp(primary.trainer_id)
       const { error: unbanError } = await admin.auth.admin.updateUserById(student.profile_id, {
         ban_duration: 'none',

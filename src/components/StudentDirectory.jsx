@@ -43,24 +43,15 @@ function formatDate(value) {
 function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
   const editing = Boolean(student);
   const currentTrainer = trainers.find(item => item.profileId === currentUser.id);
-  const initialTrainerIds = student?.trainerProfileIds?.length
-    ? student.trainerProfileIds
-    : currentTrainer ? [currentTrainer.trainerProfileId] : [];
-  const [selectedTrainers, setSelectedTrainers] = useState(initialTrainerIds);
-  const [primaryTrainerId, setPrimaryTrainerId] = useState(student?.primaryTrainer?.trainerProfileId || initialTrainerIds[0] || '');
+  const initialResponsibleTrainerId = student?.primaryTrainer?.trainerProfileId
+    || currentTrainer?.trainerProfileId
+    || '';
+  const [responsibleTrainerId, setResponsibleTrainerId] = useState(initialResponsibleTrainerId);
   const [photo, setPhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const canAssign = currentUser.role === 'admin';
   const isStudentSelf = currentUser.role === 'aluno';
-
-  function toggleTrainer(id) {
-    setSelectedTrainers(list => {
-      const next = list.includes(id) ? list.filter(item => item !== id) : [...list, id];
-      if (!next.includes(primaryTrainerId)) setPrimaryTrainerId(next[0] || '');
-      return next;
-    });
-  }
 
   async function submit(event) {
     event.preventDefault();
@@ -93,8 +84,8 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
           startDate: form.get('startDate'),
           trackingType: form.get('trackingType'),
           notes: form.get('notes'),
-          trainerIds: selectedTrainers,
-          primaryTrainerId,
+          trainerIds: responsibleTrainerId ? [responsibleTrainerId] : [],
+          primaryTrainerId: responsibleTrainerId,
         });
         let photoWarning = '';
         if (photo && result.student?.id) {
@@ -123,7 +114,12 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
           notes: form.get('notes'),
         });
         if (canAssign) {
-          await invokeStudentAction({ action: 'assign_trainers', studentId: student.id, trainerIds: selectedTrainers, primaryTrainerId });
+          await invokeStudentAction({
+            action: 'assign_trainers',
+            studentId: student.id,
+            trainerIds: responsibleTrainerId ? [responsibleTrainerId] : [],
+            primaryTrainerId: responsibleTrainerId,
+          });
         }
         if (photo) await uploadStudentAvatar(student.id, photo);
         await onSaved('Perfil do aluno atualizado.');
@@ -163,8 +159,16 @@ function StudentForm({ student, trainers, currentUser, onCancel, onSaved }) {
       <Field label="Observações internas" className="wide"><textarea name="notes" defaultValue={student?.notes || ''} rows="4" /></Field>
     </div>
 
-    {canAssign ? <div className="trainerAssignment"><div className="assignmentHeader"><div><b>Professores responsáveis *</b><small>O aluno nunca pode alterar esta atribuição. Define um professor principal para o contacto por WhatsApp.</small></div></div><div className="trainerChoiceGrid">{trainers.map(trainer => <label key={trainer.trainerProfileId} className={selectedTrainers.includes(trainer.trainerProfileId) ? 'trainerChoice selected' : 'trainerChoice'}><input type="checkbox" checked={selectedTrainers.includes(trainer.trainerProfileId)} onChange={() => toggleTrainer(trainer.trainerProfileId)} /><div><b>{trainer.name}</b><small>{trainer.whatsappPhone ? `WhatsApp: ${trainer.whatsappPhone}` : 'WhatsApp em falta — não pode ser professor principal'}</small></div></label>)}</div><Field label="Professor principal"><select value={primaryTrainerId} onChange={event => setPrimaryTrainerId(event.target.value)} required><option value="">Selecionar</option>{trainers.filter(item => selectedTrainers.includes(item.trainerProfileId)).map(item => <option key={item.trainerProfileId} value={item.trainerProfileId} disabled={!item.whatsappPhone}>{item.name}{!item.whatsappPhone ? ' — WhatsApp em falta' : ''}</option>)}</select></Field></div>
-      : <div className="roleCreationNote"><Check size={18}/><p>O aluno ficará automaticamente atribuído ao professor que está a criar o registo. O WhatsApp profissional tem de estar preenchido.</p></div>}
+    {canAssign ? <div className="trainerAssignment">
+      <div className="assignmentHeader"><div><b>Professor responsável *</b><small>Seleciona o único professor responsável pelo acompanhamento deste aluno. Esta atribuição define quem pode criar e editar avaliações e planos de treino, e quem surge como contacto por WhatsApp.</small></div></div>
+      <Field label="Professor responsável">
+        <select value={responsibleTrainerId} onChange={event => setResponsibleTrainerId(event.target.value)} required>
+          <option value="">Selecionar</option>
+          {trainers.map(item => <option key={item.trainerProfileId} value={item.trainerProfileId} disabled={!item.whatsappPhone}>{item.name}{!item.whatsappPhone ? ' — WhatsApp em falta' : ''}</option>)}
+        </select>
+      </Field>
+    </div>
+      : <div className="roleCreationNote"><Check size={18}/><p>O aluno ficará automaticamente atribuído a ti como professor responsável. O teu WhatsApp profissional tem de estar preenchido.</p></div>}
     </section>}
 
     <div className="modalActions wide"><button type="button" className="secondary" onClick={onCancel}>Cancelar</button><button className="primary" disabled={submitting}>{submitting ? 'A guardar…' : editing ? 'Guardar alterações' : 'Criar aluno e enviar convite'}</button></div>
