@@ -27,8 +27,9 @@ export default function NutritionModule({ context = {} }) {
   async function upload(event) {
     event.preventDefault(); setSaving(true); setError(''); setNotice('');
     try {
+      if (isStudent) throw new Error('Apenas a equipa ULTIMATE FIT pode adicionar planos alimentares.');
       const form = new FormData(event.currentTarget);
-      const studentId = isStudent ? ownStudent?.id : (context.studentId || form.get('studentId') || selectedStudentId);
+      const studentId = context.studentId || form.get('studentId') || selectedStudentId;
       await uploadNutritionDocument({ studentId, title:form.get('title'), notes:form.get('notes'), file:form.get('file') });
       await refreshNutrition(); setShowUpload(false); setNotice('Plano alimentar guardado na app.');
       if (!selectedStudentId && studentId) setSelectedStudentId(studentId);
@@ -49,7 +50,7 @@ export default function NutritionModule({ context = {} }) {
     catch (err) { setError(err.message || 'Não foi possível eliminar o documento.'); }
   }
 
-  const canUpload = Boolean(isStudent ? ownStudent : (context.studentId ? targetStudent : true));
+  const canUpload = !isStudent && Boolean(context.studentId ? targetStudent : true);
   return <div className="nutritionPage">
     <Heading
       title={targetStudent && !isStudent ? `Nutrição · ${targetStudent.name}` : 'Nutrição'}
@@ -61,7 +62,9 @@ export default function NutritionModule({ context = {} }) {
       <div className="nutritionHabitIcon"><Apple size={28}/></div>
       <div><span className="eyebrow">ACOMPANHAMENTO INTEGRADO</span><h2>Mantém o teu plano alimentar atualizado</h2>
         <p>O plano alimentar é uma parte importante do acompanhamento. Tê-lo aqui permite que o teu Personal Trainer conheça as orientações nutricionais que estás a seguir e enquadre melhor o treino, a recuperação e os teus objetivos.</p>
-        <p><b>Se o plano foi elaborado fora da ULTIMATE FIT, adiciona aqui o PDF mais recente.</b> O objetivo é facilitar a comunicação entre profissionais — não substituir o acompanhamento do nutricionista.</p>
+        {isStudent
+          ? <p><b>Se o teu plano foi elaborado fora da ULTIMATE FIT, envia o PDF ao teu Personal Trainer.</b> A equipa coloca aqui a versão mais recente para ficar disponível durante o acompanhamento.</p>
+          : <p><b>Se o plano foi elaborado fora da ULTIMATE FIT, adiciona aqui o PDF mais recente.</b> O objetivo é facilitar a comunicação entre profissionais — não substituir o acompanhamento do nutricionista.</p>}
       </div>
     </section>
 
@@ -82,11 +85,11 @@ export default function NutritionModule({ context = {} }) {
           </div>
           <div className="nutritionDocActions"><button className="secondary" onClick={()=>openDocument(item)}><ExternalLink size={16}/>Abrir PDF</button>{!isStudent&&<button className="iconDanger" title="Eliminar documento" onClick={()=>remove(item)}><Trash2 size={17}/></button>}</div>
         </article>;
-      }) : <div className="card pad nutritionEmpty"><Apple size={34}/><h2>Ainda não existe um plano alimentar</h2><p>Adiciona o PDF mais recente para o manter acessível ao aluno e à equipa que o acompanha.</p></div>}
+      }) : <div className="card pad nutritionEmpty"><Apple size={34}/><h2>Ainda não existe um plano alimentar</h2><p>{isStudent ? 'Quando a equipa adicionar o teu plano alimentar, ele ficará disponível aqui.' : 'Adiciona o PDF mais recente para o manter acessível ao aluno e à equipa que o acompanha.'}</p></div>}
     </div>
 
-    {showUpload && <Modal title="Adicionar plano alimentar" close={()=>setShowUpload(false)}><form className="formGrid" onSubmit={upload}>
-      {!isStudent && !context.studentId && <label className="wide">Aluno<select name="studentId" required defaultValue={selectedStudentId}><option value="">Selecionar aluno</option>{data.students.map(student=><option value={student.id} key={student.id}>{student.name}</option>)}</select></label>}
+    {showUpload && !isStudent && <Modal title="Adicionar plano alimentar" close={()=>setShowUpload(false)}><form className="formGrid" onSubmit={upload}>
+      {!context.studentId && <label className="wide">Aluno<select name="studentId" required defaultValue={selectedStudentId}><option value="">Selecionar aluno</option>{data.students.map(student=><option value={student.id} key={student.id}>{student.name}</option>)}</select></label>}
       <label className="wide">Título<input name="title" required placeholder="Ex.: Plano alimentar · Setembro 2026"/></label>
       <label className="wide">PDF<input name="file" type="file" accept="application/pdf,.pdf" required/></label>
       <label className="wide">Notas<textarea name="notes" rows="3" placeholder="Ex.: Plano elaborado pela nutricionista / orientações principais…"/></label>
