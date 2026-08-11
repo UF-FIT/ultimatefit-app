@@ -70,7 +70,7 @@ function ExercisePrescription({ item }) {
   return <div className="prescriptionLine">{details.join(' · ') || 'Prescrição por definir'}</div>;
 }
 
-function AutomaticStretching({ session, hideAutomationBadge = false }) {
+function AutomaticStretching({ session, studentFacing = false }) {
   const recommendations = getSessionStretchingRecommendations(session);
   const [openStretch, setOpenStretch] = useState(null);
   if (!recommendations.length) return null;
@@ -80,9 +80,9 @@ function AutomaticStretching({ session, hideAutomationBadge = false }) {
       <div>
         <span className="eyebrow">RECUPERAÇÃO</span>
         <h3>Alongamentos recomendados</h3>
-        <p>Selecionados automaticamente a partir dos grupos musculares trabalhados nesta sessão.</p>
+        <p>{studentFacing ? 'Realiza estes alongamentos no final da sessão.' : 'Selecionados automaticamente a partir dos grupos musculares trabalhados nesta sessão.'}</p>
       </div>
-      {!hideAutomationBadge && <span className="autoStretchBadge">AUTOMÁTICO</span>}
+      {!studentFacing && <span className="autoStretchBadge">AUTOMÁTICO</span>}
     </div>
 
     <div className="stretchingRules">
@@ -99,7 +99,7 @@ function AutomaticStretching({ session, hideAutomationBadge = false }) {
           <div className="stretchingTitleRow"><div><small>ALONGAMENTO</small><h4>{stretch.title}</h4></div><span>20–30 s</span></div>
           <b>{stretch.subtitle}</b>
           <p>{stretch.description}</p>
-          {!!stretch.matchedGroups?.length && <div className="stretchingReason">Incluído porque treinaste: {stretch.matchedGroups.join(', ')}</div>}
+          {!studentFacing && !!stretch.matchedGroups?.length && <div className="stretchingReason">Incluído porque treinaste: {stretch.matchedGroups.join(', ')}</div>}
         </div>
       </article>)}
     </div>
@@ -150,7 +150,7 @@ function PlanViewer({ plan, student, canManage, readOnlyReason = '', blockTypes 
             </button>)}
           </div>})}
         </div>
-        {plan.autoStretchingEnabled !== false && <AutomaticStretching session={session} hideAutomationBadge={studentView || previewMode}/>} 
+        {plan.autoStretchingEnabled !== false && <AutomaticStretching session={session} studentFacing={studentView || previewMode}/>} 
         {(studentView || previewMode) && <div className="trainingCompleteArea">{todayCompletion ? <div className="trainingCompletedToday"><CheckCircle2 size={20}/><div><b>Treino registado hoje</b><small>{todayCompletion.source==='trainer'?'Registado pelo teu professor.':'Marcado por ti como concluído.'}</small></div></div> : <button className="completeWorkoutButton" disabled={previewMode || completionBusy} onClick={()=>onCompleteSession?.(session)}><CheckCircle2 size={20}/>{previewMode?'Treino concluído':'Marcar treino como concluído'}</button>}</div>}
       </section>)}
     </div>
