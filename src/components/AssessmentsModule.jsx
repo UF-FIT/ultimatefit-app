@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity, AlertTriangle, Archive, ArrowLeft, BarChart3, Camera, CheckCircle2,
-  ChevronRight, ClipboardList, Edit3, Eye, FileText, HeartPulse, Images, Plus,
+  ChevronRight, ClipboardList, Edit3, Eye, FileText, HeartPulse, Images, LockKeyhole, Plus,
   Ruler, Save, Scale, Search, ShieldCheck, Trash2, UserRound,
 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -10,7 +10,7 @@ import { downloadAssessmentPdf } from '../lib/assessmentPdf';
 import {
   activityLevelDescription, activityLevelLabel, ageAtAssessment, archiveAssessment, assessmentMetrics,
   assessmentModuleLabels, assessmentReferences, automaticRiskSummary, bioimpedanceIndicator, bioimpedanceInterpretation, bodyFatCategory,
-  assessmentStatusLabel, deleteAssessmentPermanently, effectiveBmi, publishAssessment, riskResultLabel,
+  assessmentStatusLabel, canManageAssessmentStudent, deleteAssessmentPermanently, effectiveBmi, publishAssessment, riskResultLabel,
   saveAssessment, skinfoldSum, uploadAssessmentPhoto,
 } from '../lib/assessments';
 
@@ -222,9 +222,9 @@ function MetricChart({ assessments }) {
   return <section className="card pad assessmentEvolution"><div className="assessmentSectionTitle"><BarChart3/><div><h2>Evolução · últimas 5 avaliações</h2><p>Seleciona a métrica que pretendes comparar.</p></div></div><div className="metricTabs">{metricOptions.map(([key,text])=><button key={key} className={metric===key?'active':''} onClick={()=>setMetric(key)}>{text}</button>)}</div>{rows.some(r=>r.value!=null)?<div className="assessmentChart"><ResponsiveContainer width="100%" height="100%"><LineChart data={rows}><CartesianGrid stroke="rgba(255,255,255,.08)" vertical={false}/><XAxis dataKey="date" tick={{fill:'#777',fontSize:11}}/><YAxis tick={{fill:'#777',fontSize:11}}/><Tooltip formatter={value=>[`${value}${unit?` ${unit}`:''}`,label]} contentStyle={{background:'#111',border:'1px solid #333'}}/><Line dataKey="value" stroke="#ffd908" strokeWidth={3} connectNulls dot={{r:4}}/></LineChart></ResponsiveContainer></div>:<Empty>Ainda não existem valores suficientes para esta métrica.</Empty>}</section>;
 }
 
-function AssessmentDetail({ assessment, student, previousAssessment, onBack, canManage, onEdit, onArchive, onDelete, onExport }) {
+function AssessmentDetail({ assessment, student, previousAssessment, onBack, canManage, readOnlyReason = '', onEdit, onArchive, onDelete, onExport }) {
   const modules=assessment.modules||{}; const metrics=assessmentMetrics(assessment); const assessmentAge=ageAtAssessment(student?.birth,assessment.date); const fatClass=bodyFatCategory(metrics.fat,assessmentAge,student?.sex); const automaticRisk=modules.anamnesis?automaticRiskSummary(modules.anamnesis):null;
-  return <div className="assessmentDetail"><button className="backButton" onClick={onBack}><ArrowLeft size={18}/>Voltar ao histórico</button><div className="assessmentDetailHero card"><div><span className="eyebrow">{student.name}</span><h1>Avaliação · {fmt(assessment.date)}</h1><div className="assessmentBadges"><Status status={assessment.status}/>{assessmentModuleLabels(assessment).map(label=><span key={label}>{label}</span>)}</div></div><div className="assessmentDetailActions">{assessment.status==='published'&&<button className="secondary" onClick={onExport}><FileText size={16}/>Exportar avaliação em PDF</button>}{canManage&&<><button className="secondary" onClick={onEdit}><Edit3 size={16}/>Editar</button>{assessment.status==='published'&&<button className="secondary" onClick={onArchive}><Archive size={16}/>Arquivar</button>}<button className="secondary destructiveButton" onClick={onDelete}><Trash2 size={16}/>Eliminar definitivamente</button></>}</div></div>
+  return <div className="assessmentDetail"><button className="backButton" onClick={onBack}><ArrowLeft size={18}/>Voltar ao histórico</button>{readOnlyReason&&<div className="assessmentReadOnlyBanner"><LockKeyhole size={18}/><div><b>Avaliação em modo só de leitura</b><span>{readOnlyReason}</span></div></div>}<div className="assessmentDetailHero card"><div><span className="eyebrow">{student.name}</span><h1>Avaliação · {fmt(assessment.date)}</h1><div className="assessmentBadges"><Status status={assessment.status}/>{assessmentModuleLabels(assessment).map(label=><span key={label}>{label}</span>)}</div></div><div className="assessmentDetailActions">{assessment.status==='published'&&<button className="secondary" onClick={onExport}><FileText size={16}/>Exportar avaliação em PDF</button>}{canManage&&<><button className="secondary" onClick={onEdit}><Edit3 size={16}/>Editar</button>{assessment.status==='published'&&<button className="secondary" onClick={onArchive}><Archive size={16}/>Arquivar</button>}<button className="secondary destructiveButton" onClick={onDelete}><Trash2 size={16}/>Eliminar definitivamente</button></>}</div></div>
     <div className="assessmentMetricCards"><div><small>Peso</small><b>{metrics.weight??'—'} {metrics.weight!=null?'kg':''}</b></div><div><small>Massa gorda</small><b>{metrics.fat??'—'} {metrics.fat!=null?'%':''}</b></div><div><small>Massa muscular</small><b>{metrics.muscle??'—'} {metrics.muscle!=null?'kg':''}</b></div><div><small>Cintura</small><b>{metrics.waist??'—'} {metrics.waist!=null?'cm':''}</b></div><div><small>Gordura visceral</small><b>{metrics.visceral??'—'}</b></div><div><small>Σ dobras</small><b>{metrics.skinfoldSum==null?'—':`${metrics.skinfoldSum.toFixed(1)} mm`}</b></div></div>
     {assessment.notes&&<section className="card pad"><h3>Observações gerais</h3><p>{assessment.notes}</p></section>}
     {modules.anamnesis&&<section className="card pad assessmentReadSection"><h2>Anamnese</h2><div className="assessmentReadGrid"><div><small>Nível de atividade física</small><b>{activityLevelLabel(modules.anamnesis.physical_activity_level)}</b><span className="assessmentReadHint">{activityLevelDescription(modules.anamnesis.physical_activity_level)}</span></div><div><small>Estratificação automática</small><b>{riskResultLabel(automaticRisk?.result||modules.anamnesis.risk_result)}</b><span className="assessmentReadHint">{automaticRisk?.complete?`Total ajustado de fatores: ${automaticRisk.adjustedScore}`:'Preenchimento incompleto'}</span></div><div><small>Fumador</small><b>{modules.anamnesis.smoker===true?'Sim':modules.anamnesis.smoker===false?'Não':'—'}</b></div><div><small>Dor muscular</small><b>{modules.anamnesis.muscle_pain===true?'Sim':modules.anamnesis.muscle_pain===false?'Não':'—'}</b></div></div><div className="assessmentBibliography"><b>Referências</b><span>{assessmentReferences.activity}</span><span>{assessmentReferences.risk}</span><em>Triagem informativa; não substitui avaliação médica.</em></div>{modules.anamnesis.notes&&<p>{modules.anamnesis.notes}</p>}</section>}
@@ -236,9 +236,9 @@ function AssessmentDetail({ assessment, student, previousAssessment, onBack, can
   </div>;
 }
 
-function StudentAssessmentHome({ student, assessments, canManage, onNew, onView, onEdit, onArchive, onDeleteAssessment, onBackToStudents }) {
+function StudentAssessmentHome({ student, assessments, canManage, readOnlyReason = '', isStudentView = false, onNew, onView, onEdit, onArchive, onDeleteAssessment, onBackToStudents }) {
   const published=assessments.filter(a=>a.status==='published'); const latest=published.at(-1); const latestMetrics=assessmentMetrics(latest);
-  return <div className="assessmentStudentHome"><div className="assessmentStudentTop"><button className="backButton" onClick={onBackToStudents}><ArrowLeft size={18}/>{canManage?'Escolher outro aluno':'Voltar'}</button><div className="assessmentStudentIdentity"><StudentAvatar student={student}/><div><span className="eyebrow">AVALIAÇÃO FÍSICA</span><h1>{student.name}</h1><p>{assessments.length} avaliação(ões) acessível(eis)</p></div></div>{canManage&&<button className="primary" onClick={onNew}><Plus size={17}/>Nova avaliação</button>}</div>
+  return <div className="assessmentStudentHome"><div className="assessmentStudentTop"><button className="backButton" onClick={onBackToStudents}><ArrowLeft size={18}/>{isStudentView?'Voltar':'Escolher outro aluno'}</button><div className="assessmentStudentIdentity"><StudentAvatar student={student}/><div><span className="eyebrow">AVALIAÇÃO FÍSICA</span><h1>{student.name}</h1><p>{assessments.length} avaliação(ões) acessível(eis)</p></div></div>{canManage&&<button className="primary" onClick={onNew}><Plus size={17}/>Nova avaliação</button>}</div>{readOnlyReason&&<div className="assessmentReadOnlyBanner assessmentReadOnlyBannerList"><LockKeyhole size={18}/><div><b>Aluno associado a outro professor</b><span>{readOnlyReason}</span></div></div>}
     <div className="assessmentMetricCards"><div><small>Última avaliação</small><b>{latest?fmt(latest.date):'—'}</b></div><div><small>Peso</small><b>{latestMetrics.weight??'—'} {latestMetrics.weight!=null?'kg':''}</b></div><div><small>Massa gorda</small><b>{latestMetrics.fat??'—'} {latestMetrics.fat!=null?'%':''}</b></div><div><small>Massa muscular</small><b>{latestMetrics.muscle??'—'} {latestMetrics.muscle!=null?'kg':''}</b></div><div><small>Cintura</small><b>{latestMetrics.waist??'—'} {latestMetrics.waist!=null?'cm':''}</b></div></div>
     <MetricChart assessments={assessments}/>
     <section className="assessmentHistory"><div className="assessmentSectionTitle"><ClipboardList/><div><h2>Histórico</h2><p>As avaliações publicadas ficam disponíveis ao aluno; rascunhos são privados da equipa.</p></div></div>{assessments.length?<div className="assessmentHistoryList">{[...assessments].reverse().map(item=><article className="assessmentHistoryCard" key={item.id}><div className="assessmentHistoryDate"><b>{fmt(item.date)}</b><Status status={item.status}/></div><div className="assessmentBadges">{assessmentModuleLabels(item).map(label=><span key={label}>{label}</span>)}</div><div className="assessmentHistoryMetrics"><span>Peso <b>{item.weight??'—'}{item.weight!=null?' kg':''}</b></span><span>MG <b>{item.fat??'—'}{item.fat!=null?'%':''}</b></span><span>Cintura <b>{item.waist??'—'}{item.waist!=null?' cm':''}</b></span></div><div className="assessmentHistoryActions"><button className="secondary" onClick={()=>onView(item)}><Eye size={16}/>Ver</button>{canManage&&<><button className="secondary" onClick={()=>onEdit(item)}><Edit3 size={16}/>Editar</button><button className="iconDanger" title="Eliminar avaliação definitivamente" onClick={()=>onDeleteAssessment(item)}><Trash2 size={16}/></button></>}</div></article>)}</div>:<Empty>Ainda não existem avaliações para este aluno.</Empty>}</section>
@@ -256,6 +256,8 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   const [query,setQuery]=useState('');
   const [notice,setNotice]=useState('');
   const [error,setError]=useState('');
+  const [manageResolved,setManageResolved]=useState(isStudent);
+  const [serverCanManage,setServerCanManage]=useState(false);
 
   useEffect(()=>{
     if(context.studentId)setSelectedStudentId(context.studentId);
@@ -271,7 +273,32 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   const selectedStudent=data.students.find(item=>item.id===selectedStudentId);
   const assessments=useMemo(()=>data.assessments.filter(item=>item.studentId===selectedStudentId).sort((a,b)=>a.date.localeCompare(b.date)),[data.assessments,selectedStudentId]);
   const list=useMemo(()=>data.students.filter(student=>student.name.toLowerCase().includes(query.toLowerCase().trim())),[data.students,query]);
-  const canManage=!isStudent;
+  const studentOwnedByCurrentProfessional = student => Boolean(student && (
+    student.primaryTrainer?.profileId
+      ? student.primaryTrainer.profileId === currentUser.id
+      : (student.trainerIds || []).includes(currentUser.id)
+  ));
+
+  useEffect(()=>{
+    let cancelled=false;
+    if(isStudent || !selectedStudentId){
+      setServerCanManage(false);
+      setManageResolved(true);
+      return ()=>{cancelled=true};
+    }
+    setManageResolved(false);
+    canManageAssessmentStudent(selectedStudentId)
+      .then(value=>{if(!cancelled)setServerCanManage(Boolean(value))})
+      .catch(()=>{if(!cancelled)setServerCanManage(false)})
+      .finally(()=>{if(!cancelled)setManageResolved(true)});
+    return ()=>{cancelled=true};
+  },[isStudent,selectedStudentId,currentUser.id]);
+
+  const canManage=!isStudent && serverCanManage;
+  const responsibleTrainerName=selectedStudent?.primaryTrainer?.name || 'o professor responsável';
+  const readOnlyReason=!isStudent && selectedStudent && manageResolved && !canManage
+    ? `Podes consultar as avaliações deste aluno, mas apenas ${responsibleTrainerName} pode criar, editar, arquivar ou eliminar avaliações enquanto o aluno lhe estiver atribuído.`
+    : '';
 
   async function saved(message,id){
     setNotice(message);setError('');setMode('home');setEditing(null);
@@ -282,8 +309,8 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
     }
     if(selectedStudentId) onNavigate?.('assessments',{studentId:selectedStudentId});
   }
-  async function archive(item){if(!window.confirm('Arquivar esta avaliação? O aluno deixará de a ver.'))return;try{await archiveAssessment(item.id);setNotice('Avaliação arquivada.');setViewing(null);await refreshAssessments()}catch(err){setError(err.message)}}
-  async function removeAssessment(item){if(!window.confirm('Eliminar definitivamente esta avaliação? Esta ação não pode ser anulada e elimina também as fotografias associadas.'))return;try{await deleteAssessmentPermanently(item);setNotice('Avaliação eliminada definitivamente.');setViewing(null);await refreshAssessments()}catch(err){setError(err.message||'Não foi possível eliminar a avaliação.')}}
+  async function archive(item){if(!canManage){setError('Esta avaliação está em modo só de leitura porque o aluno está associado a outro professor.');return}if(!window.confirm('Arquivar esta avaliação? O aluno deixará de a ver.'))return;try{await archiveAssessment(item.id);setNotice('Avaliação arquivada.');setViewing(null);await refreshAssessments()}catch(err){setError(err.message)}}
+  async function removeAssessment(item){if(!canManage){setError('Esta avaliação está em modo só de leitura porque o aluno está associado a outro professor.');return}if(!window.confirm('Eliminar definitivamente esta avaliação? Esta ação não pode ser anulada e elimina também as fotografias associadas.'))return;try{await deleteAssessmentPermanently(item);setNotice('Avaliação eliminada definitivamente.');setViewing(null);await refreshAssessments()}catch(err){setError(err.message||'Não foi possível eliminar a avaliação.')}}
   async function exportPdf(item){
     try{
       setError('');setNotice('A preparar relatório PDF…');
@@ -297,10 +324,10 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   if(assessmentsError) return <div className="errorBanner"><AlertTriangle size={18}/>{assessmentsError}</div>;
   if(isStudent&&!ownStudent) return <Empty>O teu perfil ainda não está associado a um registo de aluno.</Empty>;
 
-  if(mode==='form'&&selectedStudent) return <AssessmentForm student={selectedStudent} assessment={editing} assessments={assessments} onCancel={()=>{setMode('home');setEditing(null)}} onSaved={saved}/>;
-  if(viewing&&selectedStudent){const previousAssessment=[...assessments].filter(a=>a.id!==viewing.id&&a.status==='published'&&(a.date<viewing.date||(a.date===viewing.date&&String(a.createdAt||'')<String(viewing.createdAt||'')))).at(-1)||null;return <AssessmentDetail assessment={viewing} previousAssessment={previousAssessment} student={selectedStudent} canManage={canManage} onBack={()=>{setViewing(null);onNavigate?.('assessments',{studentId:selectedStudent.id})}} onEdit={()=>{setEditing(viewing);setViewing(null);setMode('form')}} onArchive={()=>archive(viewing)} onDelete={()=>removeAssessment(viewing)} onExport={()=>exportPdf(viewing)}/>;}
+  if(mode==='form'&&selectedStudent&&canManage) return <AssessmentForm student={selectedStudent} assessment={editing} assessments={assessments} onCancel={()=>{setMode('home');setEditing(null)}} onSaved={saved}/>;
+  if(viewing&&selectedStudent){const previousAssessment=[...assessments].filter(a=>a.id!==viewing.id&&a.status==='published'&&(a.date<viewing.date||(a.date===viewing.date&&String(a.createdAt||'')<String(viewing.createdAt||'')))).at(-1)||null;return <AssessmentDetail assessment={viewing} previousAssessment={previousAssessment} student={selectedStudent} canManage={canManage} readOnlyReason={readOnlyReason} onBack={()=>{setViewing(null);onNavigate?.('assessments',{studentId:selectedStudent.id})}} onEdit={()=>{if(!canManage)return;setEditing(viewing);setViewing(null);setMode('form')}} onArchive={()=>archive(viewing)} onDelete={()=>removeAssessment(viewing)} onExport={()=>exportPdf(viewing)}/>;}
 
-  if(selectedStudent) return <>{notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}{error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}<StudentAssessmentHome student={selectedStudent} assessments={assessments} canManage={canManage} onNew={()=>{setEditing(null);setMode('form')}} onView={item=>{setViewing(item);onNavigate?.('assessments',{studentId:selectedStudent.id,assessmentId:item.id})}} onEdit={item=>{setEditing(item);setMode('form')}} onArchive={archive} onDeleteAssessment={removeAssessment} onBackToStudents={()=>isStudent?onNavigate?.('dashboard'):(setSelectedStudentId(''),onNavigate?.('assessments'))}/></>;
+  if(selectedStudent) return <>{notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}{error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}<StudentAssessmentHome student={selectedStudent} assessments={assessments} canManage={canManage} readOnlyReason={readOnlyReason} isStudentView={isStudent} onNew={()=>{if(!canManage)return;setEditing(null);setMode('form')}} onView={item=>{setViewing(item);onNavigate?.('assessments',{studentId:selectedStudent.id,assessmentId:item.id})}} onEdit={item=>{if(!canManage)return;setEditing(item);setMode('form')}} onArchive={archive} onDeleteAssessment={removeAssessment} onBackToStudents={()=>isStudent?onNavigate?.('dashboard'):(setSelectedStudentId(''),onNavigate?.('assessments'))}/></>;
 
-  return <><Heading title="Avaliações físicas" sub="Anamnese, perimetria, dobras cutâneas, TANITA, postura, evolução fotográfica e gráficos comparativos."/><div className="assessmentStudentPicker"><div className="search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar aluno…"/></div>{list.length?<div className="assessmentStudentPickerGrid">{list.map(student=>{const rows=data.assessments.filter(a=>a.studentId===student.id);const last=rows.filter(a=>a.status==='published').at(-1);return <button key={student.id} onClick={()=>{setSelectedStudentId(student.id);onNavigate?.('assessments',{studentId:student.id})}}><StudentAvatar student={student}/><div><b>{student.name}</b><span>{rows.length} avaliação(ões) · última {last?fmt(last.date):'—'}</span></div><ChevronRight/></button>})}</div>:<Empty>Não existem alunos disponíveis.</Empty>}</div></>;
+  return <><Heading title="Avaliações físicas" sub="Anamnese, perimetria, dobras cutâneas, TANITA, postura, evolução fotográfica e gráficos comparativos."/><div className="assessmentStudentPicker"><div className="search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar aluno…"/></div>{list.length?<div className="assessmentStudentPickerGrid">{list.map(student=>{const rows=data.assessments.filter(a=>a.studentId===student.id);const last=rows.filter(a=>a.status==='published').at(-1);const owned=studentOwnedByCurrentProfessional(student);return <button key={student.id} onClick={()=>{setSelectedStudentId(student.id);onNavigate?.('assessments',{studentId:student.id})}}><StudentAvatar student={student}/><div><b>{student.name}</b><span>{rows.length} avaliação(ões) · última {last?fmt(last.date):'—'}</span>{currentUser.role==='admin'&&!owned&&<span className="assessmentStudentLock"><LockKeyhole size={12}/>Só leitura · {student.primaryTrainer?.name || 'outro professor'}</span>}</div><ChevronRight/></button>})}</div>:<Empty>Não existem alunos disponíveis.</Empty>}</div></>;
 }

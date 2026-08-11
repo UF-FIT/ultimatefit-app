@@ -210,3 +210,10 @@ input[type="date"]{color-scheme:dark}input[type="date"]::-webkit-calendar-picker
     text-align:left;
   }
 }
+
+/* Assessment ownership / read-only mode */
+.assessmentReadOnlyBanner{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border:1px solid rgba(255,217,8,.28);background:rgba(255,217,8,.055);border-radius:8px;color:#aaa;font-size:11px;line-height:1.45}
+.assessmentReadOnlyBanner svg{flex:0 0 auto;color:var(--y);margin-top:1px}
+.assessmentReadOnlyBanner div{display:grid;gap:2px}.assessmentReadOnlyBanner b{color:#fff;font-size:12px}.assessmentReadOnlyBannerList{margin:0 0 18px}
+.assessmentStudentLock{display:flex!important;align-items:center;gap:5px;color:var(--y)!important;font-size:10px!important;font-weight:800;margin-top:7px!important}
+@media(max-width:800px){.assessmentReadOnlyBanner{font-size:10px}}

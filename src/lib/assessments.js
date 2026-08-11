@@ -436,6 +436,13 @@ export function assessmentMetrics(assessment) {
   };
 }
 
+export async function canManageAssessmentStudent(studentId) {
+  if (!studentId) return false;
+  const { data, error } = await supabase.rpc('can_manage_assessment_student', { target_student_id: studentId });
+  if (error) throw error;
+  return Boolean(data);
+}
+
 export async function fetchAssessments() {
   const { data: headers, error: headerError } = await supabase
     .from('physical_assessments')
