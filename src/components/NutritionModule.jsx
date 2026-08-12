@@ -11,7 +11,7 @@ function Heading({ title, sub, action }) { return <div className="heading"><div>
 function Modal({ title, close, children }) { return <div className="overlay"><div className="modal nutritionModal"><div className="title"><h2>{title}</h2><button className="iconButton" onClick={close}><X/></button></div>{children}</div></div>; }
 
 export default function NutritionModule({ context = {} }) {
-  const { data, currentUser, refreshNutrition, nutritionLoading, nutritionError } = useApp();
+  const { data, currentUser, refreshNutrition, nutritionLoading, nutritionError, staffStudentScope, setStaffStudentScope, allStudentsCount, assignedStudentsCount } = useApp();
   const ownStudent = data.students.find(item => item.userId === currentUser.id);
   const [selectedStudentId, setSelectedStudentId] = useState(context.studentId || ownStudent?.id || '');
   const [showUpload, setShowUpload] = useState(false);
@@ -86,6 +86,16 @@ export default function NutritionModule({ context = {} }) {
       action={canUpload ? <button className="primary" onClick={()=>setShowUpload(true)}><Plus size={17}/>Adicionar plano alimentar</button> : null}
     />
 
+    {currentUser.role === 'admin' && !context.studentId && <div className="nutritionStudentFilter card pad">
+      <label>Âmbito de alunos
+        <select value={staffStudentScope} onChange={event=>{setSelectedStudentId('');setStaffStudentScope(event.target.value)}}>
+          <option value="assigned">Os meus alunos ({assignedStudentsCount})</option>
+          <option value="all">Todos os alunos do estúdio ({allStudentsCount})</option>
+        </select>
+      </label>
+      <small style={{display:'block',marginTop:8,opacity:.7}}>Esta opção aplica-se à área de gestão: alunos, avaliações, planos e pedidos de nutrição apresentados na app.</small>
+    </div>}
+
     <section className="nutritionHabitCard card pad">
       <div className="nutritionHabitIcon"><Apple size={28}/></div>
       <div><span className="eyebrow">ACOMPANHAMENTO INTEGRADO</span><h2>Mantém o teu plano alimentar atualizado</h2>
@@ -96,7 +106,7 @@ export default function NutritionModule({ context = {} }) {
       </div>
     </section>
 
-    {!isStudent && !context.studentId && <div className="nutritionStudentFilter card pad"><label>Aluno<select value={selectedStudentId} onChange={event=>setSelectedStudentId(event.target.value)}><option value="">Todos os alunos</option>{data.students.map(student=><option value={student.id} key={student.id}>{student.name}</option>)}</select></label></div>}
+    {!isStudent && !context.studentId && <div className="nutritionStudentFilter card pad"><label>Aluno<select value={selectedStudentId} onChange={event=>setSelectedStudentId(event.target.value)}><option value="">Todos os alunos visíveis</option>{data.students.map(student=><option value={student.id} key={student.id}>{student.name}</option>)}</select></label></div>}
     {notice && <div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     {(error || nutritionError) && <div className="errorBanner"><AlertTriangle size={18}/>{error || nutritionError}</div>}
     {nutritionLoading && !data.nutrition.length ? <div className="card pad loadingCard"><div className="loader"/><p>A carregar documentos…</p></div> : null}
