@@ -5,3 +5,7 @@ verify_jwt = false
 [functions.manage-student]
 # The function validates the signed-in user inside its own code.
 verify_jwt = false
+
+[functions.notify-nutrition-consultation]
+# The function validates the signed-in user inside its own code.
+verify_jwt = false
