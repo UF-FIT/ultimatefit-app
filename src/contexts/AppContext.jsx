@@ -35,9 +35,12 @@ function buildInitial(){
  };
 }
 
+function scopeStorageKey(profileId){return `ultimatefit-student-scope:${profileId}`;}
+
 export function AppProvider({children}){
  const {profile}=useAuth();
  const [data,setData]=useState(buildInitial);
+ const [staffStudentScope,setStaffStudentScopeState]=useState('assigned');
  const [studentsLoading,setStudentsLoading]=useState(true);
  const [studentsError,setStudentsError]=useState('');
  const [assessmentsLoading,setAssessmentsLoading]=useState(true);
@@ -53,6 +56,16 @@ export function AppProvider({children}){
   const {students,assessments,exercises,muscleGroups,blockTypes,plans,workoutCompletions,nutrition,nutritionConsultationRequests,goals,messages,notices,activities,activityRegistrations,...safeToStore}=data;
   save('ultimatefit-mvp',safeToStore);
  },[data]);
+
+ useEffect(()=>{
+  if(!profile?.id){setStaffStudentScopeState('assigned');return;}
+  try{
+   const stored=localStorage.getItem(scopeStorageKey(profile.id));
+   setStaffStudentScopeState(stored==='all'?'all':'assigned');
+  }catch{
+   setStaffStudentScopeState('assigned');
+  }
+ },[profile?.id]);
 
  async function refreshStudents(){
   if(!profile){setData(d=>({...d,students:[]}));setStudentsLoading(false);return []}
@@ -135,8 +148,60 @@ export function AppProvider({children}){
   active:profile.is_active,
   deletedAt:profile.deleted_at,
  }:data.users[0];
+
+ const allStudents=useMemo(()=>data.students.filter(student=>!student.deletedAt),[data.students]);
+ const assignedStudents=useMemo(()=>{
+  if(!currentUser) return [];
+  if(currentUser.role==='aluno') return allStudents.filter(student=>student.userId===currentUser.id);
+  return allStudents.filter(student=>student.trainerIds?.includes(currentUser.id));
+ },[allStudents,currentUser?.id,currentUser?.role]);
+ const visibleStudents=useMemo(()=>{
+  if(!currentUser) return allStudents;
+  if(currentUser.role==='aluno') return assignedStudents;
+  if(currentUser.role==='admin'&&staffStudentScope==='all') return allStudents;
+  return assignedStudents;
+ },[allStudents,assignedStudents,currentUser?.role,staffStudentScope]);
+
+ const visibleStudentIds=useMemo(()=>new Set(visibleStudents.map(student=>student.id)),[visibleStudents]);
+ const scopedData=useMemo(()=>{
+  if(!currentUser||currentUser.role==='aluno') return data;
+  const filterByStudent=items=>(items||[]).filter(item=>!item?.studentId||visibleStudentIds.has(item.studentId));
+  return {
+   ...data,
+   students:visibleStudents,
+   assessments:filterByStudent(data.assessments),
+   plans:filterByStudent(data.plans),
+   workoutCompletions:filterByStudent(data.workoutCompletions),
+   nutrition:filterByStudent(data.nutrition),
+   nutritionConsultationRequests:filterByStudent(data.nutritionConsultationRequests),
+   goals:filterByStudent(data.goals),
+   messages:filterByStudent(data.messages),
+  };
+ },[data,currentUser?.id,currentUser?.role,visibleStudents,visibleStudentIds]);
+
+ function setStaffStudentScope(scope){
+  if(currentUser?.role!=='admin') return;
+  const next=scope==='all'?'all':'assigned';
+  setStaffStudentScopeState(next);
+  try{localStorage.setItem(scopeStorageKey(currentUser.id),next);}catch{/* Preference remains in memory. */}
+ }
+
  const update=(key,fn)=>setData(d=>({...d,[key]:typeof fn==='function'?fn(d[key]):fn}));
- const api=useMemo(()=>({data,setData,update,currentUser,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError,refreshTraining,trainingLoading,trainingError,refreshCommunity,communityLoading,communityError,refreshNutrition,nutritionLoading,nutritionError}),[data,currentUser,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError,communityLoading,communityError,nutritionLoading,nutritionError]);
+ const api=useMemo(()=>({
+  data:scopedData,
+  setData,
+  update,
+  currentUser,
+  staffStudentScope,
+  setStaffStudentScope,
+  allStudentsCount:allStudents.length,
+  assignedStudentsCount:assignedStudents.length,
+  refreshStudents,studentsLoading,studentsError,
+  refreshAssessments,assessmentsLoading,assessmentsError,
+  refreshTraining,trainingLoading,trainingError,
+  refreshCommunity,communityLoading,communityError,
+  refreshNutrition,nutritionLoading,nutritionError,
+ }),[scopedData,currentUser,staffStudentScope,allStudents.length,assignedStudents.length,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError,communityLoading,communityError,nutritionLoading,nutritionError]);
  return <AppContext.Provider value={api}>{children}</AppContext.Provider>
 }
 export const useApp=()=>useContext(AppContext);
