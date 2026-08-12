@@ -1,0 +1,19 @@
+.studentDirectoryGrid{grid-template-columns:repeat(3,minmax(300px,1fr));gap:16px}
+.studentDirectoryCard{justify-items:stretch;text-align:left;gap:16px;padding:18px}
+.studentDirectoryCardMain{display:grid;grid-template-columns:92px minmax(0,1fr);align-items:center;gap:16px;padding-right:26px}
+.studentDirectoryCard .studentPhoto{width:92px;height:92px;align-self:center}
+.studentCardIdentity{min-width:0}
+.studentCardHeading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+.studentCardHeading h3{margin:0;font-size:19px;line-height:1.2;min-width:0}
+.studentStatusPill{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;border:1px solid var(--line)}
+.studentStatusPill.active{color:#86efac;background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.28)}
+.studentStatusPill.inactive{color:#b5b5ba;background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.12)}
+.studentCardMeta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.studentCardMeta>div{min-width:0;padding:9px 10px;background:#0a0a0c;border:1px solid rgba(255,255,255,.06);border-radius:6px}
+.studentCardMeta span,.studentCardMeta b{display:block}
+.studentCardMeta span{color:#777;font-size:10px;margin-bottom:4px}
+.studentCardMeta b{font-size:12px;color:#e8e8ea;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studentDirectoryCard>.secondary{margin-top:0;width:100%}
+@media(max-width:1300px){.studentDirectoryGrid{grid-template-columns:repeat(2,minmax(280px,1fr))}}
+@media(max-width:820px){.studentDirectoryGrid{grid-template-columns:1fr}}
+@media(max-width:520px){.studentDirectoryCard{padding:15px}.studentDirectoryCardMain{grid-template-columns:76px minmax(0,1fr);gap:13px;padding-right:20px}.studentDirectoryCard .studentPhoto{width:76px;height:76px;border-radius:15px}.studentCardHeading{display:grid;gap:7px}.studentStatusPill{justify-self:start}.studentCardMeta{grid-template-columns:1fr}.studentCardMeta>div{padding:8px 9px}}
