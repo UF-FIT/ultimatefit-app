@@ -4,7 +4,9 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './styles/app.css';
 import './styles/student-directory-cards-v2.css';
+import './styles/dashboard-attention.css';
 import './lib/studentDirectoryCardEnhancer';
+import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
@@ -38,4 +40,5 @@ if (entryPath) {
       </BrowserRouter>
     </React.StrictMode>
   );
+  startDashboardAttentionEnhancer();
 }
