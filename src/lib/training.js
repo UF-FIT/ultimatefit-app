@@ -16,6 +16,115 @@ function mediaUrl(row) {
   return supabase.storage.from(EXERCISE_BUCKET).getPublicUrl(row.media_path).data.publicUrl || '';
 }
 
+function normaliseExerciseGroupLabel(value = '') {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const exerciseGroupAliases = {
+  core: 'abdominais',
+  abdominal: 'abdominais',
+  peito: 'peitoral',
+  posterior: 'isquiotibiais',
+  posteriores: 'isquiotibiais',
+  'posterior da coxa': 'isquiotibiais',
+  'posteriores da coxa': 'isquiotibiais',
+  'corpo inteiro': 'funcional',
+  'full body': 'funcional',
+  fullbody: 'funcional',
+  panturrilha: 'gemeos',
+  panturrilhas: 'gemeos',
+  gemeo: 'gemeos',
+  perna: 'pernas',
+  ombro: 'ombros',
+  gluteo: 'gluteos',
+  trapezios: 'trapezio',
+  tricep: 'triceps',
+  bicep: 'biceps',
+  adutor: 'adutores',
+  abdutor: 'abdutores',
+  mobilidade: 'stretching mobility',
+  alongamento: 'stretching mobility',
+  alongamentos: 'stretching mobility',
+  stretching: 'stretching mobility',
+  'stretching mobility': 'stretching mobility',
+};
+
+function canonicalExerciseGroupKey(value = '') {
+  const key = normaliseExerciseGroupLabel(value);
+  return exerciseGroupAliases[key] || key;
+}
+
+function buildExerciseGroupResolver(groupRows = []) {
+  const activeGroups = (groupRows || []).filter(group => group.is_active !== false);
+  const groupById = new Map(activeGroups.map(group => [group.id, group]));
+  const groupByKey = new Map();
+
+  const stretchingGroups = activeGroups.filter(group => canonicalExerciseGroupKey(group.name) === 'stretching mobility');
+  const stretchingGroup = stretchingGroups.find(group => /^stretching\s*&\s*mobility$/i.test(group.name?.trim() || ''))
+    || stretchingGroups.find(group => /^mobilidade$/i.test(group.name?.trim() || ''))
+    || stretchingGroups.find(group => /^alongamentos?$/i.test(group.name?.trim() || ''))
+    || null;
+
+  for (const group of activeGroups) {
+    const key = canonicalExerciseGroupKey(group.name);
+    if (!key || key === 'stretching mobility') continue;
+    if (!groupByKey.has(key)) groupByKey.set(key, group);
+  }
+  if (stretchingGroup) groupByKey.set('stretching mobility', stretchingGroup);
+
+  return { groupById, groupByKey };
+}
+
+function resolveExerciseGroupRow(row, resolver) {
+  const textKey = canonicalExerciseGroupKey(row.muscle_group || '');
+  if (textKey && resolver.groupByKey.has(textKey)) {
+    return resolver.groupByKey.get(textKey);
+  }
+
+  const current = resolver.groupById.get(row.muscle_group_id);
+  if (current) {
+    const currentKey = canonicalExerciseGroupKey(current.name);
+    return resolver.groupByKey.get(currentKey) || current;
+  }
+
+  return null;
+}
+
+async function persistExerciseGroupRepairs(repairs) {
+  if (!repairs.length) return;
+  const canRepair = await canManageExerciseLibrary();
+  if (!canRepair) return;
+
+  const grouped = new Map();
+  for (const repair of repairs) {
+    const current = grouped.get(repair.group.id) || { group: repair.group, ids: [] };
+    current.ids.push(repair.id);
+    grouped.set(repair.group.id, current);
+  }
+
+  for (const { group, ids } of grouped.values()) {
+    for (let index = 0; index < ids.length; index += 80) {
+      const batch = ids.slice(index, index + 80);
+      const { error } = await supabase
+        .from('exercise_library')
+        .update({ muscle_group_id: group.id, muscle_group: group.name })
+        .in('id', batch);
+      if (error) {
+        console.warn('Não foi possível persistir a correção de grupo de alguns exercícios.', error);
+        break;
+      }
+    }
+  }
+}
+
 export function mapExercise(row) {
   if (!row) return null;
   return {
@@ -103,9 +212,44 @@ export async function fetchExercises({ includeInactive = true } = {}) {
     .select('id,name,description,muscle_group,muscle_group_id,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,aliases,created_at,updated_at')
     .order('name');
   if (!includeInactive) query = query.eq('is_active', true);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data || []).map(mapExercise);
+
+  const [exerciseResult, groupResult] = await Promise.all([
+    query,
+    supabase
+      .from('exercise_muscle_groups')
+      .select('id,name,is_active')
+      .order('sort_order')
+      .order('name'),
+  ]);
+
+  if (exerciseResult.error) throw exerciseResult.error;
+  if (groupResult.error) throw groupResult.error;
+
+  const resolver = buildExerciseGroupResolver(groupResult.data || []);
+  const repairs = [];
+  const rows = (exerciseResult.data || []).map(row => {
+    const resolvedGroup = resolveExerciseGroupRow(row, resolver);
+    if (!resolvedGroup) return row;
+
+    const currentKey = canonicalExerciseGroupKey(row.muscle_group || '');
+    const resolvedKey = canonicalExerciseGroupKey(resolvedGroup.name);
+    const needsRepair = row.muscle_group_id !== resolvedGroup.id || currentKey !== resolvedKey;
+    if (needsRepair) repairs.push({ id: row.id, group: resolvedGroup });
+
+    return {
+      ...row,
+      muscle_group: resolvedGroup.name,
+      muscle_group_id: resolvedGroup.id,
+    };
+  });
+
+  if (repairs.length) {
+    persistExerciseGroupRepairs(repairs).catch(error => {
+      console.warn('A biblioteca foi normalizada em memória, mas algumas associações não foram persistidas.', error);
+    });
+  }
+
+  return rows.map(mapExercise);
 }
 
 export async function fetchWorkoutPlans() {
@@ -140,7 +284,6 @@ export async function canManageExerciseLibrary() {
   if (error) return false;
   return Boolean(data);
 }
-
 
 export function mapMuscleGroup(row) {
   return {
