@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity, Archive, BookOpen, CheckCircle2, Dumbbell, Edit3, Eye, Footprints,
   HeartPulse, Layers3, Move, PersonStanding, Plus, RefreshCw, Save, Search,
@@ -11,7 +11,6 @@ import {
   createExercise, createMuscleGroup, createWorkoutBlockType, updateExercise,
   updateMuscleGroup, updateWorkoutBlockType, uploadExerciseMedia
 } from '../lib/training';
-import { supabase } from '../lib/supabase';
 import {
   automaticStretchingCatalog,
   applyAutomaticStretchingCatalog,
@@ -40,54 +39,8 @@ const iconMap = {
   adductors:Footprints, abductors:Footprints,
 };
 
-function normaliseGroupKey(value = '') {
-  return String(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/&/g, ' ')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-const groupAliases = {
-  'mobilidade':'stretching mobility',
-  'alongamento':'stretching mobility',
-  'alongamentos':'stretching mobility',
-  'stretching':'stretching mobility',
-  'stretching mobility':'stretching mobility',
-  'core':'abdominais',
-  'abdominal':'abdominais',
-  'peito':'peitoral',
-  'posterior':'isquiotibiais',
-  'posteriores':'isquiotibiais',
-  'posterior da coxa':'isquiotibiais',
-  'posteriores da coxa':'isquiotibiais',
-  'corpo inteiro':'funcional',
-  'full body':'funcional',
-  'fullbody':'funcional',
-  'panturrilha':'gemeos',
-  'panturrilhas':'gemeos',
-  'gemeo':'gemeos',
-  'perna':'pernas',
-  'ombro':'ombros',
-  'gluteo':'gluteos',
-  'trapezios':'trapezio',
-  'tricep':'triceps',
-  'bicep':'biceps',
-  'adutor':'adutores',
-  'abdutor':'abdutores',
-};
-
-function canonicalGroupKey(value = '') {
-  const key = normaliseGroupKey(value);
-  return groupAliases[key] || key;
-}
-
 function isStretchingMobilityGroupName(name = '') {
-  return canonicalGroupKey(name) === 'stretching mobility';
+  return /^(mobilidade|alongamentos|stretching\s*&\s*mobility)$/i.test(String(name).trim());
 }
 
 function displayGroupName(name = '') {
@@ -95,129 +48,10 @@ function displayGroupName(name = '') {
 }
 
 function preferredStretchingMobilityGroup(groups = []) {
-  const active = groups.filter(item => item.active);
-  const pool = active.length ? active : groups;
-  return pool.find(item => /^stretching\s*&\s*mobility$/i.test(item.name?.trim() || ''))
-    || pool.find(item => /^mobilidade$/i.test(item.name?.trim() || ''))
-    || pool.find(item => /^alongamentos?$/i.test(item.name?.trim() || ''))
+  return groups.find(item => /^stretching\s*&\s*mobility$/i.test(item.name?.trim() || ''))
+    || groups.find(item => /^mobilidade$/i.test(item.name?.trim() || ''))
+    || groups.find(item => /^alongamentos$/i.test(item.name?.trim() || ''))
     || null;
-}
-
-function inferExerciseGroupKey(exercise, availableKeys) {
-  const category = normaliseGroupKey(exercise?.category || '');
-  const name = normaliseGroupKey(exercise?.name || '');
-
-  const categoryMap = {
-    'mobilidade':'stretching mobility',
-    'alongamento':'stretching mobility',
-    'cardio':'cardio',
-    'pliometria':'pernas',
-    'funcional':'funcional',
-    'cross training':'funcional',
-    'condicionamento':'funcional',
-  };
-  if (categoryMap[category] && availableKeys.has(categoryMap[category])) return categoryMap[category];
-
-  const patterns = [
-    ['abdominais', /(abdom|crunch|prancha|plank|hollow|core|sit up|dead bug|pallof|russian twist|canivete|infra)/],
-    ['biceps', /(biceps|curl|rosca)/],
-    ['triceps', /(triceps|pushdown)/],
-    ['peitoral', /(peito|supino|crucifixo|chest fly|flexao de braco|flexoes)/],
-    ['costas', /(remada|puxada|pulldown|pull up|barra fixa|dorsal|lat pull)/],
-    ['ombros', /(ombro|deltoide|elevacao lateral|elevacao frontal|press militar|desenvolvimento militar|face pull)/],
-    ['trapezio', /(trapezio|encolhimento)/],
-    ['gemeos', /(gemeos|panturr|calf raise|calf)/],
-    ['adutores', /(adutor)/],
-    ['abdutores', /(abdutor)/],
-    ['quadriceps', /(quadriceps|extensora|extensao de pernas)/],
-    ['isquiotibiais', /(isquio|femoral|leg curl|curl femoral|stiff|romeno)/],
-    ['gluteos', /(glute|hip thrust|ponte de glute|coice)/],
-    ['lombar', /(lombar|superman|back extension)/],
-    ['stretching mobility', /(mobilidade|alongamento|stretch)/],
-    ['cardio', /(corrida|passadeira|bike|bicicleta|remo ergometro|eliptica|cardio)/],
-    ['antebraco', /(antebraco|punho|wrist|forearm)/],
-    ['pernas', /(agachamento|afundo|lunge|leg press|step up|box jump)/],
-    ['funcional', /(burpee|thruster|wall ball|farmer|sled|kettlebell swing)/],
-  ];
-  for (const [key, pattern] of patterns) {
-    if (availableKeys.has(key) && pattern.test(name)) return key;
-  }
-  return '';
-}
-
-function buildGroupModel(rawGroups = []) {
-  const allGroups = [...rawGroups].sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
-  const activeGroups = allGroups.filter(item=>item.active);
-  const legacyMobilityGroups = allGroups.filter(item=>isStretchingMobilityGroupName(item.name));
-  const canonicalMobility = preferredStretchingMobilityGroup(legacyMobilityGroups);
-  const visualGroups = [];
-  const seenKeys = new Set();
-
-  for (const group of activeGroups) {
-    const key = canonicalGroupKey(group.name);
-    if (key === 'stretching mobility') {
-      if (canonicalMobility && group.id === canonicalMobility.id && !seenKeys.has(key)) {
-        visualGroups.push({...canonicalMobility,name:'Stretching & Mobility',iconKey:'mobility',canonicalKey:key});
-        seenKeys.add(key);
-      }
-      continue;
-    }
-    if (seenKeys.has(key)) continue;
-    visualGroups.push({...group,canonicalKey:key});
-    seenKeys.add(key);
-  }
-
-  const groupByKey = new Map(visualGroups.map(group=>[group.canonicalKey,group]));
-  const allGroupById = new Map(allGroups.map(group=>[group.id,group]));
-  return { allGroups, activeGroups, visualGroups, canonicalMobility, groupByKey, allGroupById };
-}
-
-function resolveExerciseGroup(exercise, model) {
-  const availableKeys = new Set(model.groupByKey.keys());
-  const currentGroup = model.allGroupById.get(exercise?.groupId);
-  const candidates = [currentGroup?.name, exercise?.group, ...(exercise?.secondaryMuscles || [])];
-
-  for (const candidate of candidates) {
-    const key = canonicalGroupKey(candidate);
-    if (key && model.groupByKey.has(key)) return model.groupByKey.get(key);
-  }
-
-  const inferredKey = inferExerciseGroupKey(exercise, availableKeys);
-  return inferredKey ? model.groupByKey.get(inferredKey) || null : null;
-}
-
-async function repairExerciseGroupAssignments(exercises, model) {
-  const byTarget = new Map();
-  let unresolved = 0;
-
-  for (const exercise of exercises || []) {
-    const target = resolveExerciseGroup(exercise, model);
-    if (!target) {
-      unresolved += 1;
-      continue;
-    }
-    const targetName = target.canonicalKey === 'stretching mobility'
-      ? (model.allGroupById.get(target.id)?.name || target.name)
-      : (model.allGroupById.get(target.id)?.name || target.name);
-    if (exercise.groupId === target.id && canonicalGroupKey(exercise.group) === canonicalGroupKey(targetName)) continue;
-    const current = byTarget.get(target.id) || { name: targetName, ids: [] };
-    current.ids.push(exercise.id);
-    byTarget.set(target.id, current);
-  }
-
-  let repaired = 0;
-  for (const [targetId, payload] of byTarget.entries()) {
-    for (let index = 0; index < payload.ids.length; index += 80) {
-      const ids = payload.ids.slice(index, index + 80);
-      const { error } = await supabase
-        .from('exercise_library')
-        .update({ muscle_group_id: targetId, muscle_group: payload.name })
-        .in('id', ids);
-      if (error) throw error;
-      repaired += ids.length;
-    }
-  }
-  return { repaired, unresolved };
 }
 
 function GroupIcon({ iconKey, size = 30 }) {
@@ -325,12 +159,14 @@ function MuscleGroupManager({ groups, exercises, onBack }) {
   const [editing,setEditing] = useState(null);
   const [error,setError] = useState('');
   const [notice,setNotice] = useState('');
-  const model = buildGroupModel(groups);
-  const visibleGroups = model.visualGroups;
-  const counts = Object.fromEntries(visibleGroups.map(group=>[
+  const mergeGroups = groups.filter(group=>isStretchingMobilityGroupName(group.name));
+  const canonicalMobility = preferredStretchingMobilityGroup(mergeGroups);
+  const mergeIds = new Set(mergeGroups.map(group=>group.id));
+  const visibleGroups = groups.filter(group=>!isStretchingMobilityGroupName(group.name)||group.id===canonicalMobility?.id);
+  const counts = useMemo(()=>Object.fromEntries(visibleGroups.map(group=>[
     group.id,
-    exercises.filter(ex=>ex.active&&resolveExerciseGroup(ex,model)?.id===group.id).length
-  ]));
+    exercises.filter(ex=>ex.active&&(group.id===canonicalMobility?.id?mergeIds.has(ex.groupId):ex.groupId===group.id)).length
+  ])),[visibleGroups,exercises,canonicalMobility?.id,mergeGroups.map(group=>group.id).join('|')]);
   const draft = editing || null;
   function startNew(){setEditing({id:'',name:'',iconKey:'default',sortOrder:100,active:true,system:false})}
   async function save(){
@@ -350,7 +186,7 @@ function MuscleGroupManager({ groups, exercises, onBack }) {
     <div className="heading"><div><span className="eyebrow">BIBLIOTECA</span><h1>Grupos musculares</h1><p>Cria e organiza grupos para manter a biblioteca preparada para exercícios futuros.</p></div><button className="primary" onClick={startNew}><Plus size={17}/>Criar grupo muscular</button></div>
     {error&&<div className="errorBanner">{error}</div>}{notice&&<div className="successBanner"><CheckCircle2 size={17}/>{notice}</div>}
     {draft&&<div className="card pad libraryInlineEditor"><div className="formGrid"><label>Nome*<input value={draft.name} onChange={e=>setEditing({...draft,name:e.target.value})} placeholder="Ex.: Rotadores da coifa"/></label><label>Ícone<select value={draft.iconKey} onChange={e=>setEditing({...draft,iconKey:e.target.value})}>{iconOptions.map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label><label>Ordem<input type="number" min="1" value={draft.sortOrder} onChange={e=>setEditing({...draft,sortOrder:e.target.value})}/></label></div><div className="modalActions"><button className="secondary" onClick={()=>setEditing(null)}>Cancelar</button><button className="primary" onClick={save}><Save size={16}/>Guardar</button></div></div>}
-    <div className="muscleGroupManagerGrid">{visibleGroups.map(group=><article className={`card muscleGroupManageCard ${!group.active?'inactive':''}`} key={group.id}><div className="muscleGroupIcon"><GroupIcon iconKey={group.canonicalKey==='stretching mobility'?'mobility':group.iconKey}/></div><div><h3>{displayGroupName(group.name)}</h3><small>{counts[group.id]||0} exercício(s){group.system?' · Base Ultimate Fit':''}</small></div><div className="exerciseCardActions"><button className="secondary" onClick={()=>setEditing({...model.allGroupById.get(group.id),name:displayGroupName(group.name)})}><Edit3 size={15}/>Editar</button><button className="secondary" onClick={()=>toggle(model.allGroupById.get(group.id)||group)}>{group.active?<Archive size={15}/>:<RefreshCw size={15}/>} {group.active?'Arquivar':'Reativar'}</button></div></article>)}</div>
+    <div className="muscleGroupManagerGrid">{visibleGroups.map(group=><article className={`card muscleGroupManageCard ${!group.active?'inactive':''}`} key={group.id}><div className="muscleGroupIcon"><GroupIcon iconKey={group.id===canonicalMobility?.id?'mobility':group.iconKey}/></div><div><h3>{displayGroupName(group.name)}</h3><small>{counts[group.id]||0} exercício(s){group.system?' · Base Ultimate Fit':''}</small></div><div className="exerciseCardActions"><button className="secondary" onClick={()=>setEditing({...group,name:displayGroupName(group.name)})}><Edit3 size={15}/>Editar</button><button className="secondary" onClick={()=>toggle(group)}>{group.active?<Archive size={15}/>:<RefreshCw size={15}/>} {group.active?'Arquivar':'Reativar'}</button></div></article>)}</div>
   </div>;
 }
 
@@ -416,7 +252,6 @@ export default function ExerciseLibraryModule(){
   const [preview,setPreview]=useState(null);
   const [autoCatalog,setAutoCatalog]=useState(()=>automaticStretchingCatalog.map(item=>({...item})));
   const [visibleCount,setVisibleCount]=useState(PAGE_SIZE);
-  const repairStarted=useRef(false);
 
   useEffect(()=>{if(currentUser.role!=='aluno')canManageExerciseLibrary().then(setCanManage)},[currentUser.id,currentUser.role]);
   useEffect(()=>setVisibleCount(PAGE_SIZE),[q,group,status,section]);
@@ -430,49 +265,35 @@ export default function ExerciseLibraryModule(){
     return()=>{alive=false};
   },[]);
 
-  useEffect(()=>{
-    if(currentUser.role!=='admin'||trainingLoading||repairStarted.current)return;
-    if(!(data.exercises||[]).length||!(data.muscleGroups||[]).length)return;
-    repairStarted.current=true;
-    const model=buildGroupModel(data.muscleGroups||[]);
-    repairExerciseGroupAssignments(data.exercises||[],model).then(async result=>{
-      if(result.repaired>0){
-        await refreshTraining();
-        setNotice(`${result.repaired} exercício(s) foram associados ao respetivo grupo muscular.`);
-      }
-      if(result.unresolved>0){
-        setError(`${result.unresolved} exercício(s) continuam sem um grupo reconhecido e precisam de revisão.`);
-      }
-    }).catch(err=>setError(err.message||'Não foi possível corrigir as associações dos exercícios.'));
-  },[currentUser.role,trainingLoading,data.exercises?.length,data.muscleGroups?.length]);
-
-  const model=buildGroupModel(data.muscleGroups||[]);
-  const groups=model.activeGroups;
-  const visualGroups=model.visualGroups;
-  const normalisedExercises=(data.exercises||[]).map(exercise=>{
-    const target=resolveExerciseGroup(exercise,model);
-    if(!target)return {...exercise,resolvedGroupId:'',resolvedGroupKey:''};
-    const dbTarget=model.allGroupById.get(target.id)||target;
-    return {...exercise,group:displayGroupName(dbTarget.name),groupId:target.id,resolvedGroupId:target.id,resolvedGroupKey:target.canonicalKey};
-  });
-  const counts=Object.fromEntries(visualGroups.map(item=>[
-    item.id,
-    normalisedExercises.filter(ex=>ex.active&&ex.resolvedGroupId===item.id).length
-  ]));
-  const unresolvedActive=normalisedExercises.filter(ex=>ex.active&&!ex.resolvedGroupId);
-  const baseExercises=normalisedExercises;
-  const list=baseExercises.filter(exercise=>{
+  const groups=(data.muscleGroups||[]).filter(item=>item.active).sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
+  const mergeGroups=groups.filter(item=>isStretchingMobilityGroupName(item.name));
+  const canonicalMobility=preferredStretchingMobilityGroup(mergeGroups);
+  const mergeGroupIds=new Set(mergeGroups.map(item=>item.id));
+  const visualGroups=[
+    ...groups.filter(item=>!isStretchingMobilityGroupName(item.name)),
+    ...(canonicalMobility?[{...canonicalMobility,name:'Stretching & Mobility',iconKey:'mobility'}]:[]),
+  ].sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
+  const baseExercises=data.exercises;
+  const counts=useMemo(()=>Object.fromEntries(visualGroups.map(g=>[
+    g.id,
+    baseExercises.filter(ex=>ex.active&&(g.id===canonicalMobility?.id?(mergeGroupIds.has(ex.groupId)||isStretchingMobilityGroupName(ex.group)):ex.groupId===g.id)).length
+  ])),[baseExercises,visualGroups,canonicalMobility?.id,mergeGroups.map(item=>item.id).join('|')]);
+  const list=useMemo(()=>baseExercises.filter(exercise=>{
     const query=q.trim().toLowerCase();
     if(status==='active'&&!exercise.active)return false;
     if(status==='inactive'&&exercise.active)return false;
-    if(group==='__unassigned__'&&exercise.resolvedGroupId)return false;
-    if(group!=='all'&&group!=='__unassigned__'&&exercise.resolvedGroupId!==group)return false;
+    if(group!=='all'){
+      const isMergedSelection=canonicalMobility&&group===canonicalMobility.id;
+      if(isMergedSelection){
+        if(!mergeGroupIds.has(exercise.groupId)&&!isStretchingMobilityGroupName(exercise.group))return false;
+      }else if(exercise.groupId!==group)return false;
+    }
     return !query
       ||exercise.name.toLowerCase().includes(query)
       ||(exercise.equipment||'').toLowerCase().includes(query)
       ||(exercise.category||'').toLowerCase().includes(query)
       ||(exercise.aliases||[]).some(alias=>alias.toLowerCase().includes(query));
-  });
+  }),[baseExercises,q,group,status,canonicalMobility?.id,mergeGroups.map(item=>item.id).join('|')]);
   const autoList=useMemo(()=>autoCatalog.filter(stretch=>{
     const query=q.trim().toLowerCase();
     return !query||`${stretch.title} ${stretch.subtitle} ${stretch.description}`.toLowerCase().includes(query);
@@ -492,7 +313,7 @@ export default function ExerciseLibraryModule(){
     setSection(next);setQ('');setGroup('all');setStatus('active');setPreview(null);
   }
 
-  const selectedGroup=group==='all'||group==='__unassigned__'?null:visualGroups.find(item=>item.id===group);
+  const selectedGroup=group==='all'?null:visualGroups.find(item=>item.id===group);
   const preferredNewGroup=selectedGroup?groups.find(item=>item.id===selectedGroup.id):null;
 
   return <div className="exerciseLibraryPage">
@@ -526,7 +347,7 @@ export default function ExerciseLibraryModule(){
       </div>
       {!autoList.length&&<div className="notice">Nenhum alongamento automático corresponde à pesquisa.</div>}
     </>:<>
-      <section className="card pad muscleGroupSection"><div className="librarySectionTitle"><div><span className="eyebrow">GRUPOS MUSCULARES</span><h2>{group==='__unassigned__'?'Por classificar':selectedGroup?displayGroupName(selectedGroup.name):'Todos os grupos'}</h2></div><small>Todos os exercícios são associados a um único grupo principal para que os totais sejam coerentes.</small></div><div className="muscleGroupVisualGrid"><button className={`muscleGroupVisualCard ${group==='all'?'active':''}`} onClick={()=>setGroup('all')}><div className="muscleGroupIcon"><BookOpen/></div><b>Todos</b><span>{baseExercises.filter(ex=>ex.active).length}</span></button>{visualGroups.map(item=><button className={`muscleGroupVisualCard ${group===item.id?'active':''}`} key={item.id} onClick={()=>setGroup(item.id)}><div className="muscleGroupIcon"><GroupIcon iconKey={item.iconKey}/></div><b>{displayGroupName(item.name)}</b><span>{counts[item.id]||0}</span></button>)}{unresolvedActive.length>0&&<button className={`muscleGroupVisualCard ${group==='__unassigned__'?'active':''}`} onClick={()=>setGroup('__unassigned__')}><div className="muscleGroupIcon"><Settings2/></div><b>Por classificar</b><span>{unresolvedActive.length}</span></button>}</div></section>
+      <section className="card pad muscleGroupSection"><div className="librarySectionTitle"><div><span className="eyebrow">GRUPOS MUSCULARES</span><h2>{selectedGroup?displayGroupName(selectedGroup.name):'Todos os grupos'}</h2></div><small>Stretching & Mobility reúne agora os antigos conteúdos de Mobilidade e Alongamentos manuais.</small></div><div className="muscleGroupVisualGrid"><button className={`muscleGroupVisualCard ${group==='all'?'active':''}`} onClick={()=>setGroup('all')}><div className="muscleGroupIcon"><BookOpen/></div><b>Todos</b><span>{baseExercises.filter(ex=>ex.active).length}</span></button>{visualGroups.map(item=><button className={`muscleGroupVisualCard ${group===item.id?'active':''}`} key={item.id} onClick={()=>setGroup(item.id)}><div className="muscleGroupIcon"><GroupIcon iconKey={item.iconKey}/></div><b>{displayGroupName(item.name)}</b><span>{counts[item.id]||0}</span></button>)}</div></section>
       <div className="filters exerciseLibraryFilters"><div className="search"><Search size={18}/><input value={q} onChange={event=>setQ(event.target.value)} placeholder={selectedGroup&&isStretchingMobilityGroupName(selectedGroup.name)?'Pesquisar stretching ou mobilidade…':'Pesquisar exercício, equipamento ou nome alternativo…'}/></div><select value={status} onChange={event=>setStatus(event.target.value)}><option value="active">Ativos</option><option value="inactive">Arquivados</option><option value="all">Todos</option></select></div>
       {trainingLoading?<div className="notice">A carregar biblioteca…</div>:<><div className="grid three exerciseLibraryGrid">{list.slice(0,visibleCount).map(exercise=><StandardExerciseCard key={exercise.id} exercise={exercise} canManage={canManage} onPreview={setPreview} onEdit={item=>setEditing({...item})} onToggle={toggle}/>)}</div>{visibleCount<list.length&&<div className="libraryLoadMore"><button className="secondary" onClick={()=>setVisibleCount(v=>v+PAGE_SIZE)}>Mostrar mais · {Math.min(PAGE_SIZE,list.length-visibleCount)} de {list.length-visibleCount} restantes</button></div>}{list.length===0&&<div className="notice">Não existem exercícios para estes filtros.</div>}</>}
     </>}
