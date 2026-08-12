@@ -1,21 +1,28 @@
-.studentDirectoryGrid{grid-template-columns:repeat(3,minmax(320px,1fr));gap:16px}
-.studentDirectoryCard{position:relative;display:grid;grid-template-columns:92px minmax(0,1fr);align-items:center;justify-items:stretch;text-align:left;gap:16px;padding:18px}
-.studentDirectoryCard .studentSelect{top:12px;right:12px}
-.studentDirectoryCard .studentPhoto{grid-column:1;grid-row:1;width:92px;height:92px;align-self:center}
-.studentDirectoryCard .studentCardIdentity{grid-column:2;grid-row:1;min-width:0;padding-right:24px}
-.studentDirectoryCard .studentCardIdentity h3{margin:0 0 10px;font-size:20px;line-height:1.15}
-.studentDirectoryCard .studentCardIdentity p{display:none}
-.studentDirectoryCard .studentCardIdentity>small{display:none}
-.studentDirectoryCardMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.studentDirectoryCardMeta>div{min-width:0;padding:8px 9px;background:#0a0a0c;border:1px solid rgba(255,255,255,.06);border-radius:6px}
+.studentDirectoryGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(640px,760px));gap:20px;align-items:start}
+.studentDirectoryCard{position:relative;display:grid;grid-template-columns:158px minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:24px;row-gap:20px;justify-items:stretch;text-align:left;padding:27px 29px 29px;background:#101012;border:1px solid #2a2a2d;border-radius:16px;min-height:360px;transition:border-color .2s,transform .2s,box-shadow .2s}
+.studentDirectoryCard:hover{transform:translateY(-2px);border-color:rgba(255,217,8,.32);box-shadow:0 18px 42px rgba(0,0,0,.28)}
+.studentDirectoryCard .studentSelect{position:absolute;top:18px;right:20px;width:36px;height:36px;z-index:3}
+.studentDirectoryCard .studentSelect input{opacity:0;position:absolute}
+.studentDirectoryCard .studentSelect span{display:block;width:36px;height:36px;border:1px solid #454549;border-radius:7px;background:#09090b}
+.studentDirectoryCard .studentSelect input:checked+span{background:var(--y);border-color:var(--y);box-shadow:inset 0 0 0 8px #111}
+.studentDirectoryCard .studentCardIdentity{display:contents}
+.studentDirectoryCard .studentCardIdentity>h3{grid-column:1/-1;grid-row:1;margin:0;padding-right:52px;font-size:30px;line-height:1.1;font-weight:800;color:#fff;letter-spacing:-.02em}
+.studentDirectoryCard .studentCardIdentity>p,.studentDirectoryCard .studentCardIdentity>small{display:none}
+.studentDirectoryCard .studentPhoto{grid-column:1;grid-row:2;width:150px;height:150px;align-self:center;justify-self:start;border-radius:24px;border:2px solid rgba(255,217,8,.58);background:linear-gradient(145deg,#252525,#0a0a0a);overflow:hidden;display:grid;place-items:center;color:var(--y);font-family:'Bebas Neue';font-size:38px}
+.studentDirectoryCard .studentPhoto img{width:100%;height:100%;object-fit:cover}
+.studentDirectoryCardMeta{grid-column:2;grid-row:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
+.studentDirectoryCardMeta>div{min-width:0;min-height:70px;padding:12px 15px;background:#09090b;border:1px solid #202024;border-radius:8px;display:flex;flex-direction:column;justify-content:center}
 .studentDirectoryCardMeta span,.studentDirectoryCardMeta b{display:block}
-.studentDirectoryCardMeta span{color:#777;font-size:9px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
-.studentDirectoryCardMeta b{font-size:11px;color:#ececee;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.studentDirectoryStatus{display:inline-flex;align-items:center;justify-content:center;min-height:23px;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border:1px solid var(--line)}
-.studentDirectoryStatus.active{color:#86efac;background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.28)}
-.studentDirectoryStatus.inactive{color:#d4d4d8;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
-.studentDirectoryStatus.archived{color:#fbbf24;background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.22)}
-.studentDirectoryCard>.secondary{grid-column:1/-1;grid-row:2;margin-top:0;width:100%}
-@media(max-width:1300px){.studentDirectoryGrid{grid-template-columns:repeat(2,minmax(300px,1fr))}}
-@media(max-width:820px){.studentDirectoryGrid{grid-template-columns:1fr}}
-@media(max-width:520px){.studentDirectoryCard{grid-template-columns:76px minmax(0,1fr);gap:13px;padding:15px}.studentDirectoryCard .studentPhoto{width:76px;height:76px;border-radius:15px}.studentDirectoryCard .studentCardIdentity{padding-right:18px}.studentDirectoryCardMeta{grid-template-columns:1fr}.studentDirectoryCard .studentCardIdentity h3{font-size:18px}}
+.studentDirectoryCardMeta span{margin:0 0 5px;color:#777b83;font-size:11px;font-weight:700;line-height:1.15;text-transform:uppercase;letter-spacing:.055em}
+.studentDirectoryCardMeta b{color:#fff;font-size:15px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studentDirectoryStatus{display:inline-flex!important;align-items:center;justify-content:flex-start;width:min(100%,205px);min-height:36px;padding:7px 14px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em}
+.studentDirectoryStatus.active{color:#68e6a1!important;background:rgba(25,160,94,.15);border:1px solid rgba(39,205,121,.38)}
+.studentDirectoryStatus.inactive{color:#d2d2d6!important;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13)}
+.studentDirectoryStatus.archived{color:#f3c565!important;background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.25)}
+.studentDirectoryCard>.secondary.full{grid-column:1/-1;grid-row:3;width:100%;min-height:70px;margin:0;padding:0 22px;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:7px;background:#1a1a1d;border:1px solid #343438;color:#fff;font-size:21px;font-weight:800}
+.studentDirectoryCard>.secondary.full:hover{border-color:rgba(255,217,8,.55);color:var(--y);background:#1d1d20}
+.studentDirectoryCard>.secondary.full svg{width:20px;height:20px}
+@media(max-width:1450px){.studentDirectoryGrid{grid-template-columns:repeat(auto-fill,minmax(570px,1fr))}.studentDirectoryCard{grid-template-columns:142px minmax(0,1fr)}.studentDirectoryCard .studentPhoto{width:136px;height:136px}}
+@media(max-width:960px){.studentDirectoryGrid{grid-template-columns:1fr}.studentDirectoryCard{max-width:760px}}
+@media(max-width:620px){.studentDirectoryCard{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;padding:22px 20px;row-gap:16px}.studentDirectoryCard .studentCardIdentity>h3{grid-column:1;grid-row:1;font-size:25px;padding-right:48px}.studentDirectoryCard .studentPhoto{grid-column:1;grid-row:2;width:118px;height:118px;justify-self:center;border-radius:20px}.studentDirectoryCardMeta{grid-column:1;grid-row:3;grid-template-columns:1fr 1fr}.studentDirectoryCard>.secondary.full{grid-column:1;grid-row:4;min-height:58px;font-size:17px}.studentDirectoryCardMeta>div{min-height:65px;padding:10px 12px}.studentDirectoryStatus{min-height:32px;padding:6px 10px}.studentDirectoryCard .studentSelect,.studentDirectoryCard .studentSelect span{width:32px;height:32px}}
+@media(max-width:400px){.studentDirectoryCardMeta{grid-template-columns:1fr}.studentDirectoryCard{min-height:auto}}
