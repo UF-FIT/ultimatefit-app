@@ -163,10 +163,10 @@ function MuscleGroupManager({ groups, exercises, onBack }) {
   const canonicalMobility = preferredStretchingMobilityGroup(mergeGroups);
   const mergeIds = new Set(mergeGroups.map(group=>group.id));
   const visibleGroups = groups.filter(group=>!isStretchingMobilityGroupName(group.name)||group.id===canonicalMobility?.id);
-  const counts = useMemo(()=>Object.fromEntries(visibleGroups.map(group=>[
+  const counts = Object.fromEntries(visibleGroups.map(group=>[
     group.id,
     exercises.filter(ex=>ex.active&&(group.id===canonicalMobility?.id?mergeIds.has(ex.groupId):ex.groupId===group.id)).length
-  ])),[visibleGroups,exercises,canonicalMobility?.id,mergeGroups.map(group=>group.id).join('|')]);
+  ]));
   const draft = editing || null;
   function startNew(){setEditing({id:'',name:'',iconKey:'default',sortOrder:100,active:true,system:false})}
   async function save(){
@@ -211,7 +211,7 @@ function SeriesTypeManager({ types, onBack }) {
     <button className="backButton" onClick={onBack}>← Voltar à biblioteca</button>
     <div className="heading"><div><span className="eyebrow">PLANOS DE TREINO</span><h1>Séries especiais</h1><p>Além de série normal, supersérie e circuito, podes criar formatos próprios para a tua equipa.</p></div><button className="primary" onClick={startNew}><Plus size={17}/>Criar série especial</button></div>
     {error&&<div className="errorBanner">{error}</div>}{notice&&<div className="successBanner"><CheckCircle2 size={17}/>{notice}</div>}
-    {editing&&<div className="card pad libraryInlineEditor"><div className="formGrid"><label>Nome*<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})} placeholder="Ex.: Tri-set"/></label><label>Ordem<input type="number" min="1" value={editing.sortOrder} onChange={e=>setEditing({...editing,sortOrder:e.target.value})}/></label><label className="wide">Descrição<input value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})} placeholder="Como deve ser usada esta série?"/></label><label className="exerciseActiveToggle"><input type="checkbox" checked={editing.supportsRounds} onChange={e=>setEditing({...editing,supportsRounds:e.target.checked)}/><span>Permitir definir voltas/rondas e descanso após o bloco</span></label></div><div className="modalActions"><button className="secondary" onClick={()=>setEditing(null)}>Cancelar</button><button className="primary" onClick={save}><Save size={16}/>Guardar</button></div></div>}
+    {editing&&<div className="card pad libraryInlineEditor"><div className="formGrid"><label>Nome*<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})} placeholder="Ex.: Tri-set"/></label><label>Ordem<input type="number" min="1" value={editing.sortOrder} onChange={e=>setEditing({...editing,sortOrder:e.target.value})}/></label><label className="wide">Descrição<input value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})} placeholder="Como deve ser usada esta série?"/></label><label className="exerciseActiveToggle"><input type="checkbox" checked={editing.supportsRounds} onChange={e=>setEditing({...editing,supportsRounds:e.target.checked})}/><span>Permitir definir voltas/rondas e descanso após o bloco</span></label></div><div className="modalActions"><button className="secondary" onClick={()=>setEditing(null)}>Cancelar</button><button className="primary" onClick={save}><Save size={16}/>Guardar</button></div></div>}
     <div className="seriesTypeGrid">{types.map(type=><article className={`card pad seriesTypeCard ${!type.active?'inactive':''}`} key={type.code}><div className="seriesTypeTop"><div className="muscleGroupIcon"><Layers3/></div><div><h3>{type.name}</h3><small>{type.system?'Série base':'Série personalizada'}{type.supportsRounds?' · com voltas':''}</small></div></div><p>{type.description||'Sem descrição.'}</p><div className="exerciseCardActions"><button className="secondary" onClick={()=>setEditing({...type})}><Edit3 size={15}/>Editar</button>{!type.system&&<button className="secondary" onClick={()=>toggle(type)}>{type.active?<Archive size={15}/>:<RefreshCw size={15}/>} {type.active?'Arquivar':'Reativar'}</button>}</div></article>)}</div>
   </div>;
 }
@@ -274,11 +274,11 @@ export default function ExerciseLibraryModule(){
     ...(canonicalMobility?[{...canonicalMobility,name:'Stretching & Mobility',iconKey:'mobility'}]:[]),
   ].sort((a,b)=>a.sortOrder-b.sortOrder||a.name.localeCompare(b.name));
   const baseExercises=data.exercises;
-  const counts=useMemo(()=>Object.fromEntries(visualGroups.map(g=>[
+  const counts=Object.fromEntries(visualGroups.map(g=>[
     g.id,
     baseExercises.filter(ex=>ex.active&&(g.id===canonicalMobility?.id?(mergeGroupIds.has(ex.groupId)||isStretchingMobilityGroupName(ex.group)):ex.groupId===g.id)).length
-  ])),[baseExercises,visualGroups,canonicalMobility?.id,mergeGroups.map(item=>item.id).join('|')]);
-  const list=useMemo(()=>baseExercises.filter(exercise=>{
+  ]));
+  const list=baseExercises.filter(exercise=>{
     const query=q.trim().toLowerCase();
     if(status==='active'&&!exercise.active)return false;
     if(status==='inactive'&&exercise.active)return false;
@@ -293,7 +293,7 @@ export default function ExerciseLibraryModule(){
       ||(exercise.equipment||'').toLowerCase().includes(query)
       ||(exercise.category||'').toLowerCase().includes(query)
       ||(exercise.aliases||[]).some(alias=>alias.toLowerCase().includes(query));
-  }),[baseExercises,q,group,status,canonicalMobility?.id,mergeGroups.map(item=>item.id).join('|')]);
+  });
   const autoList=useMemo(()=>autoCatalog.filter(stretch=>{
     const query=q.trim().toLowerCase();
     return !query||`${stretch.title} ${stretch.subtitle} ${stretch.description}`.toLowerCase().includes(query);
