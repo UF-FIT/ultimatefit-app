@@ -89,7 +89,22 @@ export async function requestNutritionConsultation({ studentId, message = '' }) 
     if (error.code === '23505') throw new Error('Já existe um pedido de consulta em acompanhamento.');
     throw error;
   }
-  return data.id;
+
+  let notificationSent = false;
+  try {
+    const { data: notification, error: notificationError } = await supabase.functions.invoke('notify-nutrition-consultation', {
+      body: { requestId: data.id },
+    });
+    if (notificationError || notification?.error) {
+      console.error('Nutrition consultation notification failed:', notificationError || notification.error);
+    } else {
+      notificationSent = true;
+    }
+  } catch (notificationError) {
+    console.error('Nutrition consultation notification failed:', notificationError);
+  }
+
+  return { id: data.id, notificationSent };
 }
 
 export async function updateNutritionConsultationRequestStatus({ id, status }) {
