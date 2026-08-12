@@ -6,7 +6,7 @@ import {fetchStudents} from '../lib/students';
 import {fetchAssessments} from '../lib/assessments';
 import {fetchExercises,fetchWorkoutPlans,fetchMuscleGroups,fetchWorkoutBlockTypes,fetchWorkoutCompletions} from '../lib/training';
 import {fetchActivities,fetchNotices} from '../lib/community';
-import {fetchNutritionDocuments} from '../lib/nutrition';
+import {fetchNutritionDocuments,fetchNutritionConsultationRequests} from '../lib/nutrition';
 
 const AppContext=createContext(null);
 const demoInitial={users:seedUsers,exercises:[],settings:{comingSoon:true,studioName:'ULTIMATE FIT'}};
@@ -26,6 +26,7 @@ function buildInitial(){
   plans:[],
   workoutCompletions:[],
   nutrition:[],
+  nutritionConsultationRequests:[],
   goals:[],
   messages:[],
   notices:[],
@@ -49,7 +50,7 @@ export function AppProvider({children}){
  const [nutritionError,setNutritionError]=useState('');
 
  useEffect(()=>{
-  const {students,assessments,exercises,muscleGroups,blockTypes,plans,workoutCompletions,nutrition,goals,messages,notices,activities,activityRegistrations,...safeToStore}=data;
+  const {students,assessments,exercises,muscleGroups,blockTypes,plans,workoutCompletions,nutrition,nutritionConsultationRequests,goals,messages,notices,activities,activityRegistrations,...safeToStore}=data;
   save('ultimatefit-mvp',safeToStore);
  },[data]);
 
@@ -65,7 +66,6 @@ export function AppProvider({children}){
    return [];
   }finally{setStudentsLoading(false)}
  }
-
 
  async function refreshAssessments(){
   if(!profile){setData(d=>({...d,assessments:[]}));setAssessmentsLoading(false);return []}
@@ -93,7 +93,6 @@ export function AppProvider({children}){
   }finally{setTrainingLoading(false)}
  }
 
-
  async function refreshCommunity(){
   if(!profile){setData(d=>({...d,notices:[],activities:[],activityRegistrations:[]}));setCommunityLoading(false);return {notices:[],activities:[],registrations:[]}}
   setCommunityLoading(true);setCommunityError('');
@@ -106,15 +105,15 @@ export function AppProvider({children}){
  }
 
  async function refreshNutrition(){
-  if(!profile){setData(d=>({...d,nutrition:[]}));setNutritionLoading(false);return []}
+  if(!profile){setData(d=>({...d,nutrition:[],nutritionConsultationRequests:[]}));setNutritionLoading(false);return {nutrition:[],requests:[]}}
   setNutritionLoading(true);setNutritionError('');
   try{
-   const nutrition=await fetchNutritionDocuments();
-   setData(d=>({...d,nutrition}));
-   return nutrition;
+   const [nutrition,requests]=await Promise.all([fetchNutritionDocuments(),fetchNutritionConsultationRequests()]);
+   setData(d=>({...d,nutrition,nutritionConsultationRequests:requests}));
+   return {nutrition,requests};
   }catch(error){
-   setNutritionError(error.message||'Não foi possível carregar os documentos de nutrição.');
-   return [];
+   setNutritionError(error.message||'Não foi possível carregar os dados de nutrição.');
+   return {nutrition:[],requests:[]};
   }finally{setNutritionLoading(false)}
  }
 
