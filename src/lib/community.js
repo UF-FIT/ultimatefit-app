@@ -1,14 +1,25 @@
 import { supabase } from './supabase';
 
 const COMMUNITY_BUCKET='community-media';
+const NOTICE_INTERVAL_MARKER=/\n?\[\[UF_POPUP_INTERVAL_HOURS:(24|48)\]\]\s*$/;
 
-export function mapNotice(row){return {id:row.id,title:row.title,body:row.body,targetAudience:row.target_audience,showPopup:row.show_popup!==false,showDashboard:row.show_dashboard!==false,active:row.is_active!==false,activeFrom:row.active_from,activeUntil:row.active_until,imageUrl:row.image_url||'',imagePath:row.image_path||'',createdAt:row.created_at};}
+function decodeNoticeBody(value=''){
+  const raw=String(value||'');
+  const match=raw.match(NOTICE_INTERVAL_MARKER);
+  return {body:raw.replace(NOTICE_INTERVAL_MARKER,'').trimEnd(),popupIntervalHours:match?Number(match[1]):24};
+}
+function encodeNoticeBody(value='',hours=24){
+  const interval=Number(hours)===48?48:24;
+  return `${String(value||'').trim()}\n\n[[UF_POPUP_INTERVAL_HOURS:${interval}]]`;
+}
+
+export function mapNotice(row){const decoded=decodeNoticeBody(row.body);return {id:row.id,title:row.title,body:decoded.body,popupIntervalHours:decoded.popupIntervalHours,targetAudience:row.target_audience,showPopup:row.show_popup!==false,showDashboard:row.show_dashboard!==false,active:row.is_active!==false,activeFrom:row.active_from,activeUntil:row.active_until,imageUrl:row.image_url||'',imagePath:row.image_path||'',createdAt:row.created_at};}
 export async function fetchNotices(){
   const {data,error}=await supabase.from('app_notices').select('*').order('active_from',{ascending:false});
   if(error){if(error.code==='42P01') return []; throw error;} return (data||[]).map(mapNotice);
 }
 export async function saveNotice(input){
-  const payload={title:input.title.trim(),body:input.body.trim(),target_audience:input.targetAudience||'students',show_popup:input.showPopup!==false,show_dashboard:input.showDashboard!==false,is_active:input.active!==false,active_from:input.activeFrom||new Date().toISOString(),active_until:input.activeUntil||null,image_url:input.imageUrl||null,image_path:input.imagePath||null};
+  const payload={title:input.title.trim(),body:encodeNoticeBody(input.body,input.popupIntervalHours),target_audience:input.targetAudience||'students',show_popup:input.showPopup!==false,show_dashboard:input.showDashboard!==false,is_active:input.active!==false,active_from:input.activeFrom||new Date().toISOString(),active_until:input.activeUntil||null,image_url:input.imageUrl||null,image_path:input.imagePath||null};
   const q=input.id?supabase.from('app_notices').update(payload).eq('id',input.id):supabase.from('app_notices').insert(payload);
   const {data,error}=await q.select().single(); if(error) throw error; return mapNotice(data);
 }
