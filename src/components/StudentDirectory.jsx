@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity, AlertTriangle, Apple, Archive, ArrowLeft, CalendarDays, Camera,
   Check, CheckCircle2, ChevronRight, Dumbbell, Edit3, ExternalLink, FileText,
@@ -312,20 +313,33 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
 
 export default function StudentDirectory({ onNavigate }) {
   const { data, currentUser, refreshStudents, studentsLoading, studentsError } = useApp();
+  const location = useLocation();
+  const routeNavigate = useNavigate();
+  const studentIdFromUrl = useMemo(() => new URLSearchParams(location.search).get('aluno') || '', [location.search]);
   const [trainers, setTrainers] = useState([]);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [tracking, setTracking] = useState('all');
   const [trainer, setTrainer] = useState('all');
   const [selected, setSelected] = useState(new Set());
-  const [activeStudentId, setActiveStudentId] = useState('');
+  const [activeStudentId, setActiveStudentId] = useState(studentIdFromUrl);
   const [formStudent, setFormStudent] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const activeStudent = data.students.find(item => item.id === activeStudentId);
 
+  function setStudentRoute(studentId, { replace = false } = {}) {
+    const params = new URLSearchParams(location.search);
+    if (studentId) params.set('aluno', studentId);
+    else params.delete('aluno');
+    const search = params.toString();
+    setActiveStudentId(studentId || '');
+    routeNavigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace });
+  }
+
   useEffect(() => { fetchAvailableTrainers().then(setTrainers).catch(err => setError(err.message)); }, []);
+  useEffect(() => { setActiveStudentId(studentIdFromUrl); }, [studentIdFromUrl]);
 
   const list = useMemo(() => data.students.filter(student => {
     const query = q.trim().toLowerCase();
@@ -366,7 +380,7 @@ export default function StudentDirectory({ onNavigate }) {
     <div className="card pad studentFormPageCard"><StudentForm student={formStudent} trainers={trainers} currentUser={currentUser} onCancel={()=>{setShowForm(false);setFormStudent(null)}} onSaved={saved}/></div>
   </div>;
 
-  if (activeStudent) return <StudentProfile student={activeStudent} currentUser={currentUser} trainers={trainers} assessments={data.assessments.filter(item => item.studentId === activeStudent.id)} onBack={()=>setActiveStudentId('')} onEdit={()=>{setFormStudent(activeStudent);setShowForm(true)}} onRefresh={refreshStudents} onNavigate={onNavigate}/>;
+  if (activeStudent) return <StudentProfile student={activeStudent} currentUser={currentUser} trainers={trainers} assessments={data.assessments.filter(item => item.studentId === activeStudent.id)} onBack={()=>setStudentRoute('')} onEdit={()=>{setFormStudent(activeStudent);setShowForm(true)}} onRefresh={refreshStudents} onNavigate={onNavigate}/>;
 
   return <>
     <div className="heading"><div><h1>Alunos</h1><p>Contas reais, atribuição pelo estúdio e gestão segura do acompanhamento.</p></div><button className="primary" onClick={()=>{setFormStudent(null);setShowForm(true)}}><Plus size={17}/>Novo aluno</button></div>
@@ -374,7 +388,7 @@ export default function StudentDirectory({ onNavigate }) {
     {(error || studentsError) && <div className="errorBanner"><AlertTriangle size={18}/>{error || studentsError}</div>}
     <div className="studentFilters"><div className="search"><Search size={18}/><input value={q} onChange={event=>setQ(event.target.value)} placeholder="Pesquisar nome ou número de aluno…"/></div><select value={status} onChange={event=>setStatus(event.target.value)}><option value="all">Todos os estados</option>{Object.entries(studentStatusLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><select value={tracking} onChange={event=>setTracking(event.target.value)}><option value="all">Todos os acompanhamentos</option>{trackingTypeOptions.map(item=><option key={item.value} value={item.value}>{item.label}</option>)}</select><select value={trainer} onChange={event=>setTrainer(event.target.value)}><option value="all">Todos os professores</option>{trainers.map(item=><option key={item.trainerProfileId} value={item.trainerProfileId}>{item.name}</option>)}</select></div>
     {selected.size > 0 && <div className="bulkToolbar"><b>{selected.size} selecionado(s)</b><button className="secondary" onClick={()=>bulkAction('deactivate')}><Power size={15}/>Desativar</button><button className="secondary" onClick={()=>bulkAction('reactivate')}><RefreshCw size={15}/>Reativar</button><button className="secondary" onClick={()=>bulkAction('archive')}><Archive size={15}/>Arquivar</button>{currentUser.role==='admin'&&<button className="dangerButton" onClick={()=>bulkAction('delete')}><Trash2 size={15}/>Eliminar definitivamente</button>}<button className="textButton" onClick={()=>setSelected(new Set())}>Limpar seleção</button></div>}
-    {studentsLoading ? <div className="card pad loadingCard"><div className="loader"/><p>A carregar alunos…</p></div> : list.length ? <div className="studentDirectoryGrid">{list.map(student=><article className="studentDirectoryCard" key={student.id}><label className="studentSelect"><input type="checkbox" checked={selected.has(student.id)} onChange={()=>toggleSelected(student.id)}/><span/></label><StudentPhoto student={student}/><div className="studentCardIdentity"><h3>{student.name}</h3><p>{student.age ?? '—'} anos</p><small><CalendarDays size={14}/> {formatDate(student.birth)}</small></div><button className="secondary full" onClick={()=>setActiveStudentId(student.id)}>Entrar no perfil <ChevronRight size={16}/></button></article>)}</div> : <div className="emptyState card pad"><Users size={36}/><h2>Sem alunos</h2><p>Cria o primeiro registo real. O aluno receberá um email para definir a palavra-passe.</p><button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>Novo aluno</button></div>}
+    {studentsLoading ? <div className="card pad loadingCard"><div className="loader"/><p>A carregar alunos…</p></div> : list.length ? <div className="studentDirectoryGrid">{list.map(student=><article className="studentDirectoryCard" key={student.id}><label className="studentSelect"><input type="checkbox" checked={selected.has(student.id)} onChange={()=>toggleSelected(student.id)}/><span/></label><StudentPhoto student={student}/><div className="studentCardIdentity"><h3>{student.name}</h3><p>{student.age ?? '—'} anos</p><small><CalendarDays size={14}/> {formatDate(student.birth)}</small></div><button className="secondary full" onClick={()=>setStudentRoute(student.id)}>Entrar no perfil <ChevronRight size={16}/></button></article>)}</div> : <div className="emptyState card pad"><Users size={36}/><h2>Sem alunos</h2><p>Cria o primeiro registo real. O aluno receberá um email para definir a palavra-passe.</p><button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>Novo aluno</button></div>}
   </>;
 }
 
