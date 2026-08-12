@@ -54,6 +54,55 @@ export async function fetchNutritionDocuments() {
   }));
 }
 
+export async function fetchNutritionConsultationRequests() {
+  const { data: rows, error } = await supabase
+    .from('nutrition_consultation_requests')
+    .select('id,student_id,requested_by,status,message,handled_by,created_at,updated_at')
+    .order('created_at', { ascending: false });
+  if (error) {
+    if (error.code === '42P01') return [];
+    throw error;
+  }
+  return (rows || []).map(row => ({
+    id: row.id,
+    studentId: row.student_id,
+    requestedBy: row.requested_by,
+    status: row.status,
+    message: row.message || '',
+    handledBy: row.handled_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function requestNutritionConsultation({ studentId, message = '' }) {
+  if (!studentId) throw new Error('Não foi possível identificar o aluno.');
+  const { data, error } = await supabase
+    .from('nutrition_consultation_requests')
+    .insert({
+      student_id: studentId,
+      message: String(message || '').trim() || null,
+    })
+    .select('id')
+    .single();
+  if (error) {
+    if (error.code === '23505') throw new Error('Já existe um pedido de consulta em acompanhamento.');
+    throw error;
+  }
+  return data.id;
+}
+
+export async function updateNutritionConsultationRequestStatus({ id, status }) {
+  if (!id) throw new Error('Pedido inválido.');
+  const allowed = ['requested', 'contacted', 'scheduled', 'completed', 'cancelled'];
+  if (!allowed.includes(status)) throw new Error('Estado do pedido inválido.');
+  const { error } = await supabase
+    .from('nutrition_consultation_requests')
+    .update({ status })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 export async function uploadNutritionDocument({ studentId, title, notes, file }) {
   if (!studentId) throw new Error('Seleciona o aluno.');
   if (!String(title || '').trim()) throw new Error('Indica um título para o plano alimentar.');
