@@ -1,0 +1,6 @@
+.professionalReadCard,.securityReadCard{display:grid;gap:18px}
+.professionalReadHeader,.securityReadHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.professionalReadHeader .panelTitle,.securityReadHeader .panelTitle{flex:1;margin:0}
+.professionalReadHeader .secondary,.securityReadHeader .secondary{margin:0;flex:0 0 auto}
+.professionalReadPhoto{display:flex;align-items:center;gap:15px;padding:14px;background:#0a0a0c;border:1px solid rgba(255,255,255,.07);border-radius:7px}
+.professionalReadPhotoAvatar{width:68px;height:68px;border-radius:16px;overflow:hidden;display:grid;place-items:center;background:#060606;border:1px solid rgba(255,217,8,.38);color:var(--y);font-family
