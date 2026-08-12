@@ -1,4 +1,6 @@
-export const automaticStretchingCatalog = [
+import { supabase } from './supabase';
+
+const builtInAutomaticStretchingCatalog = [
   {
     key: 'neck',
     title: 'Pescoço',
@@ -70,6 +72,58 @@ export const automaticStretchingCatalog = [
     description: 'Mantém o calcanhar apoiado e aproxima o corpo da parede até sentires tensão confortável no gémeo.',
   },
 ];
+
+function publicMediaUrl(path = '') {
+  if (!path || !supabase) return '';
+  return supabase.storage.from('exercise-media').getPublicUrl(path).data.publicUrl || '';
+}
+
+function mergeAutomaticStretchingCatalog(overrides = []) {
+  return builtInAutomaticStretchingCatalog.map(fallback => {
+    const stored = overrides.find(item => item?.key === fallback.key) || {};
+    const mediaPath = stored.mediaPath || '';
+    const externalMediaUrl = stored.externalMediaUrl || '';
+    const mediaUrl = externalMediaUrl || publicMediaUrl(mediaPath) || stored.image || fallback.image;
+    return {
+      ...fallback,
+      ...stored,
+      key: fallback.key,
+      title: stored.title || fallback.title,
+      subtitle: stored.subtitle || fallback.subtitle,
+      description: stored.description || fallback.description,
+      image: mediaUrl,
+      mediaPath,
+      mediaKind: stored.mediaKind || '',
+      externalMediaUrl,
+      mediaUrl,
+    };
+  });
+}
+
+export const automaticStretchingCatalog = mergeAutomaticStretchingCatalog();
+
+export function applyAutomaticStretchingCatalog(items = []) {
+  const merged = mergeAutomaticStretchingCatalog(items);
+  automaticStretchingCatalog.splice(0, automaticStretchingCatalog.length, ...merged);
+  return automaticStretchingCatalog;
+}
+
+async function hydrateAutomaticStretchingCatalog() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'automatic_stretching_catalog')
+      .maybeSingle();
+    if (error) return;
+    if (Array.isArray(data?.setting_value)) applyAutomaticStretchingCatalog(data.setting_value);
+  } catch {
+    // Built-in catalogue remains available if remote settings cannot be read.
+  }
+}
+
+hydrateAutomaticStretchingCatalog();
 
 function normalise(value = '') {
   return String(value)
