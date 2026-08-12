@@ -16,11 +16,15 @@ create table if not exists public.nutrition_consultation_requests (
   status text not null default 'requested',
   message text,
   handled_by uuid references public.profiles(id) on delete set null,
+  notification_sent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint nutrition_consultation_requests_status_check check (status in ('requested','contacted','scheduled','completed','cancelled')),
   constraint nutrition_consultation_requests_message_check check (message is null or char_length(message) <= 800)
 );
+
+alter table public.nutrition_consultation_requests
+  add column if not exists notification_sent_at timestamptz;
 
 create index if not exists nutrition_consultation_requests_student_created_idx
   on public.nutrition_consultation_requests (student_id, created_at desc);
@@ -41,6 +45,7 @@ begin
     new.requested_by := auth.uid();
     new.status := 'requested';
     new.handled_by := null;
+    new.notification_sent_at := null;
   elsif new.status <> old.status and new.status in ('contacted','scheduled','completed','cancelled') then
     new.handled_by := auth.uid();
   end if;
