@@ -30,11 +30,18 @@ function ensureStyle() {
     .ufInlineLoadCell.current input::placeholder{color:#d8c866!important;font-size:10px!important;font-weight:800!important}
     .ufInlineLoadCell.current input:focus{outline:none!important;border-color:#ffda00!important;box-shadow:0 0 0 3px rgba(255,216,0,.13)!important}
     .ufInlineLoadCell.current:has(input:not(:disabled))::after{content:'CAMPO EDITÁVEL';font-size:7px;font-weight:900;letter-spacing:.06em;color:#d7c55d;margin-top:2px}
+    .ufNoLoadButton{margin-top:5px;width:100%;min-height:24px;border:1px solid rgba(255,255,255,.12);border-radius:5px;background:#111114;color:#a9a9af;font:inherit;font-size:8px;font-weight:850;cursor:pointer;letter-spacing:.03em}
+    .ufNoLoadButton:hover{border-color:rgba(255,216,0,.45);color:#ffda00;background:rgba(255,216,0,.06)}
+    .ufNoLoadButton.selected{border-color:rgba(255,216,0,.65);color:#ffda00;background:rgba(255,216,0,.10)}
+    .ufNoLoadButton:disabled{display:none}
     .ufExerciseDoneButton{width:100%;height:36px;margin:6px 0 12px;border:1px solid rgba(255,216,0,.36);border-radius:7px;background:rgba(255,216,0,.08);color:#ffda00;font:inherit;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.18s ease}
     .ufExerciseDoneButton:hover{background:rgba(255,216,0,.15);border-color:rgba(255,216,0,.62)}
     .ufExerciseDoneButton.done{background:rgba(27,123,69,.16);border-color:rgba(71,210,129,.38);color:#59da92;cursor:default}
     .ufExerciseDoneButton.error{background:rgba(140,26,26,.15);border-color:rgba(255,86,86,.55);color:#ff8c8c}
     .ufInlineLoadCell.current.done{border-color:rgba(71,210,129,.42)!important;background:rgba(27,123,69,.12)!important}
+    .ufInlineLoadCell.current.done.noLoad input{display:none!important}
+    .ufInlineLoadCell.current.done.noLoad::before{content:'SEM CARGA';font-size:12px;font-weight:900;color:#59da92;order:2}
+    .ufInlineLoadCell.current.done.noLoad .unit{display:none!important}
     @media(max-width:900px){.ufExerciseDoneButton{margin-top:6px}.trainingExerciseView .ufInlineLoad{width:100%!important}}
   `;
   document.head.appendChild(style);
@@ -65,18 +72,42 @@ function planEntries(plan) {
   );
 }
 
-function parseSuggested(item) {
-  const match = String(item?.loadText || '').replace(',', '.').match(/\d+(?:\.\d+)?/);
-  return match ? Number(match[0]) : null;
-}
-
 function prepareWeightUi(row) {
   const input = row.querySelector('[data-today-load]');
+  const current = row.querySelector('.ufInlineLoadCell.current');
   if (input && !input.disabled) {
     input.placeholder = 'Inserir kg';
-    input.title = 'Introduz aqui o peso realizado neste treino';
-    const label = row.querySelector('.ufInlineLoadCell.current small');
+    input.title = 'Introduz aqui o peso realizado neste treino. Usa 0 ou “Sem carga” quando não existir carga externa.';
+    input.min = '0';
+    const label = current?.querySelector('small');
     if (label) label.textContent = 'Hoje · inserir';
+
+    let noLoadButton = current?.querySelector('.ufNoLoadButton');
+    if (current && !noLoadButton) {
+      noLoadButton = document.createElement('button');
+      noLoadButton.type = 'button';
+      noLoadButton.className = 'ufNoLoadButton';
+      noLoadButton.textContent = 'Sem carga';
+      noLoadButton.title = 'Usar quando o exercício é feito apenas com o peso corporal ou sem carga externa';
+      noLoadButton.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        input.value = '0';
+        noLoadButton.classList.add('selected');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      current.appendChild(noLoadButton);
+    }
+
+    if (noLoadButton) {
+      noLoadButton.classList.toggle('selected', String(input.value).trim() === '0');
+      if (noLoadButton.dataset.inputBound !== '1') {
+        noLoadButton.dataset.inputBound = '1';
+        input.addEventListener('input', () => {
+          noLoadButton.classList.toggle('selected', String(input.value).trim() === '0');
+        });
+      }
+    }
   }
 
   const copy = row.querySelector('.trainingExerciseCopy');
@@ -89,13 +120,19 @@ function prepareWeightUi(row) {
 
 function markVisualDone(row, button, value) {
   const input = row.querySelector('[data-today-load]');
+  const numericValue = value == null || value === '' ? null : Number(value);
+  const noLoad = numericValue === 0 || numericValue == null;
   if (input) {
-    if (value != null && value !== '') input.value = value;
+    if (!noLoad) input.value = numericValue;
+    else input.value = '';
     input.disabled = true;
-    input.title = 'Exercício já registado hoje';
+    input.title = noLoad ? 'Exercício realizado sem carga externa' : 'Exercício já registado hoje';
   }
   const current = row.querySelector('.ufInlineLoadCell.current');
   current?.classList.add('done');
+  current?.classList.toggle('noLoad', noLoad);
+  const noLoadButton = current?.querySelector('.ufNoLoadButton');
+  if (noLoadButton) noLoadButton.disabled = true;
   const label = current?.querySelector('small');
   if (label) label.textContent = 'Feito hoje';
   button.className = 'ufExerciseDoneButton done';
@@ -106,17 +143,16 @@ function markVisualDone(row, button, value) {
 async function saveExercise({ row, button, entry, plan, studentId }) {
   const input = row.querySelector('[data-today-load]');
   const raw = String(input?.value || '').trim();
-  const weight = raw ? Number(raw.replace(',', '.')) : null;
-  const suggested = parseSuggested(entry.item);
+  const weight = raw === '' ? null : Number(raw.replace(',', '.'));
 
-  if (suggested != null && (!Number.isFinite(weight) || weight <= 0)) {
+  if (raw !== '' && (!Number.isFinite(weight) || weight < 0)) {
     button.classList.add('error');
-    button.textContent = 'Introduz primeiro o peso realizado';
+    button.textContent = 'Introduz um peso válido ou escolhe “Sem carga”';
     input?.focus();
     setTimeout(() => {
       button.classList.remove('error');
       button.textContent = '✓ Marcar como feito';
-    }, 2400);
+    }, 2600);
     return;
   }
 
@@ -137,7 +173,7 @@ async function saveExercise({ row, button, entry, plan, studentId }) {
   if (error) {
     button.disabled = false;
     button.classList.add('error');
-    button.textContent = /já foi marcado|já foi registado/i.test(error.message || '') ? 'Este exercício já foi registado hoje' : 'Não foi possível guardar';
+    button.textContent = /already recorded|já foi marcado|já foi registado/i.test(error.message || '') ? 'Este exercício já foi registado hoje' : 'Não foi possível guardar';
     setTimeout(() => {
       button.classList.remove('error');
       button.textContent = '✓ Marcar como feito';
