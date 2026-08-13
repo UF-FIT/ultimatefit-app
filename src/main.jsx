@@ -7,6 +7,7 @@ import './styles/student-directory-cards-v2.css';
 import './styles/dashboard-attention.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
+import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
@@ -41,4 +42,5 @@ if (entryPath) {
     </React.StrictMode>
   );
   startDashboardAttentionEnhancer();
+  startTrainingVolumeEnhancer();
 }
