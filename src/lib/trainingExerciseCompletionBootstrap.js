@@ -1,3 +1,3 @@
-import { startTrainingExerciseCompletionEnhancer } from './trainingExerciseCompletionEnhancer';
+import { startTrainingExerciseCompletionEnhancerV2 } from './trainingExerciseCompletionEnhancerV2';
 
-startTrainingExerciseCompletionEnhancer();
+startTrainingExerciseCompletionEnhancerV2();
