@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import '../styles/training-volume-analysis.css';
 
 const ROOT_ID = 'uf-training-volume-analysis';
 let lastKey = '';
