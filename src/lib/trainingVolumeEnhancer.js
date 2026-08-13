@@ -1,3 +1,4 @@
+import './trainingPlanInstantShell';
 import { supabase } from './supabase';
 import { fetchWorkoutPlans } from './training';
 import '../styles/training-volume-analysis.css';
