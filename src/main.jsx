@@ -5,9 +5,11 @@ import App from './App';
 import './styles/app.css';
 import './styles/student-directory-cards-v2.css';
 import './styles/dashboard-attention.css';
+import './styles/training-editor-error-feedback.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
+import { startTrainingEditorErrorEnhancer } from './lib/trainingEditorErrorEnhancer';
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
@@ -43,4 +45,5 @@ if (entryPath) {
   );
   startDashboardAttentionEnhancer();
   startTrainingVolumeEnhancer();
+  startTrainingEditorErrorEnhancer();
 }
