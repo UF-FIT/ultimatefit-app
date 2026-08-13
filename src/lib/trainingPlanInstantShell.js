@@ -155,3 +155,5 @@ export function startTrainingPlanInstantShell() {
   window.addEventListener('focus', schedule);
   schedule();
 }
+
+startTrainingPlanInstantShell();
