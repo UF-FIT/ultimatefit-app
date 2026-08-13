@@ -196,19 +196,6 @@ export default function ProfessionalProfile() {
               <button type="button" className="secondary" onClick={() => setEditingProfile(true)}>Editar perfil</button>
             </div>
 
-            <div className="professionalReadPhoto">
-              <div className="professionalReadPhotoAvatar">
-                {profile.photoUrl || profile.thumbUrl
-                  ? <img src={profile.photoUrl || profile.thumbUrl} alt={profile.full_name}/>
-                  : initials(profile.full_name)}
-              </div>
-              <div>
-                <span className="eyebrow">PERFIL</span>
-                <b>{profile.full_name}</b>
-                <small>{profile.professionalTitle || 'Título profissional não definido'}</small>
-              </div>
-            </div>
-
             <div className="professionalReadGrid">
               <div className="professionalReadField"><span>Nome</span><b>{profile.firstName || '—'}</b></div>
               <div className="professionalReadField"><span>Apelido</span><b>{profile.lastName || '—'}</b></div>
