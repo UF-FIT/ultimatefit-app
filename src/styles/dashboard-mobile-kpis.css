@@ -1,0 +1,53 @@
+/* Dashboard KPI cards: compact two-column layout on mobile only */
+@media (max-width: 760px) {
+  .content > .grid.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .content > .grid.four .kpi {
+    padding: 14px 12px;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .content > .grid.four .kpi .iconBox {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+  }
+
+  .content > .grid.four .kpi > div:last-child {
+    min-width: 0;
+  }
+
+  .content > .grid.four .kpi small {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .content > .grid.four .kpi strong {
+    font-size: 30px;
+    line-height: 1.05;
+  }
+}
+
+@media (max-width: 380px) {
+  .content > .grid.four {
+    gap: 10px;
+  }
+
+  .content > .grid.four .kpi {
+    padding: 12px 10px;
+  }
+
+  .content > .grid.four .kpi .iconBox {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+
+  .content > .grid.four .kpi strong {
+    font-size: 27px;
+  }
+}
