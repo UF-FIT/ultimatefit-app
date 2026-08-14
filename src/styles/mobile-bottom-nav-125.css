@@ -1,23 +1,29 @@
 @media (max-width: 760px) {
-  .bottomNav button {
-    padding: 14px 3px;
-    gap: 5px;
+  nav.bottomNav {
+    min-height: 116px !important;
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom)) !important;
+    align-items: center !important;
   }
 
-  .bottomNav button svg {
-    width: 31px;
-    height: 31px;
+  nav.bottomNav button {
+    min-height: 86px !important;
+    padding: 12px 3px !important;
+    gap: 7px !important;
   }
 
-  .bottomNav small {
-    font-size: 14px;
+  nav.bottomNav button svg {
+    width: 38px !important;
+    height: 38px !important;
+    stroke-width: 2.25 !important;
   }
 
-  .bottomNav {
-    min-height: 92px;
+  nav.bottomNav button small {
+    font-size: 16px !important;
+    line-height: 1.05 !important;
+    font-weight: 500 !important;
   }
 
   .content {
-    padding-bottom: 140px;
+    padding-bottom: 168px !important;
   }
 }
