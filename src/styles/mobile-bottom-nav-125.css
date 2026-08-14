@@ -1,0 +1,19 @@
+@media (max-width: 760px) {
+  .bottomNav button {
+    padding: 11.25px 2.5px;
+    gap: 3.75px;
+  }
+
+  .bottomNav button svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .bottomNav small {
+    font-size: 11.25px;
+  }
+
+  .content {
+    padding-bottom: 112px;
+  }
+}
