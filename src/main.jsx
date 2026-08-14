@@ -13,6 +13,7 @@ import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhance
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
 import { startTrainingEditorErrorEnhancer } from './lib/trainingEditorErrorEnhancer';
 import { startTrainingLoadInlineEnhancer } from './lib/trainingLoadInlineEnhancer';
+import { startMobileBottomNavEnhancer } from './lib/mobileBottomNavEnhancer';
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
@@ -50,4 +51,5 @@ if (entryPath) {
   startTrainingVolumeEnhancer();
   startTrainingEditorErrorEnhancer();
   startTrainingLoadInlineEnhancer();
+  startMobileBottomNavEnhancer();
 }
