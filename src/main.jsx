@@ -6,6 +6,7 @@ import './styles/app.css';
 import './styles/student-directory-cards-v2.css';
 import './styles/dashboard-attention.css';
 import './styles/training-editor-error-feedback.css';
+import './styles/dashboard-mobile-kpis.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
