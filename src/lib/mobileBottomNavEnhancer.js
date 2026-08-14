@@ -25,7 +25,7 @@ function applyMobileBottomNavSize() {
 
     const label = button.querySelector('small');
     if (label) {
-      label.style.setProperty('font-size', '10px', 'important');
+      label.style.setProperty('font-size', '8px', 'important');
       label.style.setProperty('line-height', '1.1', 'important');
       label.style.setProperty('font-weight', '500', 'important');
     }
