@@ -1,0 +1,39 @@
+/* Perfil do aluno: página dedicada e limpa. Não altera o Dashboard (/inicio). */
+html.student-profile-clean .studentSelfProfilePage {
+  display: flex;
+  flex-direction: column;
+}
+
+html.student-profile-clean .studentSelfProfilePage > * {
+  display: none !important;
+}
+
+/* 1 — A minha área */
+html.student-profile-clean .studentSelfProfilePage > .studentSelfHero {
+  display: grid !important;
+  order: 1;
+}
+
+/* 2 — Perfil / Dados do aluno */
+html.student-profile-clean .studentSelfProfilePage > .studentDetails {
+  display: block !important;
+  order: 2;
+  margin-top: 18px;
+}
+
+/* 3 — PAR-Q */
+html.student-profile-clean .studentSelfProfilePage > .parqStatusCard {
+  display: block !important;
+  order: 3;
+  margin-top: 18px;
+}
+
+/* Mensagens e modais transitórios continuam funcionais. */
+html.student-profile-clean .studentSelfProfilePage > .successBanner,
+html.student-profile-clean .studentSelfProfilePage > .errorBanner,
+html.student-profile-clean .studentSelfProfilePage > .overlay {
+  display: flex !important;
+}
+html.student-profile-clean .studentSelfProfilePage > .overlay {
+  position: fixed !important;
+}
