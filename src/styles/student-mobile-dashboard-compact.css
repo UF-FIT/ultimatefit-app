@@ -1,0 +1,91 @@
+@media (max-width: 760px) {
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 {
+    grid-template-columns: 80px minmax(0, 1fr) !important;
+    grid-template-areas:
+      "photo identity"
+      "actions actions" !important;
+    align-items: center !important;
+    justify-items: stretch !important;
+    gap: 14px 16px !important;
+    padding: 18px !important;
+    text-align: left !important;
+    border-radius: 10px !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 > .studentPhoto.large {
+    grid-area: photo !important;
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 16px !important;
+    align-self: start !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 > div:not(.selfActions):not(.studentPhoto) {
+    grid-area: identity !important;
+    min-width: 0 !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 .eyebrow {
+    font-size: 9px !important;
+    letter-spacing: .12em !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 h1 {
+    font-size: 34px !important;
+    line-height: .98 !important;
+    margin: 4px 0 5px !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 p {
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 .profileChips {
+    justify-content: flex-start !important;
+    gap: 5px !important;
+    margin-top: 8px !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 .profileChips span {
+    padding: 5px 7px !important;
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 .selfActions {
+    grid-area: actions !important;
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 .selfActions button {
+    min-height: 48px !important;
+    padding: 8px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    border-radius: 7px !important;
+    font-size: 12px !important;
+    line-height: 1.15 !important;
+    text-align: left !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 .selfActions button svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex: 0 0 auto !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 .selfActions button span {
+    display: inline !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero.profileHeroV2 + * {
+    margin-top: 14px !important;
+  }
+}
