@@ -13,6 +13,9 @@ function applyMobileBottomNavSize() {
     button.style.setProperty('min-height', '61px', 'important');
     button.style.setProperty('padding', '7px 2px', 'important');
     button.style.setProperty('gap', '5px', 'important');
+    button.style.setProperty('font-size', '8px', 'important');
+    button.style.setProperty('line-height', '1.1', 'important');
+    button.style.setProperty('font-weight', '500', 'important');
 
     const icon = button.querySelector('svg');
     if (icon) {
