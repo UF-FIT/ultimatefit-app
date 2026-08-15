@@ -10,6 +10,7 @@ function applyStudentProfilePageLayout() {
     ':scope > .profileHub',
     ':scope > .profileOverviewGrid',
     ':scope > .profileChart',
+    ':scope > .trainerProfileCard',
   ];
 
   removableSelectors.forEach((selector) => {
@@ -23,6 +24,34 @@ function applyStudentProfilePageLayout() {
       }
     });
   });
+
+  const hero = page.querySelector(':scope > .studentSelfHero');
+  const details = page.querySelector(':scope > .studentDetails');
+  const parq = page.querySelector(':scope > .parqStatusCard');
+
+  if (isProfileRoute) {
+    page.style.setProperty('display', 'flex');
+    page.style.setProperty('flex-direction', 'column');
+
+    if (hero) hero.style.setProperty('order', '1');
+    if (details) {
+      details.style.setProperty('order', '2');
+      details.style.setProperty('margin-top', '18px');
+    }
+    if (parq) {
+      parq.style.setProperty('order', '3');
+      parq.style.setProperty('margin-top', '18px');
+    }
+  } else {
+    page.style.removeProperty('display');
+    page.style.removeProperty('flex-direction');
+
+    [hero, details, parq].forEach((element) => {
+      if (!element) return;
+      element.style.removeProperty('order');
+      element.style.removeProperty('margin-top');
+    });
+  }
 }
 
 export function startStudentProfilePageCleaner() {
