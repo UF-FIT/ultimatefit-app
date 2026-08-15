@@ -1,0 +1,6 @@
+@media (max-width: 760px) {
+  /* Na área mobile do aluno, a exportação do PDF fica apenas na secção Avaliações. */
+  .studentSelfProfilePage .selfActions > button:nth-child(2) {
+    display: none !important;
+  }
+}
