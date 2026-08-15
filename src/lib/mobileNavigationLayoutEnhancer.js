@@ -100,7 +100,19 @@ function rebuildMobileNavigation() {
   const isProfessional = labels.includes('alunos');
 
   const profileShortcut = document.querySelector('.profileShortcut');
-  if (profileShortcut && profileButton) profileShortcut.setAttribute('aria-label', 'Abrir o meu perfil');
+  if (profileShortcut && profileButton) {
+    profileShortcut.setAttribute('aria-label', 'Abrir o meu perfil');
+    profileShortcut.style.setProperty('cursor', 'pointer');
+
+    if (!profileShortcut.dataset.mobileProfileShortcutBound) {
+      profileShortcut.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        profileButton.click();
+      });
+      profileShortcut.dataset.mobileProfileShortcutBound = 'true';
+    }
+  }
 
   if (!isProfessional) {
     document.querySelector('.mobileNavOverflowPanel')?.remove();
