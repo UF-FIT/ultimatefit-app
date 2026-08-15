@@ -11,6 +11,7 @@ import './styles/mobile-bottom-nav-125.css';
 import './styles/mobile-overflow-navigation.css';
 import './styles/mobile-login-ios-zoom.css';
 import './styles/mobile-student-dashboard-actions.css';
+import './styles/student-mobile-dashboard-compact.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
