@@ -1,0 +1,125 @@
+@media (max-width: 760px) {
+  .bottomNav {
+    overflow: visible !important;
+  }
+
+  .bottomNav > .mobilePrimaryNavButton {
+    font-size: 11px !important;
+    line-height: 1.05 !important;
+    font-weight: 500 !important;
+    min-width: 0;
+  }
+
+  .bottomNav > .mobilePrimaryNavButton small {
+    font-size: 11px !important;
+    line-height: 1.05 !important;
+    font-weight: 500 !important;
+  }
+
+  .bottomNav > .mobileMoreMenuButton {
+    color: #f4f4f4 !important;
+  }
+
+  .mobileMoreMenuIcon {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #ffd908;
+    border-radius: 50%;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    box-sizing: border-box;
+  }
+
+  .mobileMoreMenuIcon span {
+    width: 12px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    display: block;
+  }
+
+  .mobileMoreMenuButton[aria-expanded="true"] .mobileMoreMenuIcon {
+    background: rgba(255, 217, 8, 0.14);
+    color: #ffd908;
+  }
+
+  .mobileNavOverflowPanel {
+    position: fixed;
+    z-index: 9999;
+    left: 50%;
+    bottom: calc(91px + env(safe-area-inset-bottom));
+    width: min(360px, calc(100vw - 28px));
+    transform: translate(-50%, 14px) scale(0.98);
+    opacity: 0;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 16px;
+    background: rgba(13, 13, 14, 0.98);
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  .mobileNavOverflowPanel::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -8px;
+    width: 15px;
+    height: 15px;
+    transform: translateX(-50%) rotate(45deg);
+    background: #0d0d0e;
+    border-right: 1px solid rgba(255, 255, 255, 0.14);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .mobileNavOverflowPanel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  .mobileNavOverflowItem {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    color: #c7c7ca;
+    min-height: 58px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .mobileNavOverflowItem svg {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+  }
+
+  .mobileNavOverflowItem.active {
+    color: #ffd908;
+    border-color: rgba(255, 217, 8, 0.38);
+    background: rgba(255, 217, 8, 0.08);
+  }
+}
+
+@media (min-width: 761px) {
+  .mobileNavOverflowPanel {
+    display: none !important;
+  }
+}
