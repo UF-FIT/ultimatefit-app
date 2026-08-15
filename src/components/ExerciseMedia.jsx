@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Dumbbell, ExternalLink, PlayCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BookOpen, ExternalLink, PlayCircle } from 'lucide-react';
 
 const vimeoThumbCache = new Map();
 
@@ -93,7 +93,7 @@ function MuscleFigure({ group = '' }) {
   </svg>;
 }
 
-function VisualFallback({ exercise, className = '', manual = false }) {
+function VisualFallback({ exercise, className = '', manual = false, branded = true }) {
   return <div className={`exerciseVisualFallback ${className}`}>
     <div className="exerciseVisualFallbackInner">
       {manual ? <BookOpen size={28}/> : <MuscleFigure group={exercise?.group || ''}/>} 
@@ -101,12 +101,12 @@ function VisualFallback({ exercise, className = '', manual = false }) {
       <strong>{exercise?.name || 'Exercício'}</strong>
       {!manual && <span>Ilustração neutra da zona alvo</span>}
     </div>
-    <BrandMark/>
+    {branded && <BrandMark/>}
   </div>;
 }
 
-function Branded({ children, className = '' }) {
-  return <div className={`exerciseMediaBranded ${className}`}>{children}<BrandMark/></div>;
+function MediaFrame({ children, className = '', branded = true }) {
+  return <div className={`exerciseMediaBranded ${className}`}>{children}{branded && <BrandMark/>}</div>;
 }
 
 async function getVimeoThumbnail(url) {
@@ -128,13 +128,13 @@ function VimeoCompact({ url, exercise, className = '' }) {
     getVimeoThumbnail(url).then(value => { if (alive) setThumb(value || ''); });
     return () => { alive = false; };
   }, [url]);
-  if (!thumb) return <VisualFallback exercise={exercise} className={className}/>;
-  return <Branded className={className}><img src={thumb} alt={exercise.name} loading="lazy" decoding="async"/></Branded>;
+  if (!thumb) return <VisualFallback exercise={exercise} className={className} branded={false}/>;
+  return <MediaFrame className={className} branded={false}><img src={thumb} alt={exercise.name} loading="lazy" decoding="async"/></MediaFrame>;
 }
 
 export default function ExerciseMedia({ exercise, compact = false, controls = true, className = '', manual = false }) {
   if (!exercise || manual || !hasExerciseMedia(exercise)) {
-    return <VisualFallback exercise={exercise} className={className} manual={manual}/>;
+    return <VisualFallback exercise={exercise} className={className} manual={manual} branded={!compact}/>;
   }
 
   const url = exercise.mediaUrl || exercise.externalMediaUrl || '';
@@ -144,30 +144,30 @@ export default function ExerciseMedia({ exercise, compact = false, controls = tr
   if (compact) {
     if (kind === 'youtube') {
       const thumb = youtubeThumbnail(url);
-      if (thumb) return <Branded className={className}><img src={thumb} alt={exercise.name} loading="lazy" decoding="async"/></Branded>;
+      if (thumb) return <MediaFrame className={className} branded={false}><img src={thumb} alt={exercise.name} loading="lazy" decoding="async"/></MediaFrame>;
     }
     if (kind === 'vimeo') return <VimeoCompact url={url} exercise={exercise} className={className}/>;
     if (kind === 'image' || kind === 'gif') {
-      return <Branded className={className}><img src={url} alt={exercise.name} loading="lazy" decoding="async"/></Branded>;
+      return <MediaFrame className={className} branded={false}><img src={url} alt={exercise.name} loading="lazy" decoding="async"/></MediaFrame>;
     }
     if (kind === 'video') {
       const thumbSrc = url.includes('#') ? url : `${url}#t=0.15`;
-      return <Branded className={className}><video src={thumbSrc} muted playsInline preload="metadata" aria-label={`Miniatura de ${exercise.name}`}/></Branded>;
+      return <MediaFrame className={className} branded={false}><video src={thumbSrc} muted playsInline preload="metadata" aria-label={`Miniatura de ${exercise.name}`}/></MediaFrame>;
     }
-    return <VisualFallback exercise={exercise} className={className}/>;
+    return <VisualFallback exercise={exercise} className={className} branded={false}/>;
   }
 
   if (kind === 'image' || kind === 'gif') {
-    return <Branded className={className}><img src={url} alt={exercise.name} loading="lazy" decoding="async"/></Branded>;
+    return <MediaFrame className={className}><img src={url} alt={exercise.name} loading="lazy" decoding="async"/></MediaFrame>;
   }
   if (kind === 'video') {
-    return <Branded className={className}><video src={url} controls={controls} playsInline preload="metadata"/></Branded>;
+    return <MediaFrame className={className}><video src={url} controls={controls} playsInline preload="metadata"/></MediaFrame>;
   }
   if (kind === 'youtube') {
-    return <Branded className={className}><iframe src={youtubeEmbed(url)} title={exercise.name} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></Branded>;
+    return <MediaFrame className={className}><iframe src={youtubeEmbed(url)} title={exercise.name} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></MediaFrame>;
   }
   if (kind === 'vimeo') {
-    return <Branded className={className}><iframe src={vimeoEmbed(url)} title={exercise.name} loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/></Branded>;
+    return <MediaFrame className={className}><iframe src={vimeoEmbed(url)} title={exercise.name} loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/></MediaFrame>;
   }
-  return <Branded className={className}><a className="exerciseExternalMediaLink" href={url} target="_blank" rel="noreferrer"><PlayCircle size={34}/><b>Abrir demonstração</b><small>O vídeo abre numa nova janela.</small><ExternalLink size={16}/></a></Branded>;
+  return <MediaFrame className={className}><a className="exerciseExternalMediaLink" href={url} target="_blank" rel="noreferrer"><PlayCircle size={34}/><b>Abrir demonstração</b><small>O vídeo abre numa nova janela.</small><ExternalLink size={16}/></a></MediaFrame>;
 }
