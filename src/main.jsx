@@ -8,6 +8,7 @@ import './styles/dashboard-attention.css';
 import './styles/training-editor-error-feedback.css';
 import './styles/dashboard-mobile-kpis.css';
 import './styles/mobile-bottom-nav-125.css';
+import './styles/mobile-overflow-navigation.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
