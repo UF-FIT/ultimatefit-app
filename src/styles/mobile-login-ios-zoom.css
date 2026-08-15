@@ -1,0 +1,7 @@
+/* Prevent iOS Safari/WebKit from auto-zooming login fields on focus. */
+@media (max-width: 760px) {
+  .loginPage .loginField input {
+    font-size: 16px !important;
+    line-height: 1.35;
+  }
+}
