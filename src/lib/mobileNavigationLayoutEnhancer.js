@@ -98,10 +98,34 @@ function rebuildMobileNavigation() {
 
   const labels = available.map((button) => normalizeLabel(button.textContent));
   const isProfessional = labels.includes('alunos');
-  const preferredPrimary = isProfessional
-    ? ['alunos', 'avaliações', 'planos de treino', 'nutrição']
-    : ['treino', 'avaliações', 'nutrição', 'desafios'];
 
+  const profileShortcut = document.querySelector('.profileShortcut');
+  if (profileShortcut && profileButton) profileShortcut.setAttribute('aria-label', 'Abrir o meu perfil');
+
+  if (!isProfessional) {
+    document.querySelector('.mobileNavOverflowPanel')?.remove();
+    const studentPrimaryOrder = ['treino', 'avaliações', 'atividades', 'nutrição', 'desafios'];
+    const studentSources = studentPrimaryOrder
+      .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
+      .filter(Boolean);
+
+    available.forEach((button) => {
+      if (studentSources.length >= 5) return;
+      if (!studentSources.includes(button)) studentSources.push(button);
+    });
+
+    const layoutKey = `student::${studentSources.map((button) => normalizeLabel(button.textContent)).join('|')}`;
+    if (bottomNav.dataset.mobileNavLayout !== layoutKey) {
+      const fragment = document.createDocumentFragment();
+      studentSources.slice(0, 5).forEach((sourceButton) => fragment.appendChild(cloneNavButton(sourceButton)));
+      bottomNav.replaceChildren(fragment);
+      bottomNav.dataset.mobileNavLayout = layoutKey;
+    }
+    syncActiveState(bottomNav, sourceButtons);
+    return;
+  }
+
+  const preferredPrimary = ['alunos', 'avaliações', 'planos de treino', 'nutrição'];
   const primarySources = preferredPrimary
     .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
     .filter(Boolean)
@@ -159,9 +183,6 @@ function rebuildMobileNavigation() {
   }
 
   syncActiveState(bottomNav, sourceButtons);
-
-  const profileShortcut = document.querySelector('.profileShortcut');
-  if (profileShortcut && profileButton) profileShortcut.setAttribute('aria-label', 'Abrir o meu perfil');
 }
 
 export function startMobileNavigationLayoutEnhancer() {
