@@ -4,41 +4,44 @@ function applyMobileBottomNavSize() {
   const nav = document.querySelector('.bottomNav');
   if (!nav) return;
 
-  nav.style.setProperty('min-height', '80px', 'important');
-  nav.style.setProperty('height', '80px', 'important');
-  nav.style.setProperty('padding', '9px 0 calc(8px + env(safe-area-inset-bottom))', 'important');
+  nav.style.setProperty('min-height', '82px', 'important');
+  nav.style.setProperty('height', '82px', 'important');
+  nav.style.setProperty('padding', '8px 0 calc(8px + env(safe-area-inset-bottom))', 'important');
   nav.style.setProperty('align-items', 'stretch', 'important');
+  nav.style.setProperty('overflow', 'visible', 'important');
 
-  nav.querySelectorAll('button').forEach((button) => {
-    button.style.setProperty('min-height', '61px', 'important');
-    button.style.setProperty('padding', '7px 2px', 'important');
+  Array.from(nav.children).forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    button.style.setProperty('min-height', '62px', 'important');
+    button.style.setProperty('padding', '6px 2px', 'important');
     button.style.setProperty('gap', '5px', 'important');
-    button.style.setProperty('font-size', '8px', 'important');
-    button.style.setProperty('line-height', '1.1', 'important');
+    button.style.setProperty('font-size', '11px', 'important');
+    button.style.setProperty('line-height', '1.05', 'important');
     button.style.setProperty('font-weight', '500', 'important');
 
     const icon = button.querySelector('svg');
     if (icon) {
-      icon.style.setProperty('width', '27px', 'important');
-      icon.style.setProperty('height', '27px', 'important');
-      icon.style.setProperty('stroke-width', '2.2', 'important');
-      icon.setAttribute('width', '27');
-      icon.setAttribute('height', '27');
+      icon.style.setProperty('width', '28px', 'important');
+      icon.style.setProperty('height', '28px', 'important');
+      icon.style.setProperty('stroke-width', '2.1', 'important');
+      icon.setAttribute('width', '28');
+      icon.setAttribute('height', '28');
     }
 
     const label = button.querySelector('small');
     if (label) {
-      label.style.setProperty('font-size', '8px', 'important');
-      label.style.setProperty('line-height', '1.1', 'important');
+      label.style.setProperty('font-size', '11px', 'important');
+      label.style.setProperty('line-height', '1.05', 'important');
       label.style.setProperty('font-weight', '500', 'important');
     }
   });
 
   const content = document.querySelector('.content');
-  if (content) content.style.setProperty('padding-bottom', '112px', 'important');
+  if (content) content.style.setProperty('padding-bottom', '116px', 'important');
 
   const footer = document.querySelector('.appCopyrightFooter');
-  if (footer) footer.style.setProperty('margin-bottom', '86px', 'important');
+  if (footer) footer.style.setProperty('margin-bottom', '88px', 'important');
 }
 
 export function startMobileBottomNavEnhancer() {
