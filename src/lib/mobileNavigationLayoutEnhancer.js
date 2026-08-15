@@ -6,11 +6,61 @@ function getSidebarButtons() {
   return Array.from(document.querySelectorAll('.sidebar .navList button'));
 }
 
+function cloneNavButton(sourceButton, className = 'mobilePrimaryNavButton') {
+  const clone = sourceButton.cloneNode(true);
+  clone.removeAttribute('style');
+  clone.classList.add(className);
+  clone.addEventListener('click', () => sourceButton.click());
+  return clone;
+}
+
+function createMenuButton(onToggle) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'mobilePrimaryNavButton mobileMoreMenuButton';
+  button.setAttribute('aria-label', 'Abrir menu');
+  button.setAttribute('aria-expanded', 'false');
+  button.innerHTML = `
+    <span class="mobileMoreMenuIcon" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </span>
+    <small>Menu</small>
+  `;
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    onToggle(button);
+  });
+  return button;
+}
+
+function createOverflowPanel(sourceButtons, closePanel) {
+  const panel = document.createElement('div');
+  panel.className = 'mobileNavOverflowPanel';
+  panel.setAttribute('role', 'menu');
+
+  sourceButtons.forEach((sourceButton) => {
+    const item = cloneNavButton(sourceButton, 'mobileNavOverflowItem');
+    item.setAttribute('role', 'menuitem');
+    item.addEventListener('click', closePanel, { once: true });
+    panel.appendChild(item);
+  });
+
+  return panel;
+}
+
 function syncActiveState(bottomNav, sourceButtons) {
   const activeLabel = normalizeLabel(sourceButtons.find((button) => button.classList.contains('active'))?.textContent || '');
-  bottomNav.querySelectorAll('button').forEach((button) => {
+  bottomNav.querySelectorAll(':scope > .mobilePrimaryNavButton').forEach((button) => {
+    if (button.classList.contains('mobileMoreMenuButton')) return;
     button.classList.toggle('active', normalizeLabel(button.textContent) === activeLabel);
   });
+
+  const panel = document.querySelector('.mobileNavOverflowPanel');
+  if (panel) {
+    panel.querySelectorAll('.mobileNavOverflowItem').forEach((button) => {
+      button.classList.toggle('active', normalizeLabel(button.textContent) === activeLabel);
+    });
+  }
 }
 
 function rebuildMobileNavigation() {
@@ -21,8 +71,8 @@ function rebuildMobileNavigation() {
   const sourceButtons = getSidebarButtons();
   if (!bottomNav || !mobileLogo || !sourceButtons.length) return;
 
-  const dashboardButton = sourceButtons.find((button) => normalizeLabel(button.textContent) === 'dashboard');
-  const profileButton = sourceButtons.find((button) => normalizeLabel(button.textContent) === 'o meu perfil');
+  const dashboardButton = sourceButtons.find((button) => ['dashboard', 'início'].includes(normalizeLabel(button.textContent)));
+  const profileButton = sourceButtons.find((button) => ['o meu perfil', 'perfil'].includes(normalizeLabel(button.textContent)));
 
   mobileLogo.style.setProperty('cursor', 'pointer');
   mobileLogo.setAttribute('role', 'button');
@@ -41,30 +91,75 @@ function rebuildMobileNavigation() {
     mobileLogo.dataset.mobileDashboardShortcutBound = 'true';
   }
 
-  const desiredSourceButtons = sourceButtons
-    .filter((button) => !['dashboard', 'o meu perfil'].includes(normalizeLabel(button.textContent)))
-    .slice(0, 5);
+  const available = sourceButtons.filter((button) => {
+    const label = normalizeLabel(button.textContent);
+    return !['dashboard', 'início', 'o meu perfil', 'perfil'].includes(label);
+  });
 
-  const desiredLabels = desiredSourceButtons.map((button) => normalizeLabel(button.textContent)).join('|');
-  if (bottomNav.dataset.mobileNavLayout === desiredLabels) {
+  const labels = available.map((button) => normalizeLabel(button.textContent));
+  const isProfessional = labels.includes('alunos');
+  const preferredPrimary = isProfessional
+    ? ['alunos', 'avaliações', 'planos de treino', 'nutrição']
+    : ['treino', 'avaliações', 'nutrição', 'desafios'];
+
+  const primarySources = preferredPrimary
+    .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
+    .filter(Boolean)
+    .slice(0, 4);
+
+  available.forEach((button) => {
+    if (primarySources.length >= 4) return;
+    if (!primarySources.includes(button)) primarySources.push(button);
+  });
+
+  const overflowSources = available.filter((button) => !primarySources.includes(button));
+  const layoutKey = `${primarySources.map((button) => normalizeLabel(button.textContent)).join('|')}::${overflowSources.map((button) => normalizeLabel(button.textContent)).join('|')}`;
+
+  if (bottomNav.dataset.mobileNavLayout === layoutKey) {
     syncActiveState(bottomNav, sourceButtons);
     return;
   }
 
-  const fragment = document.createDocumentFragment();
-  desiredSourceButtons.forEach((sourceButton) => {
-    const clone = sourceButton.cloneNode(true);
-    clone.removeAttribute('style');
-    clone.addEventListener('click', () => sourceButton.click());
-    fragment.appendChild(clone);
-  });
+  document.querySelector('.mobileNavOverflowPanel')?.remove();
 
+  let panel = null;
+  const closePanel = () => {
+    if (!panel) return;
+    panel.classList.remove('open');
+    const menuButton = bottomNav.querySelector('.mobileMoreMenuButton');
+    if (menuButton) menuButton.setAttribute('aria-expanded', 'false');
+  };
+
+  const togglePanel = (menuButton) => {
+    if (!panel) return;
+    const willOpen = !panel.classList.contains('open');
+    panel.classList.toggle('open', willOpen);
+    menuButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  };
+
+  const fragment = document.createDocumentFragment();
+  primarySources.slice(0, 2).forEach((sourceButton) => fragment.appendChild(cloneNavButton(sourceButton)));
+  fragment.appendChild(createMenuButton(togglePanel));
+  primarySources.slice(2, 4).forEach((sourceButton) => fragment.appendChild(cloneNavButton(sourceButton)));
   bottomNav.replaceChildren(fragment);
-  bottomNav.dataset.mobileNavLayout = desiredLabels;
+  bottomNav.dataset.mobileNavLayout = layoutKey;
+
+  panel = createOverflowPanel(overflowSources, closePanel);
+  document.body.appendChild(panel);
+
+  if (!document.documentElement.dataset.mobileNavOutsideCloseBound) {
+    document.addEventListener('click', (event) => {
+      const openPanel = document.querySelector('.mobileNavOverflowPanel.open');
+      if (!openPanel) return;
+      if (openPanel.contains(event.target) || event.target.closest('.mobileMoreMenuButton')) return;
+      openPanel.classList.remove('open');
+      document.querySelector('.mobileMoreMenuButton')?.setAttribute('aria-expanded', 'false');
+    });
+    document.documentElement.dataset.mobileNavOutsideCloseBound = 'true';
+  }
+
   syncActiveState(bottomNav, sourceButtons);
 
-  // The profile shortcut already wraps the user photo in the real React UI.
-  // Keep it explicit for mobile accessibility without changing desktop behaviour.
   const profileShortcut = document.querySelector('.profileShortcut');
   if (profileShortcut && profileButton) profileShortcut.setAttribute('aria-label', 'Abrir o meu perfil');
 }
