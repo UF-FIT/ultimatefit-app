@@ -1,0 +1,46 @@
+@media (max-width: 760px) {
+  .studentSelfProfilePage .trainingActivityStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: 14px 0 !important;
+  }
+
+  .studentSelfProfilePage .trainingActivityStats .weekly {
+    grid-column: auto !important;
+  }
+
+  .studentSelfProfilePage .trainingActivityStats > div {
+    min-height: 84px !important;
+    padding: 10px 8px !important;
+    text-align: center;
+    justify-items: center;
+  }
+
+  .studentSelfProfilePage .trainingActivityStats small {
+    font-size: 8px !important;
+    line-height: 1.2 !important;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .studentSelfProfilePage .trainingActivityStats strong {
+    font-size: 21px !important;
+    line-height: 1 !important;
+    margin-top: 6px !important;
+    white-space: nowrap;
+  }
+
+  .studentSelfProfilePage .trainingActivityStats strong span {
+    font-size: 18px !important;
+  }
+
+  .studentSelfProfilePage .trainingActivityStats svg {
+    position: static !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin-top: 5px;
+  }
+}
