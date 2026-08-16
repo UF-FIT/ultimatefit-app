@@ -61,40 +61,32 @@ function ensureDashboardCardOrder(page) {
   const goalCard = page.querySelector('.studentGoalPanel');
   const trainerCard = page.querySelector('.trainerProfileCard');
   const summaryCard = page.querySelector('.assessmentSnapshot');
-  if (!calendar || !goalCard || !trainerCard) return;
+  if (!calendar || !goalCard || !trainerCard || !summaryCard) return;
 
-  // Remove the previous calendar→trainer spacer introduced by the older order.
-  page.querySelectorAll('[data-calendar-trainer-spacer="true"]').forEach((node) => node.remove());
+  const summaryWrapper = topLevelBlockFor(summaryCard, page) || summaryCard;
 
-  let calendarGoalSpacer = page.querySelector('[data-calendar-goal-spacer="true"]');
-  if (!calendarGoalSpacer) calendarGoalSpacer = createSpacer('calendar-goal');
+  // Remove spacers from previous dashboard orders before rebuilding the sequence.
+  page.querySelectorAll(
+    '[data-calendar-trainer-spacer="true"], [data-calendar-goal-spacer="true"], [data-goal-trainer-spacer="true"], [data-goal-summary-spacer="true"], [data-summary-trainer-spacer="true"]',
+  ).forEach((node) => node.remove());
 
-  let goalTrainerSpacer = page.querySelector('[data-goal-trainer-spacer="true"]');
-  if (!goalTrainerSpacer) goalTrainerSpacer = createSpacer('goal-trainer');
+  const calendarGoalSpacer = createSpacer('calendar-goal');
+  const goalSummarySpacer = createSpacer('goal-summary');
+  const summaryTrainerSpacer = createSpacer('summary-trainer');
 
-  // Make these cards independent top-level dashboard sections on mobile.
+  // Make the mobile dashboard sequence deterministic:
+  // Calendar → Foco do acompanhamento → Resumo físico → Professor responsável.
   goalCard.style.setProperty('margin', '0', 'important');
   trainerCard.style.setProperty('margin', '0', 'important');
+  summaryWrapper.style.setProperty('margin-top', '0', 'important');
+  summaryWrapper.style.setProperty('margin-bottom', '0', 'important');
 
-  if (calendar.nextElementSibling !== calendarGoalSpacer) {
-    calendar.insertAdjacentElement('afterend', calendarGoalSpacer);
-  }
-  if (calendarGoalSpacer.nextElementSibling !== goalCard) {
-    calendarGoalSpacer.insertAdjacentElement('afterend', goalCard);
-  }
-  if (goalCard.nextElementSibling !== goalTrainerSpacer) {
-    goalCard.insertAdjacentElement('afterend', goalTrainerSpacer);
-  }
-  if (goalTrainerSpacer.nextElementSibling !== trainerCard) {
-    goalTrainerSpacer.insertAdjacentElement('afterend', trainerCard);
-  }
-
-  // Keep the physical summary immediately after the responsible trainer card,
-  // while preserving its existing parent grid when possible.
-  const summaryWrapper = summaryCard ? topLevelBlockFor(summaryCard, page) : null;
-  if (summaryWrapper && summaryWrapper !== trainerCard && trainerCard.nextElementSibling !== summaryWrapper) {
-    trainerCard.insertAdjacentElement('afterend', summaryWrapper);
-  }
+  calendar.insertAdjacentElement('afterend', calendarGoalSpacer);
+  calendarGoalSpacer.insertAdjacentElement('afterend', goalCard);
+  goalCard.insertAdjacentElement('afterend', goalSummarySpacer);
+  goalSummarySpacer.insertAdjacentElement('afterend', summaryWrapper);
+  summaryWrapper.insertAdjacentElement('afterend', summaryTrainerSpacer);
+  summaryTrainerSpacer.insertAdjacentElement('afterend', trainerCard);
 }
 
 function applyMobileStudentDashboardEnhancements() {
