@@ -88,4 +88,9 @@
   .studentSelfProfilePage .studentSelfHero.profileHeroV2 + * {
     margin-top: 14px !important;
   }
+
+  /* Dashboard mobile: espaçamento real entre "Resumo físico" e "Objetivos". */
+  .studentSelfProfilePage .studentGoalPanel {
+    margin-top: 24px !important;
+  }
 }
