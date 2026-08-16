@@ -3,11 +3,21 @@ import { ArrowLeft, ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import BrandLogo from './BrandLogo';
 
+const SAVED_EMAIL_KEY = 'ultimatefit-saved-login-email';
+const REMEMBER_ACCESS_KEY = 'ultimatefit-remember-access';
+
 export default function LoginScreen() {
   const { signIn, authError, requestPasswordReset } = useAuth();
   const [mode, setMode] = useState('login');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try { return window.localStorage.getItem(SAVED_EMAIL_KEY) || ''; }
+    catch { return ''; }
+  });
   const [password, setPassword] = useState('');
+  const [rememberAccess, setRememberAccess] = useState(() => {
+    try { return window.localStorage.getItem(REMEMBER_ACCESS_KEY) !== 'false'; }
+    catch { return true; }
+  });
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
   const [success, setSuccess] = useState('');
@@ -18,7 +28,13 @@ export default function LoginScreen() {
     setSuccess('');
     setSubmitting(true);
 
-    const { error } = await signIn(email.trim(), password);
+    const cleanEmail = email.trim();
+    try {
+      if (rememberAccess) window.localStorage.setItem(SAVED_EMAIL_KEY, cleanEmail);
+      else window.localStorage.removeItem(SAVED_EMAIL_KEY);
+    } catch { /* Storage can be unavailable in private browsing. */ }
+
+    const { error } = await signIn(cleanEmail, password, rememberAccess);
     if (error) setLocalError('Email ou palavra-passe incorretos.');
 
     setSubmitting(false);
@@ -75,9 +91,16 @@ export default function LoginScreen() {
               <div><LockKeyhole size={18} /><input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></div>
             </label>
 
-            <button type="button" className="textButton forgotButton" onClick={() => { setMode('recovery'); setLocalError(''); }}>
-              Esqueci-me da palavra-passe
-            </button>
+            <div className="loginAccessRow">
+              <label className="rememberAccessOption">
+                <input type="checkbox" checked={rememberAccess} onChange={e => setRememberAccess(e.target.checked)} />
+                <span className="rememberAccessCheck" aria-hidden="true" />
+                <span>Guardar acesso neste dispositivo</span>
+              </label>
+              <button type="button" className="textButton forgotButton" onClick={() => { setMode('recovery'); setLocalError(''); }}>
+                Esqueci-me da palavra-passe
+              </button>
+            </div>
 
             {(localError || authError) && <div className="loginError">{localError || authError}</div>}
 
