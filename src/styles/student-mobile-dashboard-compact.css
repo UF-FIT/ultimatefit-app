@@ -89,8 +89,18 @@
     margin-top: 14px !important;
   }
 
-  /* Dashboard mobile: espaçamento real entre "Resumo físico" e "Objetivos". */
-  .studentSelfProfilePage .studentGoalPanel {
-    margin-top: 24px !important;
+  /* Keep the dashboard cards on the same spacing rhythm as the app base grid. */
+  .studentSelfProfilePage > .trainerProfileCard + .profileOverviewGrid {
+    margin-top: 18px !important;
+  }
+
+  .studentSelfProfilePage > .profileOverviewGrid {
+    gap: 18px !important;
+  }
+
+  .studentSelfProfilePage > .profileOverviewGrid > .assessmentSnapshot,
+  .studentSelfProfilePage > .profileOverviewGrid > .studentGoalPanel {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
   }
 }
