@@ -81,7 +81,9 @@ async function update() {
   const params=new URLSearchParams(location.search);
   const planId=params.get('plano')||'';
   const isPlan=/\/(treino|planos-de-treino|planos)(\/|$)/.test(location.pathname)&&Boolean(planId);
-  const isStudentArea=location.pathname==='/inicio'||location.pathname==='/alunos';
+  // Compact analysis belongs only to the student's own dashboard. Professional
+  // student profiles use the dedicated plan area instead of duplicating analytics here.
+  const isStudentArea=location.pathname==='/inicio';
   if(!isPlan&&!isStudentArea){removeExisting();lastKey='';return;}
   busy=true;
   try {
