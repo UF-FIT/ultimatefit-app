@@ -20,6 +20,13 @@ function isStudentDashboardRoute() {
   return path !== '/perfil';
 }
 
+function hideDashboardBlock(page, headingText) {
+  const block = findBlockByHeading(page, headingText);
+  if (!block) return;
+  block.style.setProperty('display', 'none', 'important');
+  block.setAttribute('aria-hidden', 'true');
+}
+
 function applyMobileStudentDashboardEnhancements() {
   if (typeof window === 'undefined' || window.innerWidth > 760) return;
 
@@ -36,6 +43,11 @@ function applyMobileStudentDashboardEnhancements() {
   });
 
   if (!isStudentDashboardRoute()) return;
+
+  // These modules belong in their dedicated areas/profile and are intentionally
+  // removed from the student's first-impact dashboard on mobile.
+  hideDashboardBlock(page, 'PAR-Q');
+  hideDashboardBlock(page, 'Últimas 5 avaliações');
 
   const accompaniment = findBlockByHeading(page, 'o meu acompanhamento');
   const calendar = findBlockByHeading(page, 'calendário de treinos');
