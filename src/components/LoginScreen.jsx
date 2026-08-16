@@ -59,6 +59,14 @@ export default function LoginScreen() {
   return (
     <main className="loginPage">
       <section className="loginIntro">
+        <img
+          className="loginIntroPhoto"
+          src="/login-bg-desktop.webp"
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
+          decoding="async"
+        />
         <div className="loginBrand"><BrandLogo/></div>
         <div className="loginCopy">
           <small>APP PRIVADA</small>
