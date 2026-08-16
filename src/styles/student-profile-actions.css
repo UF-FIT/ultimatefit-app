@@ -1,0 +1,60 @@
+@media (max-width: 760px) {
+  .studentSelfProfilePage .studentSelfHero .selfActions[data-student-route-actions="profile"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero .selfActions [data-student-password-action="true"] {
+    grid-column: 1 / -1;
+  }
+}
+
+.studentPasswordModal {
+  width: min(92vw, 520px);
+}
+
+.studentPasswordForm {
+  display: grid;
+  gap: 14px;
+}
+
+.studentPasswordForm label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  color: #b8b8b8;
+}
+
+.studentPasswordForm input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid #343434;
+  border-radius: 8px;
+  background: #09090b;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+}
+
+.studentPasswordForm input:focus {
+  outline: none;
+  border-color: #ffd908;
+  box-shadow: 0 0 0 2px rgba(255, 217, 8, .12);
+}
+
+.studentPasswordMessage {
+  min-height: 20px;
+  font-size: 13px;
+}
+
+.studentPasswordMessage.error { color: #ff7b7b; }
+.studentPasswordMessage.success { color: #7ce6a7; }
+
+.studentPasswordIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+}
