@@ -16,23 +16,63 @@
     align-items: center !important;
   }
 
+  /* Dashboard do aluno: fotografia maior e composição sem sobreposição. */
+  .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) {
+    grid-template-columns: 160px minmax(0, 1fr) !important;
+    grid-template-areas: "photo identity" !important;
+    align-items: stretch !important;
+    position: relative !important;
+    min-height: 200px !important;
+    padding: 18px !important;
+    gap: 18px !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) > .studentPhoto.large {
+    grid-area: photo !important;
+    width: 160px !important;
+    height: 160px !important;
+    min-width: 160px !important;
+    min-height: 160px !important;
+    align-self: center !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) > .studentPhoto.large img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) > div:not(.studentPhoto):not(.selfActions) {
+    grid-area: identity !important;
+    min-width: 0 !important;
+    align-self: center !important;
+    padding-right: 0 !important;
+  }
+
   .studentSelfProfilePage .studentSelfHero .studentDashboardProfessorAction {
     width: auto !important;
-    min-height: 30px !important;
-    padding: 5px 9px !important;
+    min-height: 34px !important;
+    padding: 7px 10px !important;
     border: 1px solid #343434 !important;
-    border-radius: 999px !important;
+    border-radius: 8px !important;
     background: #0b0b0d !important;
     color: #fff !important;
-    gap: 5px !important;
-    font-size: 9px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
+    gap: 6px !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+    position: static !important;
+    margin-top: 8px !important;
+    max-width: 170px !important;
   }
 
   .studentSelfProfilePage .studentSelfHero .studentDashboardProfessorAction svg {
-    width: 14px !important;
-    height: 14px !important;
+    width: 15px !important;
+    height: 15px !important;
+    flex: 0 0 auto !important;
   }
 }
 
