@@ -153,9 +153,11 @@ export function AppProvider({children}){
   try{localStorage.setItem(scopeStorageKey(currentUser.id),next);}catch{}
  }
 
+ const initialDataLoading=studentsLoading||assessmentsLoading||trainingLoading||communityLoading||nutritionLoading;
+
  useEffect(()=>{
   setDashboardToggleTarget(null);
-  if(currentUser?.role!=='admin'||!['/','/dashboard'].includes(location.pathname.replace(/\/$/,'' )||'/')) return;
+  if(initialDataLoading||currentUser?.role!=='admin'||!['/','/dashboard'].includes(location.pathname.replace(/\/$/,'' )||'/')) return;
   let container;
   const timer=setTimeout(()=>{
    const content=document.querySelector('.content');
@@ -167,13 +169,13 @@ export function AppProvider({children}){
    setDashboardToggleTarget(container);
   },0);
   return ()=>{clearTimeout(timer);setDashboardToggleTarget(null);if(container?.parentNode)container.parentNode.removeChild(container)};
- },[location.pathname,currentUser?.id,currentUser?.role]);
+ },[location.pathname,currentUser?.id,currentUser?.role,initialDataLoading]);
 
  const update=(key,fn)=>setData(d=>({...d,[key]:typeof fn==='function'?fn(d[key]):fn}));
  const api=useMemo(()=>({data:scopedData,setData,update,currentUser,staffStudentScope,setStaffStudentScope,allStudentsCount:allStudents.length,assignedStudentsCount:assignedStudents.length,refreshStudents,studentsLoading,studentsError,refreshAssessments,assessmentsLoading,assessmentsError,refreshTraining,trainingLoading,trainingError,refreshCommunity,communityLoading,communityError,refreshNutrition,nutritionLoading,nutritionError}),[scopedData,currentUser,staffStudentScope,allStudents.length,assignedStudents.length,studentsLoading,studentsError,assessmentsLoading,assessmentsError,trainingLoading,trainingError,communityLoading,communityError,nutritionLoading,nutritionError]);
 
  return <AppContext.Provider value={api}>
-  {children}
+  {!initialDataLoading&&children}
   {dashboardToggleTarget&&currentUser?.role==='admin'&&createPortal(<DashboardScopeToggle enabled={staffStudentScope==='all'} onChange={setStaffStudentScope} assignedCount={assignedStudents.length} allCount={allStudents.length}/>,dashboardToggleTarget)}
  </AppContext.Provider>
 }
