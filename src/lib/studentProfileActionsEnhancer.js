@@ -140,18 +140,48 @@ function setActionVisible(button, visible) {
 }
 
 function restoreProfessorButton(actions, button) {
-  if (!button || button.parentElement === actions) return;
-  actions.insertBefore(button, actions.querySelector('[data-student-password-action="true"]'));
+  if (!button) return;
+  if (button.parentElement !== actions) actions.insertBefore(button, actions.querySelector('[data-student-password-action="true"]'));
   button.classList.remove('studentDashboardProfessorAction');
+  ['position','top','right','left','bottom','width','min-height','padding','border-radius','z-index','font-size'].forEach((name) => button.style.removeProperty(name));
 }
 
-function moveProfessorButtonToDashboard(hero, button) {
+function placeProfessorButtonOnDashboard(hero, button) {
   if (!button) return;
-  const chips = hero.querySelector('.profileChips');
-  if (!chips) return;
-  if (button.parentElement !== chips) chips.appendChild(button);
+  if (button.parentElement !== hero) hero.appendChild(button);
   button.classList.add('studentDashboardProfessorAction');
+  hero.style.setProperty('position', 'relative', 'important');
   button.style.setProperty('display', 'inline-flex', 'important');
+  button.style.setProperty('position', 'absolute', 'important');
+  button.style.setProperty('top', '28px', 'important');
+  button.style.setProperty('right', '28px', 'important');
+  button.style.setProperty('left', 'auto', 'important');
+  button.style.setProperty('bottom', 'auto', 'important');
+  button.style.setProperty('width', '180px', 'important');
+  button.style.setProperty('min-height', '46px', 'important');
+  button.style.setProperty('padding', '8px 12px', 'important');
+  button.style.setProperty('border-radius', '10px', 'important');
+  button.style.setProperty('z-index', '3', 'important');
+  button.style.setProperty('font-size', '13px', 'important');
+}
+
+function forceProfileButtonsSideBySide(actions, editButton, passwordButton) {
+  actions.style.setProperty('display', 'grid', 'important');
+  actions.style.setProperty('grid-template-columns', 'minmax(0, 1fr) minmax(0, 1fr)', 'important');
+  actions.style.setProperty('gap', '8px', 'important');
+  actions.style.setProperty('width', '100%', 'important');
+
+  [editButton, passwordButton].forEach((button) => {
+    if (!button) return;
+    button.style.setProperty('display', 'flex', 'important');
+    button.style.setProperty('grid-column', 'auto', 'important');
+    button.style.setProperty('width', '100%', 'important');
+    button.style.setProperty('min-width', '0', 'important');
+    button.style.setProperty('min-height', '52px', 'important');
+    button.style.setProperty('padding', '8px 10px', 'important');
+    button.style.setProperty('font-size', '12px', 'important');
+    button.style.setProperty('line-height', '1.15', 'important');
+  });
 }
 
 function applyStudentProfileActions() {
@@ -166,8 +196,13 @@ function applyStudentProfileActions() {
   if (!isMobileStudentLayout()) {
     restoreProfessorButton(actions, professorButton);
     actions.style.removeProperty('display');
+    actions.style.removeProperty('grid-template-columns');
+    actions.style.removeProperty('gap');
+    actions.style.removeProperty('width');
     delete actions.dataset.studentRouteActions;
-    Array.from(actions.querySelectorAll(':scope > button')).forEach((button) => button.style.removeProperty('display'));
+    Array.from(actions.querySelectorAll(':scope > button')).forEach((button) => {
+      ['display','grid-column','width','min-width','min-height','padding','font-size','line-height'].forEach((name) => button.style.removeProperty(name));
+    });
     closePasswordModal();
     return;
   }
@@ -182,15 +217,13 @@ function applyStudentProfileActions() {
 
   if (isProfile) {
     restoreProfessorButton(actions, professorButton);
-    actions.style.setProperty('display', 'grid', 'important');
-    setActionVisible(editButton, true);
     setActionVisible(professorButton, false);
-    setActionVisible(passwordButton, true);
+    forceProfileButtonsSideBySide(actions, editButton, passwordButton);
   } else {
     setActionVisible(editButton, false);
     setActionVisible(passwordButton, false);
-    moveProfessorButtonToDashboard(hero, professorButton);
     actions.style.setProperty('display', 'none', 'important');
+    placeProfessorButtonOnDashboard(hero, professorButton);
     closePasswordModal();
   }
 }
