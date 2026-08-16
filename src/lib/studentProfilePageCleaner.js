@@ -1,5 +1,26 @@
+function cleanProfessionalStudentProfile() {
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+  const hasStudent = Boolean(new URLSearchParams(window.location.search).get('aluno'));
+  if (path !== '/alunos' || !hasStudent) return;
+
+  const page = document.querySelector('.studentProfilePage');
+  if (!page || page.dataset.professionalProfileCleaned === 'true') return;
+
+  // These summaries duplicate dedicated modules already linked from Acompanhamento.
+  // Removing them from this professional overview keeps the profile concise and avoids
+  // maintaining a second presentation of the same assessment/PAR-Q information.
+  const overviewGrids = page.querySelectorAll(':scope > .profileOverviewGrid');
+  overviewGrids[0]?.remove(); // Resumo físico + professor responsável
+  page.querySelector(':scope > .parqStatusCard')?.remove();
+  page.querySelector(':scope > .profileChart')?.remove();
+
+  page.dataset.professionalProfileCleaned = 'true';
+}
+
 function applyStudentProfilePageLayout() {
   if (typeof window === 'undefined') return;
+
+  cleanProfessionalStudentProfile();
 
   const isProfileRoute = window.location.pathname.toLowerCase().replace(/\/+$/, '') === '/perfil';
   const page = document.querySelector('.studentSelfProfilePage');
