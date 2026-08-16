@@ -5,15 +5,9 @@ let lastFetch = 0;
 let timer = null;
 let running = false;
 
-function formatDate(value) {
-  if (!value) return '—';
-  try { return new Intl.DateTimeFormat('pt-PT').format(new Date(`${value}T12:00:00`)); }
-  catch { return '—'; }
-}
-
 async function getStudents() {
   const now = Date.now();
-  if (cache.length && now - lastFetch < 2000) return cache;
+  if (cache.length && now - lastFetch < 5000) return cache;
   cache = await fetchStudents();
   lastFetch = now;
   return cache;
@@ -24,6 +18,25 @@ function statusClass(student) {
   return student.active ? 'active' : 'inactive';
 }
 
+function ensureFilterToggle() {
+  const filters = document.querySelector('.studentFilters');
+  const search = filters?.querySelector('.search');
+  if (!filters || !search || search.querySelector('.studentFilterToggle')) return;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'studentFilterToggle';
+  button.setAttribute('aria-label', 'Mostrar filtros');
+  button.setAttribute('aria-expanded', 'false');
+  button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h8M16 18h4"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="14" cy="18" r="2"/></svg>';
+  button.addEventListener('click', () => {
+    const open = filters.classList.toggle('filtersOpen');
+    button.setAttribute('aria-expanded', String(open));
+    button.setAttribute('aria-label', open ? 'Ocultar filtros' : 'Mostrar filtros');
+  });
+  search.appendChild(button);
+}
+
 function enhanceCard(card, students) {
   const identity = card.querySelector('.studentCardIdentity');
   const name = identity?.querySelector('h3')?.textContent?.trim();
@@ -31,24 +44,38 @@ function enhanceCard(card, students) {
   const student = students.find(item => item.name === name);
   if (!student) return;
 
-  let meta = identity.querySelector('.studentDirectoryCardMeta');
-  if (!meta) {
-    meta = document.createElement('div');
-    meta.className = 'studentDirectoryCardMeta';
-    identity.appendChild(meta);
+  let compact = identity.querySelector('.studentDirectoryCompactStatus');
+  if (!compact) {
+    compact = document.createElement('div');
+    compact.className = 'studentDirectoryCompactStatus';
+    identity.insertBefore(compact, identity.querySelector('h3'));
   }
-
   const statusLabel = studentStatusLabels[student.status] || (student.active ? 'Ativo' : 'Inativo');
-  meta.innerHTML = `
-    <div><span>Data de nascimento</span><b>${formatDate(student.birth)}</b></div>
-    <div><span>Idade</span><b>${student.age ?? '—'} anos</b></div>
-    <div><span>Estado</span><b class="studentDirectoryStatus ${statusClass(student)}">${statusLabel}</b></div>
-    <div><span>N.º aluno</span><b>${student.studentCode || '—'}</b></div>
-  `;
+  compact.innerHTML = `<i class="${statusClass(student)}"></i><span>${statusLabel}</span>`;
+
+  const meta = identity.querySelector('.studentDirectoryCardMeta');
+  if (meta) meta.remove();
+
+  if (!card.dataset.mobileCardReady) {
+    card.dataset.mobileCardReady = 'true';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'link');
+    const openProfile = event => {
+      if (event.target.closest('input, label, button, a, select')) return;
+      card.querySelector(':scope > .secondary.full')?.click();
+    };
+    card.addEventListener('click', openProfile);
+    card.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      card.querySelector(':scope > .secondary.full')?.click();
+    });
+  }
 }
 
 async function enhance() {
   if (running || !window.location.pathname.toLowerCase().startsWith('/alunos')) return;
+  ensureFilterToggle();
   const cards = [...document.querySelectorAll('.studentDirectoryCard')];
   if (!cards.length) return;
   running = true;
@@ -64,7 +91,7 @@ async function enhance() {
 
 function scheduleEnhance() {
   window.clearTimeout(timer);
-  timer = window.setTimeout(enhance, 120);
+  timer = window.setTimeout(enhance, 80);
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
