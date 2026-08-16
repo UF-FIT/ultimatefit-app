@@ -117,7 +117,7 @@ function rebuildMobileNavigation() {
 
   if (!isProfessional) {
     document.querySelector('.mobileNavOverflowPanel')?.remove();
-    const studentPrimaryOrder = ['treino', 'avaliações', 'atividades', 'nutrição', 'desafios'];
+    const studentPrimaryOrder = ['treino', 'avaliações', 'nutrição', 'desafios', 'atividades'];
     const studentSources = studentPrimaryOrder
       .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
       .filter(Boolean);
