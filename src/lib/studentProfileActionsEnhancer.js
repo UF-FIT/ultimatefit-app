@@ -128,8 +128,8 @@ function ensurePasswordButton(actions) {
   return button;
 }
 
-function actionByText(actions, text) {
-  return Array.from(actions.querySelectorAll(':scope > button')).find((button) =>
+function actionByText(root, text) {
+  return Array.from(root.querySelectorAll('button')).find((button) =>
     button.textContent.toLowerCase().includes(text.toLowerCase()),
   );
 }
@@ -139,13 +139,32 @@ function setActionVisible(button, visible) {
   button.style.setProperty('display', visible ? 'flex' : 'none', 'important');
 }
 
+function restoreProfessorButton(actions, button) {
+  if (!button || button.parentElement === actions) return;
+  actions.insertBefore(button, actions.querySelector('[data-student-password-action="true"]'));
+  button.classList.remove('studentDashboardProfessorAction');
+}
+
+function moveProfessorButtonToDashboard(hero, button) {
+  if (!button) return;
+  const chips = hero.querySelector('.profileChips');
+  if (!chips) return;
+  if (button.parentElement !== chips) chips.appendChild(button);
+  button.classList.add('studentDashboardProfessorAction');
+  button.style.setProperty('display', 'inline-flex', 'important');
+}
+
 function applyStudentProfileActions() {
   const page = document.querySelector('.studentSelfProfilePage');
   if (!page) return;
-  const actions = page.querySelector('.studentSelfHero .selfActions');
-  if (!actions) return;
+  const hero = page.querySelector('.studentSelfHero');
+  const actions = hero?.querySelector('.selfActions');
+  if (!hero || !actions) return;
+
+  const professorButton = actionByText(hero, 'Falar com o professor');
 
   if (!isMobileStudentLayout()) {
+    restoreProfessorButton(actions, professorButton);
     actions.style.removeProperty('display');
     delete actions.dataset.studentRouteActions;
     Array.from(actions.querySelectorAll(':scope > button')).forEach((button) => button.style.removeProperty('display'));
@@ -154,25 +173,24 @@ function applyStudentProfileActions() {
   }
 
   const isProfile = profileRouteActive();
-  const editButton = actionByText(actions, 'Editar perfil');
-  const professorButton = actionByText(actions, 'Falar com o professor');
-  const exportButton = actionByText(actions, 'Exportar avaliação');
+  const editButton = actionByText(hero, 'Editar perfil');
+  const exportButton = actionByText(hero, 'Exportar avaliação');
   const passwordButton = ensurePasswordButton(actions);
 
-  actions.style.setProperty('display', 'grid', 'important');
   actions.dataset.studentRouteActions = isProfile ? 'profile' : 'dashboard';
-
-  // PDF export belongs exclusively to the Avaliações section.
   setActionVisible(exportButton, false);
 
   if (isProfile) {
+    restoreProfessorButton(actions, professorButton);
+    actions.style.setProperty('display', 'grid', 'important');
     setActionVisible(editButton, true);
     setActionVisible(professorButton, false);
     setActionVisible(passwordButton, true);
   } else {
     setActionVisible(editButton, false);
-    setActionVisible(professorButton, true);
     setActionVisible(passwordButton, false);
+    moveProfessorButtonToDashboard(hero, professorButton);
+    actions.style.setProperty('display', 'none', 'important');
     closePasswordModal();
   }
 }
