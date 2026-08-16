@@ -43,29 +43,57 @@ function normalizeResponsibleTrainerCard(page) {
   });
 }
 
-function ensureCalendarTrainerSpacing(page) {
+function createSpacer(name) {
+  const spacer = document.createElement('div');
+  spacer.setAttribute(`data-${name}-spacer`, 'true');
+  spacer.setAttribute('aria-hidden', 'true');
+  spacer.style.height = '18px';
+  spacer.style.minHeight = '18px';
+  spacer.style.width = '100%';
+  spacer.style.pointerEvents = 'none';
+  return spacer;
+}
+
+function ensureDashboardCardOrder(page) {
+  if (!isStudentDashboardRoute()) return;
+
   const calendar = page.querySelector('.trainingActivityCalendar');
+  const goalCard = page.querySelector('.studentGoalPanel');
   const trainerCard = page.querySelector('.trainerProfileCard');
-  if (!calendar || !trainerCard || !isStudentDashboardRoute()) return;
+  const summaryCard = page.querySelector('.assessmentSnapshot');
+  if (!calendar || !goalCard || !trainerCard) return;
 
-  trainerCard.style.setProperty('margin-top', '0', 'important');
+  // Remove the previous calendar→trainer spacer introduced by the older order.
+  page.querySelectorAll('[data-calendar-trainer-spacer="true"]').forEach((node) => node.remove());
 
-  let spacer = page.querySelector('[data-calendar-trainer-spacer="true"]');
-  if (!spacer) {
-    spacer = document.createElement('div');
-    spacer.setAttribute('data-calendar-trainer-spacer', 'true');
-    spacer.setAttribute('aria-hidden', 'true');
-    spacer.style.height = '18px';
-    spacer.style.minHeight = '18px';
-    spacer.style.width = '100%';
-    spacer.style.pointerEvents = 'none';
+  let calendarGoalSpacer = page.querySelector('[data-calendar-goal-spacer="true"]');
+  if (!calendarGoalSpacer) calendarGoalSpacer = createSpacer('calendar-goal');
+
+  let goalTrainerSpacer = page.querySelector('[data-goal-trainer-spacer="true"]');
+  if (!goalTrainerSpacer) goalTrainerSpacer = createSpacer('goal-trainer');
+
+  // Make these cards independent top-level dashboard sections on mobile.
+  goalCard.style.setProperty('margin', '0', 'important');
+  trainerCard.style.setProperty('margin', '0', 'important');
+
+  if (calendar.nextElementSibling !== calendarGoalSpacer) {
+    calendar.insertAdjacentElement('afterend', calendarGoalSpacer);
+  }
+  if (calendarGoalSpacer.nextElementSibling !== goalCard) {
+    calendarGoalSpacer.insertAdjacentElement('afterend', goalCard);
+  }
+  if (goalCard.nextElementSibling !== goalTrainerSpacer) {
+    goalCard.insertAdjacentElement('afterend', goalTrainerSpacer);
+  }
+  if (goalTrainerSpacer.nextElementSibling !== trainerCard) {
+    goalTrainerSpacer.insertAdjacentElement('afterend', trainerCard);
   }
 
-  if (calendar.nextElementSibling !== spacer) {
-    calendar.insertAdjacentElement('afterend', spacer);
-  }
-  if (spacer.nextElementSibling !== trainerCard) {
-    spacer.insertAdjacentElement('afterend', trainerCard);
+  // Keep the physical summary immediately after the responsible trainer card,
+  // while preserving its existing parent grid when possible.
+  const summaryWrapper = summaryCard ? topLevelBlockFor(summaryCard, page) : null;
+  if (summaryWrapper && summaryWrapper !== trainerCard && trainerCard.nextElementSibling !== summaryWrapper) {
+    trainerCard.insertAdjacentElement('afterend', summaryWrapper);
   }
 }
 
@@ -107,7 +135,7 @@ function applyMobileStudentDashboardEnhancements() {
     }
   }
 
-  ensureCalendarTrainerSpacing(page);
+  ensureDashboardCardOrder(page);
 }
 
 export function startMobileStudentDashboardEnhancer() {
