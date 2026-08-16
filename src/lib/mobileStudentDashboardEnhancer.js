@@ -65,12 +65,27 @@ function balanceProfessorBlockSpacing(page) {
 }
 
 function fixObjectivesBlockSpacing(page) {
+  const summaryBlock = findBlockByHeading(page, 'resumo físico');
   const objectivesBlock = findBlockByHeading(page, 'foco do acompanhamento');
-  if (!objectivesBlock) return;
+  if (!summaryBlock || !objectivesBlock) return;
 
-  // Explicit mobile card spacing. Avoids the unreliable geometry-based calculation
-  // that previously left this card visually attached to the physical summary.
-  objectivesBlock.style.setProperty('margin-top', '24px', 'important');
+  const targetGap = 24;
+
+  // Clear any previous inline correction first so geometry is measured from the
+  // actual layout rather than from a stale compensation applied on a prior run.
+  objectivesBlock.style.removeProperty('margin-top');
+
+  const summaryRect = summaryBlock.getBoundingClientRect();
+  const objectivesRect = objectivesBlock.getBoundingClientRect();
+  const actualGap = Math.round(objectivesRect.top - summaryRect.bottom);
+
+  if (!Number.isFinite(actualGap)) return;
+
+  // The parent layout already contributes spacing between sections. Apply only
+  // the difference needed to make the visible gap exactly 24px. This can be a
+  // negative margin when the structural gap is larger than desired.
+  const correction = targetGap - actualGap;
+  objectivesBlock.style.setProperty('margin-top', `${correction}px`, 'important');
 }
 
 function applyMobileStudentDashboardEnhancements() {
