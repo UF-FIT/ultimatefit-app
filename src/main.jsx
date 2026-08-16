@@ -15,6 +15,7 @@ import './styles/student-mobile-dashboard-compact.css';
 import './styles/mobile-student-calendar-stats.css';
 import './styles/student-profile-actions.css';
 import './styles/mobile-student-assessments.css';
+import './styles/install-app.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
