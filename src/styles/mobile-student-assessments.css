@@ -1,0 +1,71 @@
+@media (max-width: 760px) {
+  .assessmentStudentHome .assessmentStudentIdentity {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+  }
+
+  .assessmentStudentHome .assessmentStudentAvatar {
+    width: var(--assessment-mobile-avatar-size, 108px) !important;
+    height: var(--assessment-mobile-avatar-size, 108px) !important;
+    min-width: var(--assessment-mobile-avatar-size, 108px) !important;
+    min-height: var(--assessment-mobile-avatar-size, 108px) !important;
+    align-self: stretch !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .assessmentStudentHome .assessmentStudentAvatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+
+  .assessmentStudentHome .assessmentMetricCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .assessmentStudentHome .assessmentMetricCards > div {
+    position: relative !important;
+    min-height: 118px !important;
+    padding: 16px 18px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto 1fr !important;
+    align-items: end !important;
+    column-gap: 10px !important;
+  }
+
+  .assessmentStudentHome .assessmentMetricCards > div > small {
+    grid-column: 1 / -1 !important;
+    align-self: start !important;
+  }
+
+  .assessmentStudentHome .assessmentMetricCards > div > b {
+    grid-column: 1 !important;
+    align-self: end !important;
+    white-space: nowrap !important;
+  }
+
+  .assessmentStudentHome .assessmentPreviousValue {
+    grid-column: 2 !important;
+    align-self: end !important;
+    justify-self: end !important;
+    color: #8b8b92 !important;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+  }
+
+  .assessmentStudentHome .assessmentDateMetricCard {
+    grid-template-columns: 1fr !important;
+  }
+
+  .assessmentStudentHome .assessmentDateMetricCard > b {
+    grid-column: 1 !important;
+  }
+}
