@@ -16,13 +16,11 @@
     align-items: center !important;
   }
 
-  /* Dashboard do aluno: fotografia grande e conteúdo alinhado sem sobreposição. */
   .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) {
     grid-template-columns: 160px minmax(0, 1fr) !important;
     grid-template-areas: "photo identity" !important;
     align-items: stretch !important;
-    position: relative !important;
-    min-height: 200px !important;
+    min-height: 196px !important;
     padding: 18px !important;
     gap: 18px !important;
   }
@@ -45,36 +43,43 @@
     object-position: center !important;
   }
 
-  /* Nome e informação começam no topo da fotografia. */
   .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) > div:not(.studentPhoto):not(.selfActions) {
     grid-area: identity !important;
     min-width: 0 !important;
-    align-self: stretch !important;
-    padding: 0 0 48px 0 !important;
+    height: 160px !important;
+    align-self: center !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) .eyebrow {
+    margin: 0 0 4px !important;
   }
 
   .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) h1 {
-    margin-top: 3px !important;
+    margin: 0 0 6px !important;
+    line-height: .95 !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) p {
+    margin: 0 0 8px !important;
   }
 
   .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) .profileChips {
-    margin-top: 8px !important;
+    margin: 0 !important;
+    gap: 5px !important;
   }
 
-  /* Contacto preso à base da fotografia, na coluna direita. */
   .studentSelfProfilePage .studentSelfHero .studentDashboardProfessorAction {
-    position: absolute !important;
-    left: 196px !important;
-    right: 18px !important;
-    bottom: 18px !important;
-    width: auto !important;
+    position: static !important;
+    width: 100% !important;
     max-width: none !important;
     min-height: 40px !important;
-    margin: 0 !important;
-    padding: 8px 12px !important;
+    margin: auto 0 0 !important;
+    padding: 8px 10px !important;
     border: 1px solid #343434 !important;
     border-radius: 8px !important;
     background: #0b0b0d !important;
@@ -86,7 +91,6 @@
     font-size: 10px !important;
     line-height: 1.1 !important;
     white-space: normal !important;
-    z-index: 2 !important;
   }
 
   .studentSelfProfilePage .studentSelfHero .studentDashboardProfessorAction svg {
