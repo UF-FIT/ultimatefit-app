@@ -66,7 +66,6 @@ export default function LoginScreen() {
           <p>A plataforma do estúdio para avaliações, evolução, treino, nutrição, objetivos e desafios.</p>
         </div>
         <div className="loginIntroBottom">
-          <div className="loginStatus">AMBIENTE PRIVADO DE DESENVOLVIMENTO</div>
           <div className="loginCopyrightFooter">© {new Date().getFullYear()} Ultimate Fit. Todos os direitos reservados.</div>
         </div>
       </section>
