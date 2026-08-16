@@ -31,6 +31,7 @@ import { startStudentProfilePageCleaner } from './lib/studentProfilePageCleaner'
 import { startStudentProfileActionsEnhancer } from './lib/studentProfileActionsEnhancer';
 import { startChallengeHeroCopyEnhancer } from './lib/challengeHeroCopyEnhancer';
 import { startMobileWhatsAppNavigationEnhancer } from './lib/mobileWhatsAppNavigationEnhancer';
+import { startAssessmentParqEnhancer } from './lib/assessmentParqEnhancer';
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
@@ -110,4 +111,5 @@ if (entryPath) {
   startStudentProfileActionsEnhancer();
   startChallengeHeroCopyEnhancer();
   startMobileWhatsAppNavigationEnhancer();
+  startAssessmentParqEnhancer();
 }
