@@ -17,6 +17,7 @@ import './styles/mobile-student-calendar-stats.css';
 import './styles/student-profile-actions.css';
 import './styles/mobile-student-assessments.css';
 import './styles/install-app.css';
+import './styles/login-remember-access.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
@@ -51,9 +52,6 @@ function canonicalEntryPath(host, pathname) {
 const entryPath = canonicalEntryPath(hostname, window.location.pathname);
 
 if (entryPath) {
-  // Keep one canonical browser origin for authentication. The short branded
-  // subdomains are entry links only, so a session already open on
-  // app.ultimatefit.pt is immediately reused after this redirect.
   const target = `${canonicalAppOrigin}${entryPath}${window.location.search}${window.location.hash}`;
   window.location.replace(target);
 } else if (publicInstallPath) {
