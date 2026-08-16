@@ -48,6 +48,7 @@ function applyMobileStudentDashboardEnhancements() {
   // removed from the student's first-impact dashboard on mobile.
   hideDashboardBlock(page, 'PAR-Q');
   hideDashboardBlock(page, 'Últimas 5 avaliações');
+  hideDashboardBlock(page, 'Dados do aluno');
 
   const accompaniment = findBlockByHeading(page, 'o meu acompanhamento');
   const calendar = findBlockByHeading(page, 'calendário de treinos');
