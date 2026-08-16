@@ -1,0 +1,247 @@
+@media (max-width: 760px) {
+  .studentProfilePage {
+    --uf-profile-gap: 14px;
+  }
+
+  .studentProfilePage .profileBack {
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+
+  .studentProfilePage .studentProfileHero.profileHeroV2 {
+    position: relative;
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-areas:
+      "photo identity"
+      "actions actions";
+    gap: 12px 14px;
+    align-items: center;
+    padding: 16px;
+    min-height: 0;
+  }
+
+  .studentProfilePage .studentProfileHero .studentPhoto.large {
+    grid-area: photo;
+    width: 92px;
+    height: 92px;
+    min-width: 92px;
+    border-radius: 18px;
+  }
+
+  .studentProfilePage .studentProfileHero .profileIdentity {
+    grid-area: identity;
+    min-width: 0;
+    padding-right: 34px;
+  }
+
+  .studentProfilePage .studentProfileHero .profileIdentity .eyebrow {
+    font-size: 11px;
+    letter-spacing: .15em;
+  }
+
+  .studentProfilePage .studentProfileHero .profileIdentity h1 {
+    margin: 3px 0 4px;
+    font-size: clamp(28px, 8vw, 38px);
+    line-height: .95;
+  }
+
+  .studentProfilePage .studentProfileHero .profileIdentity > p {
+    margin: 0 0 7px;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .studentProfilePage .profileChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .studentProfilePage .profileChips span {
+    padding: 4px 7px;
+    font-size: 10px;
+    line-height: 1.1;
+  }
+
+  .studentProfilePage .profileQuickActions {
+    grid-area: actions;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+  }
+
+  .studentProfilePage .profileQuickActions button {
+    min-width: 0;
+    min-height: 66px;
+    padding: 8px 3px 7px;
+    border-radius: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .studentProfilePage .profileQuickActions button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .studentProfilePage .profileQuickActions button span {
+    font-size: 10.5px;
+    line-height: 1.05;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .studentProfilePage .uf-profile-more-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 11px;
+    background: rgba(8,8,8,.82);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+    line-height: 1;
+  }
+
+  .studentProfilePage .uf-profile-more-button.is-open {
+    color: #ffd908;
+    border-color: rgba(255,217,8,.65);
+  }
+
+  .studentProfilePage .profileHub {
+    margin-top: var(--uf-profile-gap);
+  }
+
+  .studentProfilePage .profileHubHeader {
+    margin-bottom: 8px;
+  }
+
+  .studentProfilePage .profileHubHeader h2 {
+    font-size: 23px;
+    margin: 2px 0;
+  }
+
+  .studentProfilePage .profileHubHeader p {
+    display: none;
+  }
+
+  .studentProfilePage .profileHubGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .studentProfilePage .profileHubCard {
+    min-height: 74px;
+    padding: 10px;
+    gap: 8px;
+    border-radius: 14px;
+  }
+
+  .studentProfilePage .profileHubIcon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
+  }
+
+  .studentProfilePage .profileHubIcon svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .studentProfilePage .profileHubCopy b {
+    font-size: 13px;
+  }
+
+  .studentProfilePage .profileHubCopy span,
+  .studentProfilePage .profileHubCopy p {
+    font-size: 9.5px;
+    line-height: 1.15;
+  }
+
+  .studentProfilePage .profileHubCard > svg {
+    display: none;
+  }
+
+  .studentProfilePage .studentGoalPanel {
+    display: none !important;
+  }
+
+  .studentProfilePage:not(.uf-mobile-tools-open) .profileInfoPanel,
+  .studentProfilePage:not(.uf-mobile-tools-open) .profileAccessPanel {
+    display: none !important;
+  }
+
+  .studentProfilePage.uf-mobile-tools-open .profileInfoPanel,
+  .studentProfilePage.uf-mobile-tools-open .profileAccessPanel {
+    display: block;
+    margin-top: 12px;
+  }
+
+  .studentProfilePage.uf-mobile-tools-open .profileInfoPanel {
+    outline: 1px solid rgba(255,217,8,.18);
+  }
+
+  .studentProfilePage .profileInfoPanel,
+  .studentProfilePage .profileAccessPanel,
+  .studentProfilePage .profileOverviewGrid > .card,
+  .studentProfilePage > .parqStatusCard,
+  .studentProfilePage > .profileChart {
+    padding: 16px;
+  }
+
+  .studentProfilePage .profileDetailsGrid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 7px;
+  }
+
+  .studentProfilePage .profileDetailsGrid > div {
+    min-height: 58px;
+    padding: 9px;
+  }
+
+  .studentProfilePage .profileDetailsGrid small {
+    font-size: 10px;
+  }
+
+  .studentProfilePage .profileDetailsGrid b {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .studentProfilePage .profileAccessPanel .panelTitle h2,
+  .studentProfilePage .profileInfoPanel .panelTitle h2 {
+    font-size: 22px;
+  }
+
+  .studentProfilePage .profileAccessPanel .panelTitle p,
+  .studentProfilePage .profileInfoPanel .panelTitle p {
+    font-size: 12px;
+  }
+
+  .studentProfilePage .accessButtons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 7px;
+  }
+
+  .studentProfilePage .accessButtons button {
+    min-height: 44px;
+    font-size: 12px;
+    padding: 8px;
+  }
+}
