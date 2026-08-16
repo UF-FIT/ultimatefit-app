@@ -64,6 +64,21 @@ function balanceProfessorBlockSpacing(page) {
   }
 }
 
+function matchObjectivesBlockSpacing(page) {
+  const professorBlock = findBlockByText(page, 'professor principal');
+  const summaryBlock = findBlockByHeading(page, 'resumo físico');
+  const objectivesBlock = findBlockByHeading(page, 'foco do acompanhamento');
+  if (!professorBlock || !summaryBlock || !objectivesBlock) return;
+
+  const professorRect = professorBlock.getBoundingClientRect();
+  const summaryRect = summaryBlock.getBoundingClientRect();
+  const referenceGap = Math.max(0, Math.round(summaryRect.top - professorRect.bottom));
+
+  if (referenceGap > 0 && referenceGap < 120) {
+    objectivesBlock.style.setProperty('margin-top', `${referenceGap}px`, 'important');
+  }
+}
+
 function applyMobileStudentDashboardEnhancements() {
   if (typeof window === 'undefined' || window.innerWidth > 760) return;
 
@@ -105,6 +120,8 @@ function applyMobileStudentDashboardEnhancements() {
 
   // Keep the professor card visually separated by the same amount above and below.
   balanceProfessorBlockSpacing(page);
+  // Reuse that established card spacing between the physical summary and objectives.
+  matchObjectivesBlockSpacing(page);
 }
 
 export function startMobileStudentDashboardEnhancer() {
