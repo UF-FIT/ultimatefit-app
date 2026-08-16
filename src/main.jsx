@@ -14,6 +14,7 @@ import './styles/mobile-student-dashboard-actions.css';
 import './styles/student-mobile-dashboard-compact.css';
 import './styles/mobile-student-calendar-stats.css';
 import './styles/student-profile-actions.css';
+import './styles/mobile-student-assessments.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
@@ -22,6 +23,7 @@ import { startTrainingLoadInlineEnhancer } from './lib/trainingLoadInlineEnhance
 import { startMobileBottomNavEnhancer } from './lib/mobileBottomNavEnhancer';
 import { startMobileNavigationLayoutEnhancer } from './lib/mobileNavigationLayoutEnhancer';
 import { startMobileStudentDashboardEnhancer } from './lib/mobileStudentDashboardEnhancer';
+import { startMobileStudentAssessmentEnhancer } from './lib/mobileStudentAssessmentEnhancer';
 import { startStudentProfilePageCleaner } from './lib/studentProfilePageCleaner';
 import { startStudentProfileActionsEnhancer } from './lib/studentProfileActionsEnhancer';
 
@@ -64,6 +66,7 @@ if (entryPath) {
   startMobileBottomNavEnhancer();
   startMobileNavigationLayoutEnhancer();
   startMobileStudentDashboardEnhancer();
+  startMobileStudentAssessmentEnhancer();
   startStudentProfilePageCleaner();
   startStudentProfileActionsEnhancer();
 }
