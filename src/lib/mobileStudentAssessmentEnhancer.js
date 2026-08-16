@@ -53,6 +53,9 @@ function renderMetricCards(home, student, published) {
 
   const latest = published.at(-1) || null;
   const previous = published.length > 1 ? published.at(-2) : null;
+  const signature = `${student?.id || ''}|${student?.sex || ''}|${latest?.id || 'none'}|${previous?.id || 'none'}`;
+  if (grid.dataset.mobileAssessmentSignature === signature && grid.querySelector('.assessmentPreviousValue')) return;
+
   const latestMetrics = assessmentMetrics(latest);
   const previousMetrics = assessmentMetrics(previous);
   const latestPer = latest?.modules?.perimetry || {};
@@ -84,6 +87,7 @@ function renderMetricCards(home, student, published) {
 
   grid.replaceChildren(...cards);
   grid.dataset.mobileAssessmentEnhanced = 'true';
+  grid.dataset.mobileAssessmentSignature = signature;
 }
 
 async function enhance() {
