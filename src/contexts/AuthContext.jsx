@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { supabase, supabaseConfigured } from '../lib/supabase';
 
 const AuthContext = createContext(null);
+const REMEMBER_ACCESS_KEY = 'ultimatefit-remember-access';
+const TEMP_SESSION_KEY = 'ultimatefit-temporary-session';
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -60,6 +62,23 @@ export function AuthProvider({ children }) {
 
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       if (!active) return;
+
+      let rememberAccess = true;
+      let temporarySession = false;
+      try {
+        rememberAccess = window.localStorage.getItem(REMEMBER_ACCESS_KEY) !== 'false';
+        temporarySession = window.sessionStorage.getItem(TEMP_SESSION_KEY) === '1';
+      } catch { /* Storage can be unavailable in private browsing. */ }
+
+      if (currentSession && !rememberAccess && !temporarySession) {
+        await supabase.auth.signOut();
+        if (!active) return;
+        setSession(null);
+        await loadProfile(null);
+        setLoading(false);
+        return;
+      }
+
       setSession(currentSession);
       await loadProfile(currentSession?.user ?? null);
       if (active) setLoading(false);
@@ -69,9 +88,6 @@ export function AuthProvider({ children }) {
       setSession(nextSession);
       if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
 
-      // A token refresh or a repeated SIGNED_IN event for the same account must
-      // not tear down the whole application. Supabase can emit these events
-      // when the tab regains focus, even though the user never left the app.
       const sameUser = Boolean(nextSession?.user?.id && profileRef.current?.id === nextSession.user.id);
       if (event === 'TOKEN_REFRESHED' || (event === 'SIGNED_IN' && sameUser)) return;
 
@@ -87,7 +103,6 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      // Real account transitions remain blocking until the matching profile is ready.
       setLoading(true);
       window.setTimeout(async () => {
         await loadProfile(nextSession?.user ?? null);
@@ -101,13 +116,16 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  async function signIn(email, password) {
+  async function signIn(email, password, rememberAccess = true) {
     if (!supabase) return { error: new Error('Supabase não configurado.') };
     setAuthError('');
-    // Keep the gate in a neutral loading state while Supabase creates the
-    // session and the matching application profile is hydrated. Without
-    // this, AppGate can briefly see `session` before `profile` and flash
-    // the "Perfil indisponível" error even though the profile exists.
+
+    try {
+      window.localStorage.setItem(REMEMBER_ACCESS_KEY, rememberAccess ? 'true' : 'false');
+      if (rememberAccess) window.sessionStorage.removeItem(TEMP_SESSION_KEY);
+      else window.sessionStorage.setItem(TEMP_SESSION_KEY, '1');
+    } catch { /* Storage can be unavailable in private browsing. */ }
+
     setLoading(true);
     const result = await supabase.auth.signInWithPassword({ email, password });
     if (result.error) {
@@ -158,6 +176,7 @@ export function AuthProvider({ children }) {
   async function signOut() {
     if (!supabase) return;
     await supabase.auth.signOut();
+    try { window.sessionStorage.removeItem(TEMP_SESSION_KEY); } catch { /* Ignore. */ }
     profileRef.current = null;
     setProfile(null);
     setRecoveryMode(false);
