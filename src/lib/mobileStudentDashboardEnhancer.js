@@ -27,11 +27,35 @@ function hideDashboardBlock(page, headingText) {
   block.setAttribute('aria-hidden', 'true');
 }
 
+function normalizeResponsibleTrainerCard(page) {
+  const trainerCard = page.querySelector('.trainerProfileCard');
+  if (!trainerCard) return;
+
+  // The real component class is trainerProfileCard (the old CSS targeted
+  // assignedTrainerCard), so apply the dashboard card rhythm here directly.
+  if (isStudentDashboardRoute()) {
+    trainerCard.style.setProperty('margin-top', '18px', 'important');
+  }
+
+  const eyebrow = trainerCard.querySelector('.eyebrow');
+  if (eyebrow && /professor\s+principal/i.test(eyebrow.textContent || '')) {
+    eyebrow.textContent = 'PROFESSOR RESPONSÁVEL';
+  }
+
+  trainerCard.querySelectorAll('p').forEach((paragraph) => {
+    if (/professor\s+principal/i.test(paragraph.textContent || '')) {
+      paragraph.textContent = (paragraph.textContent || '').replace(/professor\s+principal/gi, 'professor responsável');
+    }
+  });
+}
+
 function applyMobileStudentDashboardEnhancements() {
   if (typeof window === 'undefined' || window.innerWidth > 760) return;
 
   const page = document.querySelector('.studentSelfProfilePage');
   if (!page) return;
+
+  normalizeResponsibleTrainerCard(page);
 
   document.querySelectorAll('.studentSelfProfilePage .selfActions button').forEach((button) => {
     const label = (button.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
