@@ -24,6 +24,9 @@ function weeks(w){
 }
 function wix(v,ws){const d=dt(v);return ws.findIndex(w=>d>=w.a&&d<=new Date(w.b.getFullYear(),w.b.getMonth(),w.b.getDate(),23,59,59))}
 async function target(){
+  // /alunos is the professional profile view. Analytics are available in the
+  // dedicated training areas, so do not duplicate them on the student profile.
+  if(location.pathname==='/alunos') return '';
   const p=new URLSearchParams(location.search);
   if(p.get('aluno'))return p.get('aluno');
   if(location.pathname==='/inicio'){
