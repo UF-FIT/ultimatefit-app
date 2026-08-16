@@ -1,0 +1,25 @@
+.loginIntro{
+  isolation:isolate;
+  background-image:url('/assets/login-background-gabi.svg');
+  background-size:cover;
+  background-position:center 46%;
+  background-repeat:no-repeat;
+}
+.loginIntro::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:linear-gradient(90deg,rgba(5,5,5,.82) 0%,rgba(5,5,5,.68) 42%,rgba(5,5,5,.38) 72%,rgba(5,5,5,.58) 100%),linear-gradient(180deg,rgba(5,5,5,.2),rgba(5,5,5,.55));
+}
+.loginIntro::after{display:none}
+.loginIntroBottom{position:relative;z-index:1}
+@media(max-width:900px){
+  .loginIntro{
+    background-position:center 38%;
+  }
+  .loginIntro::before{
+    background:linear-gradient(90deg,rgba(5,5,5,.78),rgba(5,5,5,.48)),linear-gradient(180deg,rgba(5,5,5,.12),rgba(5,5,5,.58));
+  }
+}
