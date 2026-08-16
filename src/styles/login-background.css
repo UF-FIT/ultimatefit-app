@@ -1,25 +1,41 @@
+.loginPage{
+  grid-template-columns:minmax(0,1.55fr) minmax(420px,.65fr);
+}
+
 .loginIntro{
   isolation:isolate;
   background-image:url('/assets/login-background-gabi.svg');
   background-size:cover;
-  background-position:center 46%;
+  background-position:64% center;
   background-repeat:no-repeat;
 }
+
 .loginIntro::before{
   content:'';
   position:absolute;
   inset:0;
   z-index:0;
   pointer-events:none;
-  background:linear-gradient(90deg,rgba(5,5,5,.82) 0%,rgba(5,5,5,.68) 42%,rgba(5,5,5,.38) 72%,rgba(5,5,5,.58) 100%),linear-gradient(180deg,rgba(5,5,5,.2),rgba(5,5,5,.55));
+  background:
+    linear-gradient(90deg,rgba(5,5,5,.28) 0%,rgba(5,5,5,.14) 48%,rgba(5,5,5,.22) 70%,rgba(5,5,5,.62) 100%),
+    linear-gradient(180deg,rgba(5,5,5,.08) 0%,rgba(5,5,5,.12) 64%,rgba(5,5,5,.32) 100%);
 }
+
 .loginIntro::after{display:none}
 .loginIntroBottom{position:relative;z-index:1}
+.loginCopy{text-shadow:0 2px 22px rgba(0,0,0,.58)}
+
+@media(max-width:1100px){
+  .loginPage{grid-template-columns:minmax(0,1.35fr) minmax(390px,.65fr)}
+  .loginIntro{background-position:60% center}
+}
+
 @media(max-width:900px){
+  .loginPage{grid-template-columns:1fr}
   .loginIntro{
-    background-position:center 38%;
+    background-position:center 34%;
   }
   .loginIntro::before{
-    background:linear-gradient(90deg,rgba(5,5,5,.78),rgba(5,5,5,.48)),linear-gradient(180deg,rgba(5,5,5,.12),rgba(5,5,5,.58));
+    background:linear-gradient(180deg,rgba(5,5,5,.12),rgba(5,5,5,.56));
   }
 }
