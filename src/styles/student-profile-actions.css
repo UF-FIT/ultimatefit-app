@@ -2,10 +2,37 @@
   .studentSelfProfilePage .studentSelfHero .selfActions[data-student-route-actions="profile"] {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
   }
 
-  .studentSelfProfilePage .studentSelfHero .selfActions [data-student-password-action="true"] {
-    grid-column: 1 / -1;
+  .studentSelfProfilePage .studentSelfHero .selfActions[data-student-route-actions="profile"] > button {
+    grid-column: auto !important;
+    min-height: 48px !important;
+    width: 100% !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero .profileChips {
+    flex-wrap: wrap !important;
+    align-items: center !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero .studentDashboardProfessorAction {
+    width: auto !important;
+    min-height: 30px !important;
+    padding: 5px 9px !important;
+    border: 1px solid #343434 !important;
+    border-radius: 999px !important;
+    background: #0b0b0d !important;
+    color: #fff !important;
+    gap: 5px !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .studentSelfProfilePage .studentSelfHero .studentDashboardProfessorAction svg {
+    width: 14px !important;
+    height: 14px !important;
   }
 }
 
