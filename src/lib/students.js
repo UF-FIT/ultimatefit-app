@@ -50,6 +50,8 @@ async function signedUrl(bucket, path, expires = 3600) {
   return data?.signedUrl || '';
 }
 
+async function mapStudents() {}
+
 export async function fetchStudents() {
   const { data: studentRows, error: studentError } = await supabase
     .from('student_profiles')
@@ -278,8 +280,8 @@ export async function uploadStudentAvatar(studentId, file) {
 
 export function buildStudentAccessMessage(student) {
   const firstName = student.name?.split(' ')[0] || 'Olá';
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ultimatefit-app.vercel.app';
-  return `${firstName}, a tua conta na ULTIMATE FIT APP está preparada.\n\nAcesso: ${appUrl}\nEmail: ${student.email}\n\n1. Abre o email enviado pela ULTIMATE FIT e define a tua palavra-passe.\n2. Entra na app com o email acima.\n3. Caso não te recordes da password, usa “Esqueci-me da palavra-passe”.\n\nPara instalar no telemóvel:\n• iPhone/Safari: Partilhar → Adicionar ao ecrã principal.\n• Android/Chrome: menu ⋮ → Instalar aplicação ou Adicionar ao ecrã principal.\n\nNa app poderás consultar avaliações, evolução, objetivos, plano de treino, plano alimentar e desafios — tudo com o mesmo acesso.`;
+  const installUrl = 'https://app.ultimatefit.pt/instalar';
+  return `${firstName}, a tua conta na ULTIMATE FIT APP está preparada.\n\nInstala a app aqui:\n${installUrl}\n\nEmail de acesso: ${student.email}\n\n1. Abre o email enviado pela ULTIMATE FIT e define a tua palavra-passe.\n2. Abre o link acima e segue as instruções para instalar a ULTIMATE FIT no telemóvel.\n3. Depois de instalada, entra com o email acima e a palavra-passe que definiste.\n\nCaso não te recordes da palavra-passe, podes usar “Esqueci-me da palavra-passe” no ecrã de login.\n\nNa app poderás consultar avaliações, evolução, objetivos, plano de treino, plano alimentar, atividades e desafios — tudo com o mesmo acesso.`;
 }
 
 export function whatsappUrl(phone, message = '') {
@@ -288,4 +290,3 @@ export function whatsappUrl(phone, message = '') {
   if (clean.length === 9 && clean.startsWith('9')) clean = `351${clean}`;
   return `https://wa.me/${clean}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
 }
-
