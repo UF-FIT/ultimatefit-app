@@ -64,19 +64,13 @@ function balanceProfessorBlockSpacing(page) {
   }
 }
 
-function matchObjectivesBlockSpacing(page) {
-  const professorBlock = findBlockByText(page, 'professor principal');
-  const summaryBlock = findBlockByHeading(page, 'resumo físico');
+function fixObjectivesBlockSpacing(page) {
   const objectivesBlock = findBlockByHeading(page, 'foco do acompanhamento');
-  if (!professorBlock || !summaryBlock || !objectivesBlock) return;
+  if (!objectivesBlock) return;
 
-  const professorRect = professorBlock.getBoundingClientRect();
-  const summaryRect = summaryBlock.getBoundingClientRect();
-  const referenceGap = Math.max(0, Math.round(summaryRect.top - professorRect.bottom));
-
-  if (referenceGap > 0 && referenceGap < 120) {
-    objectivesBlock.style.setProperty('margin-top', `${referenceGap}px`, 'important');
-  }
+  // Explicit mobile card spacing. Avoids the unreliable geometry-based calculation
+  // that previously left this card visually attached to the physical summary.
+  objectivesBlock.style.setProperty('margin-top', '24px', 'important');
 }
 
 function applyMobileStudentDashboardEnhancements() {
@@ -96,8 +90,6 @@ function applyMobileStudentDashboardEnhancements() {
 
   if (!isStudentDashboardRoute()) return;
 
-  // These modules belong in their dedicated areas/profile and are intentionally
-  // removed from the student's first-impact dashboard on mobile.
   hideDashboardBlock(page, 'PAR-Q');
   hideDashboardBlock(page, 'Últimas 5 avaliações');
   hideDashboardBlock(page, 'Dados do aluno');
@@ -109,7 +101,6 @@ function applyMobileStudentDashboardEnhancements() {
   const hero = page.querySelector('.studentSelfHero');
 
   if (accompaniment && calendar && hero && accompaniment !== calendar) {
-    // Mobile student dashboard order: hero -> accompaniment -> calendar -> remaining content.
     if (hero.nextElementSibling !== accompaniment) {
       hero.insertAdjacentElement('afterend', accompaniment);
     }
@@ -118,10 +109,8 @@ function applyMobileStudentDashboardEnhancements() {
     }
   }
 
-  // Keep the professor card visually separated by the same amount above and below.
   balanceProfessorBlockSpacing(page);
-  // Reuse that established card spacing between the physical summary and objectives.
-  matchObjectivesBlockSpacing(page);
+  fixObjectivesBlockSpacing(page);
 }
 
 export function startMobileStudentDashboardEnhancer() {
