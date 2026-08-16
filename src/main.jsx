@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import InstallAppPage from './components/InstallAppPage';
 import './styles/app.css';
 import './styles/student-directory-cards-v2.css';
 import './styles/dashboard-attention.css';
@@ -31,6 +32,7 @@ import { startChallengeHeroCopyEnhancer } from './lib/challengeHeroCopyEnhancer'
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
+const publicInstallPath = window.location.pathname.replace(/\/+$/,'').toLowerCase() === '/instalar';
 
 function canonicalEntryPath(host, pathname) {
   const cleanPath = pathname && pathname !== '/' ? pathname : '';
@@ -53,6 +55,12 @@ if (entryPath) {
   // app.ultimatefit.pt is immediately reused after this redirect.
   const target = `${canonicalAppOrigin}${entryPath}${window.location.search}${window.location.hash}`;
   window.location.replace(target);
+} else if (publicInstallPath) {
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <InstallAppPage />
+    </React.StrictMode>
+  );
 } else {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
