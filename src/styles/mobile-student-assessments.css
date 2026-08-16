@@ -3,7 +3,7 @@
     display: grid !important;
     grid-template-columns: auto minmax(0, 1fr) !important;
     align-items: stretch !important;
-    gap: 16px !important;
+    gap: 14px !important;
   }
 
   .assessmentStudentHome .assessmentStudentAvatar {
@@ -25,38 +25,43 @@
 
   .assessmentStudentHome .assessmentMetricCards {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   .assessmentStudentHome .assessmentMetricCards > div {
     position: relative !important;
-    min-height: 118px !important;
-    padding: 16px 18px !important;
+    min-height: 78px !important;
+    padding: 10px 12px !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
-    grid-template-rows: auto 1fr !important;
-    align-items: end !important;
-    column-gap: 10px !important;
+    grid-template-rows: auto auto !important;
+    align-content: center !important;
+    align-items: center !important;
+    column-gap: 8px !important;
+    row-gap: 6px !important;
   }
 
   .assessmentStudentHome .assessmentMetricCards > div > small {
     grid-column: 1 / -1 !important;
-    align-self: start !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
   }
 
   .assessmentStudentHome .assessmentMetricCards > div > b {
     grid-column: 1 !important;
-    align-self: end !important;
+    margin: 0 !important;
+    font-size: clamp(20px, 5.4vw, 27px) !important;
+    line-height: 1 !important;
     white-space: nowrap !important;
   }
 
   .assessmentStudentHome .assessmentPreviousValue {
     grid-column: 2 !important;
-    align-self: end !important;
     justify-self: end !important;
     color: #8b8b92 !important;
-    font-size: 10px !important;
-    line-height: 1.25 !important;
+    font-size: 9px !important;
+    line-height: 1.15 !important;
     text-align: right !important;
     white-space: nowrap !important;
   }
@@ -67,5 +72,6 @@
 
   .assessmentStudentHome .assessmentDateMetricCard > b {
     grid-column: 1 !important;
+    font-size: clamp(18px, 5vw, 25px) !important;
   }
 }
