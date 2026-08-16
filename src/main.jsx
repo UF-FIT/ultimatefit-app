@@ -13,6 +13,7 @@ import './styles/mobile-login-ios-zoom.css';
 import './styles/mobile-student-dashboard-actions.css';
 import './styles/student-mobile-dashboard-compact.css';
 import './styles/mobile-student-calendar-stats.css';
+import './styles/student-profile-actions.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
@@ -22,6 +23,7 @@ import { startMobileBottomNavEnhancer } from './lib/mobileBottomNavEnhancer';
 import { startMobileNavigationLayoutEnhancer } from './lib/mobileNavigationLayoutEnhancer';
 import { startMobileStudentDashboardEnhancer } from './lib/mobileStudentDashboardEnhancer';
 import { startStudentProfilePageCleaner } from './lib/studentProfilePageCleaner';
+import { startStudentProfileActionsEnhancer } from './lib/studentProfileActionsEnhancer';
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
@@ -63,4 +65,5 @@ if (entryPath) {
   startMobileNavigationLayoutEnhancer();
   startMobileStudentDashboardEnhancer();
   startStudentProfilePageCleaner();
+  startStudentProfileActionsEnhancer();
 }
