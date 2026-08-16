@@ -15,15 +15,6 @@ function findBlockByHeading(page, wantedText) {
   return topLevelBlockFor(heading, page);
 }
 
-function findBlockByText(page, wantedText) {
-  const wanted = wantedText.toLowerCase();
-  const element = Array.from(page.querySelectorAll('span, p, div, strong')).find((candidate) => {
-    const text = (candidate.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    return text === wanted || text.startsWith(wanted);
-  });
-  return topLevelBlockFor(element, page);
-}
-
 function isStudentDashboardRoute() {
   const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
   return path !== '/perfil';
@@ -34,58 +25,6 @@ function hideDashboardBlock(page, headingText) {
   if (!block) return;
   block.style.setProperty('display', 'none', 'important');
   block.setAttribute('aria-hidden', 'true');
-}
-
-function nextVisibleSibling(element) {
-  let current = element?.nextElementSibling || null;
-  while (current) {
-    const style = window.getComputedStyle(current);
-    if (style.display !== 'none' && style.visibility !== 'hidden' && current.getBoundingClientRect().height > 0) {
-      return current;
-    }
-    current = current.nextElementSibling;
-  }
-  return null;
-}
-
-function balanceProfessorBlockSpacing(page) {
-  const professorBlock = findBlockByText(page, 'professor principal');
-  if (!professorBlock) return;
-
-  const nextBlock = nextVisibleSibling(professorBlock);
-  if (!nextBlock) return;
-
-  const professorRect = professorBlock.getBoundingClientRect();
-  const nextRect = nextBlock.getBoundingClientRect();
-  const gapAfter = Math.max(0, Math.round(nextRect.top - professorRect.bottom));
-
-  if (gapAfter > 0 && gapAfter < 120) {
-    professorBlock.style.setProperty('margin-top', `${gapAfter}px`, 'important');
-  }
-}
-
-function fixObjectivesBlockSpacing(page) {
-  const summaryBlock = findBlockByHeading(page, 'resumo físico');
-  const objectivesBlock = findBlockByHeading(page, 'foco do acompanhamento');
-  if (!summaryBlock || !objectivesBlock) return;
-
-  const targetGap = 24;
-
-  // Clear any previous inline correction first so geometry is measured from the
-  // actual layout rather than from a stale compensation applied on a prior run.
-  objectivesBlock.style.removeProperty('margin-top');
-
-  const summaryRect = summaryBlock.getBoundingClientRect();
-  const objectivesRect = objectivesBlock.getBoundingClientRect();
-  const actualGap = Math.round(objectivesRect.top - summaryRect.bottom);
-
-  if (!Number.isFinite(actualGap)) return;
-
-  // The parent layout already contributes spacing between sections. Apply only
-  // the difference needed to make the visible gap exactly 24px. This can be a
-  // negative margin when the structural gap is larger than desired.
-  const correction = targetGap - actualGap;
-  objectivesBlock.style.setProperty('margin-top', `${correction}px`, 'important');
 }
 
 function applyMobileStudentDashboardEnhancements() {
@@ -123,9 +62,6 @@ function applyMobileStudentDashboardEnhancements() {
       accompaniment.insertAdjacentElement('afterend', calendar);
     }
   }
-
-  balanceProfessorBlockSpacing(page);
-  fixObjectivesBlockSpacing(page);
 }
 
 export function startMobileStudentDashboardEnhancer() {
