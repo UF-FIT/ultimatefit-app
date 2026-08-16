@@ -31,12 +31,6 @@ function normalizeResponsibleTrainerCard(page) {
   const trainerCard = page.querySelector('.trainerProfileCard');
   if (!trainerCard) return;
 
-  // The real component class is trainerProfileCard (the old CSS targeted
-  // assignedTrainerCard), so apply the dashboard card rhythm here directly.
-  if (isStudentDashboardRoute()) {
-    trainerCard.style.setProperty('margin-top', '18px', 'important');
-  }
-
   const eyebrow = trainerCard.querySelector('.eyebrow');
   if (eyebrow && /professor\s+principal/i.test(eyebrow.textContent || '')) {
     eyebrow.textContent = 'PROFESSOR RESPONSÁVEL';
@@ -47,6 +41,32 @@ function normalizeResponsibleTrainerCard(page) {
       paragraph.textContent = (paragraph.textContent || '').replace(/professor\s+principal/gi, 'professor responsável');
     }
   });
+}
+
+function ensureCalendarTrainerSpacing(page) {
+  const calendar = page.querySelector('.trainingActivityCalendar');
+  const trainerCard = page.querySelector('.trainerProfileCard');
+  if (!calendar || !trainerCard || !isStudentDashboardRoute()) return;
+
+  trainerCard.style.setProperty('margin-top', '0', 'important');
+
+  let spacer = page.querySelector('[data-calendar-trainer-spacer="true"]');
+  if (!spacer) {
+    spacer = document.createElement('div');
+    spacer.setAttribute('data-calendar-trainer-spacer', 'true');
+    spacer.setAttribute('aria-hidden', 'true');
+    spacer.style.height = '18px';
+    spacer.style.minHeight = '18px';
+    spacer.style.width = '100%';
+    spacer.style.pointerEvents = 'none';
+  }
+
+  if (calendar.nextElementSibling !== spacer) {
+    calendar.insertAdjacentElement('afterend', spacer);
+  }
+  if (spacer.nextElementSibling !== trainerCard) {
+    spacer.insertAdjacentElement('afterend', trainerCard);
+  }
 }
 
 function applyMobileStudentDashboardEnhancements() {
@@ -86,6 +106,8 @@ function applyMobileStudentDashboardEnhancements() {
       accompaniment.insertAdjacentElement('afterend', calendar);
     }
   }
+
+  ensureCalendarTrainerSpacing(page);
 }
 
 export function startMobileStudentDashboardEnhancer() {
