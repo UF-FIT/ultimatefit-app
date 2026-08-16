@@ -31,13 +31,38 @@ import { startStudentProfilePageCleaner } from './lib/studentProfilePageCleaner'
 import { startStudentProfileActionsEnhancer } from './lib/studentProfileActionsEnhancer';
 import { startChallengeHeroCopyEnhancer } from './lib/challengeHeroCopyEnhancer';
 import { startMobileWhatsAppNavigationEnhancer } from './lib/mobileWhatsAppNavigationEnhancer';
-import { startInitialDataPaintGuard } from './lib/initialDataPaintGuard';
-
-startInitialDataPaintGuard();
 
 const hostname = window.location.hostname.toLowerCase();
 const canonicalAppOrigin = 'https://app.ultimatefit.pt';
 const publicInstallPath = window.location.pathname.replace(/\/+$/,'').toLowerCase() === '/instalar';
+
+function removeBootSplash() {
+  const splash = document.getElementById('uf-boot-splash');
+  if (splash) splash.remove();
+}
+
+function rootHasReadyView() {
+  const root = document.getElementById('root');
+  const view = root?.firstElementChild;
+  if (!view) return false;
+  if (view.classList.contains('appState') && view.querySelector('.loader')) return false;
+  return true;
+}
+
+function finishBootWhenReady() {
+  if (rootHasReadyView()) {
+    removeBootSplash();
+    return;
+  }
+  const root = document.getElementById('root');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    if (!rootHasReadyView()) return;
+    observer.disconnect();
+    removeBootSplash();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}
 
 function canonicalEntryPath(host, pathname) {
   const cleanPath = pathname && pathname !== '/' ? pathname : '';
@@ -63,6 +88,7 @@ if (entryPath) {
       <InstallAppPage />
     </React.StrictMode>
   );
+  finishBootWhenReady();
 } else {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
@@ -71,6 +97,7 @@ if (entryPath) {
       </BrowserRouter>
     </React.StrictMode>
   );
+  finishBootWhenReady();
   startDashboardAttentionEnhancer();
   startTrainingVolumeEnhancer();
   startTrainingEditorErrorEnhancer();
