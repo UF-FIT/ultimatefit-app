@@ -119,6 +119,16 @@ async function enhance() {
   }
 }
 
+function scrollAssessmentDetailToTop() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+  });
+}
+
 export function startMobileStudentAssessmentEnhancer() {
   if (typeof window === 'undefined') return;
 
@@ -135,6 +145,14 @@ export function startMobileStudentAssessmentEnhancer() {
   run();
   window.addEventListener('resize', run);
   window.addEventListener('popstate', run);
+
+  document.addEventListener('click', event => {
+    if (!isMobile()) return;
+    const button = event.target.closest('.assessmentStudentHome .assessmentHistoryActions button');
+    if (!button) return;
+    const label = (button.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (label === 'ver') scrollAssessmentDetailToTop();
+  }, true);
 
   const observer = new MutationObserver(run);
   observer.observe(document.body, { childList: true, subtree: true });
