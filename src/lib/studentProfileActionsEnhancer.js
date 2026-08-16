@@ -143,26 +143,23 @@ function restoreProfessorButton(actions, button) {
   if (!button) return;
   if (button.parentElement !== actions) actions.insertBefore(button, actions.querySelector('[data-student-password-action="true"]'));
   button.classList.remove('studentDashboardProfessorAction');
-  ['position','top','right','left','bottom','width','min-height','padding','border-radius','z-index','font-size'].forEach((name) => button.style.removeProperty(name));
+  ['position','top','right','left','bottom','width','min-height','padding','border-radius','z-index','font-size','margin-top','align-self'].forEach((name) => button.style.removeProperty(name));
 }
 
 function placeProfessorButtonOnDashboard(hero, button) {
   if (!button) return;
-  if (button.parentElement !== hero) hero.appendChild(button);
+  const identity = Array.from(hero.children).find((child) =>
+    child instanceof HTMLElement &&
+    child.tagName === 'DIV' &&
+    !child.classList.contains('studentPhoto') &&
+    !child.classList.contains('selfActions'),
+  );
+  if (!identity) return;
+
+  if (button.parentElement !== identity) identity.appendChild(button);
   button.classList.add('studentDashboardProfessorAction');
-  hero.style.setProperty('position', 'relative', 'important');
   button.style.setProperty('display', 'inline-flex', 'important');
-  button.style.setProperty('position', 'absolute', 'important');
-  button.style.setProperty('top', '28px', 'important');
-  button.style.setProperty('right', '28px', 'important');
-  button.style.setProperty('left', 'auto', 'important');
-  button.style.setProperty('bottom', 'auto', 'important');
-  button.style.setProperty('width', '180px', 'important');
-  button.style.setProperty('min-height', '46px', 'important');
-  button.style.setProperty('padding', '8px 12px', 'important');
-  button.style.setProperty('border-radius', '10px', 'important');
-  button.style.setProperty('z-index', '3', 'important');
-  button.style.setProperty('font-size', '13px', 'important');
+  ['position','top','right','left','bottom','z-index'].forEach((name) => button.style.removeProperty(name));
 }
 
 function forceProfileButtonsSideBySide(actions, editButton, passwordButton) {
