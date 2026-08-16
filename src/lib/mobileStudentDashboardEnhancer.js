@@ -49,6 +49,8 @@ function applyMobileStudentDashboardEnhancements() {
   hideDashboardBlock(page, 'PAR-Q');
   hideDashboardBlock(page, 'Últimas 5 avaliações');
   hideDashboardBlock(page, 'Dados do aluno');
+  hideDashboardBlock(page, 'Volume planeado');
+  hideDashboardBlock(page, 'Volume realizado');
 
   const accompaniment = findBlockByHeading(page, 'o meu acompanhamento');
   const calendar = findBlockByHeading(page, 'calendário de treinos');
