@@ -4,6 +4,10 @@ function profileRouteActive() {
   return window.location.pathname.toLowerCase().replace(/\/+$/, '') === '/perfil';
 }
 
+function isMobileStudentLayout() {
+  return window.matchMedia('(max-width: 760px)').matches;
+}
+
 function closePasswordModal() {
   document.querySelector('.studentPasswordOverlay')?.remove();
 }
@@ -124,19 +128,51 @@ function ensurePasswordButton(actions) {
   return button;
 }
 
+function actionByText(actions, text) {
+  return Array.from(actions.querySelectorAll(':scope > button')).find((button) =>
+    button.textContent.toLowerCase().includes(text.toLowerCase()),
+  );
+}
+
+function setActionVisible(button, visible) {
+  if (!button) return;
+  button.style.setProperty('display', visible ? 'flex' : 'none', 'important');
+}
+
 function applyStudentProfileActions() {
   const page = document.querySelector('.studentSelfProfilePage');
   if (!page) return;
   const actions = page.querySelector('.studentSelfHero .selfActions');
   if (!actions) return;
 
+  if (!isMobileStudentLayout()) {
+    actions.style.removeProperty('display');
+    delete actions.dataset.studentRouteActions;
+    Array.from(actions.querySelectorAll(':scope > button')).forEach((button) => button.style.removeProperty('display'));
+    closePasswordModal();
+    return;
+  }
+
   const isProfile = profileRouteActive();
-  actions.style.setProperty('display', isProfile ? 'grid' : 'none', 'important');
+  const editButton = actionByText(actions, 'Editar perfil');
+  const professorButton = actionByText(actions, 'Falar com o professor');
+  const exportButton = actionByText(actions, 'Exportar avaliação');
+  const passwordButton = ensurePasswordButton(actions);
+
+  actions.style.setProperty('display', 'grid', 'important');
   actions.dataset.studentRouteActions = isProfile ? 'profile' : 'dashboard';
 
+  // PDF export belongs exclusively to the Avaliações section.
+  setActionVisible(exportButton, false);
+
   if (isProfile) {
-    ensurePasswordButton(actions);
+    setActionVisible(editButton, true);
+    setActionVisible(professorButton, false);
+    setActionVisible(passwordButton, true);
   } else {
+    setActionVisible(editButton, false);
+    setActionVisible(professorButton, true);
+    setActionVisible(passwordButton, false);
     closePasswordModal();
   }
 }
@@ -155,6 +191,7 @@ export function startStudentProfileActionsEnhancer() {
 
   run();
   window.addEventListener('popstate', run);
+  window.addEventListener('resize', run);
   const observer = new MutationObserver(run);
   observer.observe(document.body, { childList: true, subtree: true });
 }
