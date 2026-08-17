@@ -1,4 +1,15 @@
 @media (max-width: 760px) {
+  /*
+   * The standalone iPhone viewport can extend behind the system status bar.
+   * Make the app header own that safe area so every header control moves
+   * together and the rest of the layout keeps its normal document flow.
+   */
+  .topbar {
+    box-sizing: border-box;
+    height: calc(72px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
   .bottomNav {
     overflow: visible !important;
   }
