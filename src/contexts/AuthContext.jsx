@@ -149,15 +149,27 @@ export function AuthProvider({ children }) {
   async function changeOwnPassword(currentPassword, newPassword) {
     if (!supabase) return { error: new Error('Supabase não configurado.') };
     if (!profile?.email) return { error: new Error('Email da conta indisponível.') };
+
     const verification = await supabase.auth.signInWithPassword({
       email: profile.email,
       password: currentPassword,
     });
     if (verification.error) return verification;
+
+    // updateUser is the authoritative password-change operation. Once it succeeds,
+    // optional session cleanup must never turn that successful change into a UI error.
     const result = await supabase.auth.updateUser({ password: newPassword });
-    if (!result.error) {
-      try { await supabase.auth.signOut({ scope: 'others' }); } catch { /* Best effort. */ }
+    if (result.error) return result;
+
+    const authClient = supabase?.auth;
+    if (authClient && typeof authClient.signOut === 'function') {
+      try {
+        await authClient.signOut({ scope: 'others' });
+      } catch {
+        // Best effort only: the password is already changed successfully.
+      }
     }
+
     return result;
   }
 
