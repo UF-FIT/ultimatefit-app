@@ -217,8 +217,10 @@
   .trainingReadOnlyBanner{font-size:10px}
 
   /* On mobile, keep only the sticky bottom save/publish actions. */
-  .trainingEditorHeading{align-items:stretch!important;flex-direction:column!important;width:100%!important;min-width:0!important;gap:16px!important}
-  .trainingEditorHeading>div:first-child{width:100%!important;min-width:0!important}
+  .trainingEditorHeading{position:relative!important;align-items:stretch!important;flex-direction:column!important;width:100%!important;min-width:0!important;gap:16px!important}
+  .trainingEditorHeading>div:first-child{box-sizing:border-box!important;width:100%!important;min-width:0!important;padding-right:118px!important}
+  .trainingEditorHeading>div:nth-child(2){position:absolute!important;top:0!important;right:0!important;margin-left:0!important;display:block!important;z-index:2!important}
+  .trainingEditorHeading>div:nth-child(2)>div:first-child{width:92px!important;height:92px!important;border-radius:22px!important}
   .trainingEditorActions{display:none!important}
 
   /* Keep the bottom action buttons fully inside their background container. */
