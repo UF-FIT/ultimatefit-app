@@ -65,4 +65,29 @@
   .trainingItemsEditor>.trainingItemEditor:only-child .trainingItemMain>.iconButton{
     display:none!important;
   }
+
+  /* Keep all plan-info controls inside the card on narrow iPhone widths, including native date inputs. */
+  .trainingPlanInfo,
+  .trainingPlanInfo .formGrid,
+  .trainingPlanInfo .formGrid>label,
+  .trainingPlanInfo .formGrid>.wide{
+    min-width:0!important;
+    max-width:100%!important;
+  }
+  .trainingPlanInfo .formGrid input,
+  .trainingPlanInfo .formGrid textarea,
+  .trainingPlanInfo .formGrid select{
+    box-sizing:border-box!important;
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+  .trainingPlanInfo input[type='date']{
+    -webkit-appearance:none!important;
+    appearance:none!important;
+    inline-size:100%!important;
+    min-inline-size:0!important;
+    max-inline-size:100%!important;
+  }
 }
