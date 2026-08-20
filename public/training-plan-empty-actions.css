@@ -1,0 +1,14 @@
+/* Training plans: avoid duplicate create actions in the empty state. */
+.trainingPlansPage:has(.trainingEmpty) > .heading > .primary {
+  display: none !important;
+}
+
+.trainingEmpty .primary {
+  font-size: 0;
+}
+
+.trainingEmpty .primary::after {
+  content: 'Criar plano de treino';
+  font-size: 16px;
+  line-height: 1.2;
+}
