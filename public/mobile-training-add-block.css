@@ -60,6 +60,41 @@
     line-height:1.2!important;
   }
 
+  /* Make free-text exercise entry visually match the library exercise picker. */
+  .manualExerciseInput{
+    min-width:0!important;
+    width:100%!important;
+  }
+  .manualExerciseInput input{
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    min-height:54px!important;
+    margin:0!important;
+    padding:14px 16px!important;
+    border:1px dashed rgba(255,217,8,.42)!important;
+    border-radius:7px!important;
+    background:rgba(255,217,8,.025)!important;
+    color:#fff!important;
+    font-size:14px!important;
+    font-weight:500!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .manualExerciseInput input::placeholder{
+    color:#a7a7ad!important;
+    opacity:1!important;
+    font-weight:500!important;
+  }
+  .manualExerciseInput input:focus{
+    outline:none!important;
+    border-color:rgba(255,217,8,.72)!important;
+    box-shadow:0 0 0 2px rgba(255,217,8,.06)!important;
+  }
+
   /* Do not allow the only exercise row in a block to be removed: it would leave the block unusable.
      In superseries/circuits with multiple exercises, keep remove controls available for the extra rows. */
   .trainingItemsEditor>.trainingItemEditor:only-child .trainingItemMain>.iconButton{
