@@ -1,5 +1,5 @@
 /* ULTIMATE FIT — shared content action button system.
-   Keeps navigation controls/chips untouched while giving all primary content CTAs
+   Keeps navigation controls/chips untouched while giving primary content CTAs
    one consistent rectangular language. */
 
 :where(
@@ -28,10 +28,8 @@ button.primary {
   font-weight: 800;
 }
 
-/* Page-heading CTAs should remain compact rather than inheriting stretched mobile boxes. */
 .heading > button.primary,
-.heading > div + button.primary,
-.nutritionPage > .heading button.primary {
+.heading > div + button.primary {
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
@@ -48,14 +46,34 @@ button.primary {
   display: none !important;
 }
 
-.emptyState > button.primary {
-  width: auto !important;
-  min-width: 190px;
-  margin-inline: auto;
-  align-self: center;
+.emptyState {
+  text-align: center;
 }
 
-/* Nutrition CTA: compact horizontal action, never the oversized mobile tile. */
+.emptyState > button.primary {
+  width: 220px !important;
+  min-width: 220px !important;
+  max-width: 100% !important;
+  min-height: 50px !important;
+  margin: 18px auto 0 !important;
+  padding: 0 24px !important;
+  align-self: center !important;
+  justify-self: center !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  text-align: center !important;
+}
+
+.emptyState > button.primary svg {
+  display: block !important;
+  flex: 0 0 auto !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Nutrition action has its own layout so it never collides with page copy. */
 .nutritionPage > .heading button.primary {
   font-size: 16px !important;
 }
@@ -73,29 +91,69 @@ button.primary {
   }
 
   .heading > button.primary,
-  .heading > div + button.primary,
-  .nutritionPage > .heading button.primary {
+  .heading > div + button.primary {
     height: 46px !important;
     min-height: 46px !important;
-    padding-inline: 17px !important;
+    padding-inline: 18px !important;
     font-size: 15px !important;
   }
 
-  /* Keep the title/action composition readable without turning the CTA into a square. */
-  .heading {
-    align-items: flex-start;
+  /* On mobile, page headings stack. This prevents long CTAs from overlapping copy. */
+  .nutritionPage > .heading {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+    align-items: start !important;
+  }
+
+  .nutritionPage > .heading > div {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .nutritionPage > .heading > button.primary,
+  .nutritionPage > .heading > div + button.primary {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    margin: 0 !important;
+    padding: 0 18px !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    font-size: 15px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
   }
 
   .emptyState > button.primary {
-    min-width: 180px;
+    width: min(220px, 78vw) !important;
+    min-width: 0 !important;
   }
 }
 
 @media (max-width: 520px) {
-  .heading > button.primary,
-  .heading > div + button.primary,
-  .nutritionPage > .heading button.primary {
-    max-width: 46vw !important;
-    padding-inline: 14px !important;
+  /* Student empty-state CTA: centered, compact and visibly balanced. */
+  .emptyState > button.primary {
+    width: min(220px, 72vw) !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    margin-inline: auto !important;
+    padding-inline: 20px !important;
+  }
+
+  /* Keep regular heading CTAs compact, but nutrition remains full-width below its copy. */
+  .heading:not(.nutritionPage .heading) > button.primary,
+  .heading:not(.nutritionPage .heading) > div + button.primary {
+    max-width: 58vw !important;
+  }
+
+  .nutritionPage > .heading > button.primary,
+  .nutritionPage > .heading > div + button.primary {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 }
