@@ -41,6 +41,12 @@
 }
 .trainingPlanLock svg{flex:0 0 auto}
 
+/* Only one create-plan CTA when the current selection has no plans. */
+.trainingPlansPage:has(.trainingEmpty)>.heading>.primary{display:none}
+.trainingEmpty>.primary{font-size:0}
+.trainingEmpty>.primary::after{content:'Criar plano de treino';font-size:inherit}
+.trainingEmpty>.primary::after{font-size:14px}
+
 /* Automatic stretching — defensive scoped layout.
    These rules intentionally repeat the critical layout so the cards do not
    collapse into unstyled full-width images if the global stylesheet changes. */
