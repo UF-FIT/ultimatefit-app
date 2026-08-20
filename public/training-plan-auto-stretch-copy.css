@@ -1,0 +1,27 @@
+/* Plan editor: clearer automatic stretching label and concise helper text. */
+.automaticStretchingPlanOption .eyebrow{
+  font-size:0!important;
+}
+.automaticStretchingPlanOption .eyebrow::after{
+  content:'ALONGAMENTOS AUTOMÁTICOS';
+  font-size:11px!important;
+  font-weight:900!important;
+  letter-spacing:.12em!important;
+  color:var(--y,#ffd908)!important;
+}
+.automaticStretchingPlanOption b{
+  display:none!important;
+}
+.automaticStretchingPlanOption small{
+  font-size:0!important;
+}
+.automaticStretchingPlanOption small::after{
+  content:'A app adiciona automaticamente, no final de cada sessão, os alongamentos adequados aos músculos trabalhados.';
+  font-size:11px!important;
+  line-height:1.45!important;
+  color:#8e8e94!important;
+}
+@media(max-width:720px){
+  .automaticStretchingPlanOption .eyebrow::after{font-size:10px!important}
+  .automaticStretchingPlanOption small::after{font-size:10px!important}
+}
