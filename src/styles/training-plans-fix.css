@@ -215,6 +215,14 @@
 }
 @media(max-width:720px){
   .trainingReadOnlyBanner{font-size:10px}
+
+  /* Keep new/edit plan heading actions inside the mobile viewport. */
+  .trainingEditorHeading{align-items:stretch!important;flex-direction:column!important;width:100%!important;min-width:0!important;gap:16px!important}
+  .trainingEditorHeading>div:first-child{width:100%!important;min-width:0!important}
+  .trainingEditorActions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important;min-width:0!important;gap:8px!important}
+  .trainingEditorActions .secondary,.trainingEditorActions .primary{box-sizing:border-box!important;width:100%!important;min-width:0!important;margin:0!important;padding:12px 10px!important;white-space:normal!important;text-align:center!important;line-height:1.15!important}
+  .trainingEditorActions svg{flex:0 0 auto!important}
+
   .trainingViewer .automaticStretching{padding:13px!important}
   .trainingViewer .automaticStretchingHead{gap:10px!important}
   .trainingViewer .autoStretchBadge{display:none!important}
