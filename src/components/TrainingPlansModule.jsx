@@ -14,6 +14,8 @@ import { getSessionStretchingRecommendations, stretchingRules } from '../lib/str
 import '../styles/training-plans-fix.css';
 
 const cx = (...items) => items.filter(Boolean).join(' ');
+const workoutTitle = index => `Treino ${String.fromCharCode(65 + index)}`;
+const normalizeWorkoutSessions = sessions => (sessions || []).map((session, index) => ({ ...session, title: workoutTitle(index) }));
 
 function Badge({ children, tone = 'gray' }) { return <span className={`badge ${tone}`}>{children}</span>; }
 function Card({ children, className = '' }) { return <div className={cx('card', className)}>{children}</div>; }
@@ -26,13 +28,14 @@ function emptyBlock(type = 'standard') {
   return { type, title: '', rounds: 1, restAfterSeconds: '', items: [emptyItem()] };
 }
 function emptySession(index = 0) {
-  return { title: `Treino ${String.fromCharCode(65 + index)}`, description: '', blocks: [emptyBlock()] };
+  return { title: workoutTitle(index), description: '', blocks: [emptyBlock()] };
 }
 function emptyPlan(studentId = '') {
   return { id: '', studentId, title: '', description: '', goal: '', status: 'draft', active: true, startDate: '', endDate: '', autoStretchingEnabled: true, sessions: [emptySession(0)] };
 }
 function deepCopyPlan(plan) {
-  return JSON.parse(JSON.stringify(plan));
+  const clone = JSON.parse(JSON.stringify(plan));
+  return { ...clone, sessions: normalizeWorkoutSessions(clone.sessions) };
 }
 function duplicatePlanFor(plan, studentId) {
   const clone = deepCopyPlan(plan);
@@ -80,7 +83,7 @@ function AutomaticStretching({ session, studentFacing = false }) {
       <div>
         <span className="eyebrow">RECUPERAÇÃO</span>
         <h3>Alongamentos recomendados</h3>
-        <p>{studentFacing ? 'Realiza estes alongamentos no final da sessão.' : 'Selecionados automaticamente a partir dos grupos musculares trabalhados nesta sessão.'}</p>
+        <p>{studentFacing ? 'Realiza estes alongamentos no final do treino.' : 'Selecionados automaticamente a partir dos grupos musculares trabalhados neste treino.'}</p>
       </div>
       {!studentFacing && <span className="autoStretchBadge">AUTOMÁTICO</span>}
     </div>
@@ -140,7 +143,7 @@ function PlanViewer({ plan, student, canManage, readOnlyReason = '', blockTypes 
 
     <div className="trainingSessionsView">
       {plan.sessions.map((session, sessionIndex) => <section className="card pad trainingSessionView" key={session.id || sessionIndex}>
-        <div className="trainingSessionTitle"><div><span className="eyebrow">SESSÃO {sessionIndex + 1}</span><h2>{session.title}</h2>{session.description && <p>{session.description}</p>}</div><Dumbbell/></div>
+        <div className="trainingSessionTitle"><div><h2>{workoutTitle(sessionIndex)}</h2>{session.description && <p>{session.description}</p>}</div><Dumbbell/></div>
         <div className="trainingBlocksView">
           {session.blocks.map((block, blockIndex) => { const definition = typeByCode[block.type] || { name:block.type, supportsRounds:block.type !== 'standard' }; return <div className={cx('trainingBlockView', block.type, block.type !== 'standard' && 'special')} key={block.id || blockIndex}>
             <div className="trainingBlockHeading"><div><Badge tone={block.type === 'standard' ? 'gray' : 'yellow'}>{definition.name}</Badge>{block.title && <b>{block.title}</b>}</div>{definition.supportsRounds && <span>{block.rounds || 1} volta(s){block.restAfterSeconds ? ` · ${formatSeconds(block.restAfterSeconds)} após bloco` : ''}</span>}</div>
@@ -244,8 +247,15 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
   function patchBlock(sessionIndex, blockIndex, patch) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.map((block,bIndex) => bIndex === blockIndex ? { ...block, ...patch } : block) }) })); }
   function patchItem(sessionIndex, blockIndex, itemIndex, patch) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.map((block,bIndex) => bIndex !== blockIndex ? block : { ...block, items: block.items.map((item,iIndex) => iIndex === itemIndex ? { ...item, ...patch } : item) }) }) })); }
 
-  function addSession() { setDraft(current => ({ ...current, sessions: [...current.sessions, emptySession(current.sessions.length)] })); }
-  function removeSession(index) { if (draft.sessions.length === 1) return; setDraft(current => ({ ...current, sessions: current.sessions.filter((_,i) => i !== index) })); }
+  function addSession() {
+    setDraft(current => ({ ...current, sessions: [...normalizeWorkoutSessions(current.sessions), emptySession(current.sessions.length)] }));
+  }
+  function removeSession(index) {
+    setDraft(current => {
+      if (current.sessions.length === 1) return current;
+      return { ...current, sessions: normalizeWorkoutSessions(current.sessions.filter((_, i) => i !== index)) };
+    });
+  }
   function addBlock(sessionIndex, type='standard') { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index === sessionIndex ? { ...session, blocks: [...session.blocks, emptyBlock(type)] } : session) })); }
   function removeBlock(sessionIndex, blockIndex) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.filter((_,i) => i !== blockIndex) }) })); }
   function addItem(sessionIndex, blockIndex) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.map((block,bIndex) => bIndex !== blockIndex ? block : { ...block, items: [...block.items, emptyItem()] }) }) })); }
@@ -257,7 +267,8 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
     if (!draft.title.trim()) { setError('Indica o nome do plano.'); return; }
     setBusy(true);
     try {
-      const id = await saveWorkoutPlan({ ...draft, status });
+      const normalizedDraft = { ...draft, sessions: normalizeWorkoutSessions(draft.sessions) };
+      const id = await saveWorkoutPlan({ ...normalizedDraft, status });
       await refreshTraining();
       onSaved(id);
     } catch (err) { setError(err.message || 'Não foi possível guardar o plano.'); }
@@ -267,7 +278,7 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
   return <div className="trainingEditor">
     <button className="backButton" onClick={onCancel}><ArrowLeft size={17}/>Cancelar edição</button>
     <div className="heading trainingEditorHeading">
-      <div><span className="eyebrow">PRESCRIÇÃO DE EXERCÍCIO</span><h1>{draft.id ? 'Editar plano' : 'Novo plano'}</h1><p>Organiza sessões, séries normais, superséries e circuitos.</p></div>
+      <div><span className="eyebrow">PRESCRIÇÃO DE EXERCÍCIO</span><h1>{draft.id ? 'Editar plano' : 'Novo plano'}</h1><p>Organiza treinos, séries normais, superséries e circuitos.</p></div>
       <div style={{display:'flex',alignItems:'center',gap:'14px',marginLeft:'auto'}}>
         {selectedStudent && <div title={`Plano de ${selectedStudent.name}`} aria-label={`Aluno selecionado: ${selectedStudent.name}`} style={{width:'clamp(78px,11vw,104px)',height:'clamp(78px,11vw,104px)',borderRadius:'24px',overflow:'hidden',border:'2px solid #ffd908',background:'#121212',display:'grid',placeItems:'center',flex:'0 0 auto',fontWeight:800,fontSize:'24px',color:'#ffd908'}}>{selectedStudentPhoto ? <img src={selectedStudentPhoto} alt={selectedStudent.name} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/> : <span>{selectedStudentInitials}</span>}</div>}
         <div className="trainingEditorActions"><button className="secondary" disabled={busy} onClick={() => submit('draft')}><Save size={17}/>Guardar rascunho</button><button className="primary" disabled={busy} onClick={() => submit('published')}><CheckCircle2 size={17}/>Publicar para o aluno</button></div>
@@ -286,7 +297,7 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
         <div>
           <span className="eyebrow">RECUPERAÇÃO AUTOMÁTICA</span>
           <b>Alongamentos automáticos no final do treino</b>
-          <small>Quando ligado, a app escolhe os alongamentos adequados a partir dos grupos musculares trabalhados em cada sessão.</small>
+          <small>Quando ligado, a app escolhe os alongamentos adequados a partir dos grupos musculares trabalhados em cada treino.</small>
         </div>
         <label className="switchControl" title="Ativar ou desativar alongamentos automáticos">
           <input type="checkbox" checked={draft.autoStretchingEnabled !== false} onChange={event => patchPlan({ autoStretchingEnabled: event.target.checked })}/>
@@ -297,15 +308,15 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
     </div></section>
 
     <div className="trainingSessionsEditor">
-      {draft.sessions.map((session,sessionIndex) => <section className="card pad trainingSessionEditor" key={sessionIndex}>
-        <div className="trainingEditorSectionHead"><div><span className="eyebrow">SESSÃO {sessionIndex + 1}</span><input className="trainingTitleInput" value={session.title} onChange={event => patchSession(sessionIndex,{title:event.target.value})}/></div><button className="iconButton dangerText" onClick={() => removeSession(sessionIndex)} disabled={draft.sessions.length === 1} title="Remover sessão"><Trash2 size={18}/></button></div>
-        <input className="trainingDescriptionInput" value={session.description} onChange={event => patchSession(sessionIndex,{description:event.target.value})} placeholder="Descrição opcional da sessão"/>
+      {draft.sessions.map((session,sessionIndex) => <section className="card pad trainingSessionEditor" key={session.id || sessionIndex}>
+        <div className="trainingEditorSectionHead"><div><input className="trainingTitleInput" value={workoutTitle(sessionIndex)} readOnly aria-label={workoutTitle(sessionIndex)}/></div><button className="iconButton dangerText" onClick={() => removeSession(sessionIndex)} disabled={draft.sessions.length === 1} title="Remover treino"><Trash2 size={18}/></button></div>
+        <input className="trainingDescriptionInput" value={session.description} onChange={event => patchSession(sessionIndex,{description:event.target.value})} placeholder="Descrição opcional do treino"/>
 
-        {session.blocks.map((block,blockIndex) => <div className={cx('trainingBlockEditor',block.type,block.type !== 'standard' && 'special')} key={blockIndex}>
+        {session.blocks.map((block,blockIndex) => <div className={cx('trainingBlockEditor',block.type,block.type !== 'standard' && 'special')} key={block.id || blockIndex}>
           <div className="trainingBlockEditorHead"><GripVertical size={17}/><select value={block.type} onChange={event => patchBlock(sessionIndex,blockIndex,{type:event.target.value})}>{activeBlockTypes.map(type=><option value={type.code} key={type.code}>{type.name}</option>)}</select><input value={block.title} onChange={event => patchBlock(sessionIndex,blockIndex,{title:event.target.value})} placeholder="Nome do bloco (opcional)"/>{(typeByCode[block.type]?.supportsRounds ?? block.type !== 'standard') && <><label>Voltas<input type="number" min="1" max="50" value={block.rounds} onChange={event => patchBlock(sessionIndex,blockIndex,{rounds:event.target.value})}/></label><label>Descanso após<input type="number" min="0" value={block.restAfterSeconds} onChange={event => patchBlock(sessionIndex,blockIndex,{restAfterSeconds:event.target.value})} placeholder="seg"/></label></>}<button className="iconButton dangerText" onClick={() => removeBlock(sessionIndex,blockIndex)}><Trash2 size={16}/></button></div>
 
           <div className="trainingItemsEditor">
-            {block.items.map((item,itemIndex) => <div className="trainingItemEditor" key={itemIndex}>
+            {block.items.map((item,itemIndex) => <div className="trainingItemEditor" key={item.id || itemIndex}>
               <div className="trainingItemMain"><ExercisePicker item={item} exercises={exercises} onChange={patch => patchItem(sessionIndex,blockIndex,itemIndex,patch)}/><button className="iconButton dangerText" onClick={() => removeItem(sessionIndex,blockIndex,itemIndex)}><X size={16}/></button></div>
               <div className="trainingPrescriptionGrid"><label>Séries<input type="number" min="1" value={item.sets ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{sets:event.target.value})}/></label><label>Repetições<input value={item.reps} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{reps:event.target.value})} placeholder="10-12"/></label><label>Duração (seg)<input type="number" min="0" value={item.durationSeconds ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{durationSeconds:event.target.value})}/></label><label>Descanso (seg)<input type="number" min="0" value={item.restSeconds ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{restSeconds:event.target.value})}/></label><label>Tempo<input value={item.tempo} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{tempo:event.target.value})} placeholder="3-1-1"/></label><label>Carga<input value={item.loadText} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{loadText:event.target.value})} placeholder="20 kg / moderada"/></label><label>RPE<input type="number" step="0.5" min="0" max="10" value={item.rpe ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{rpe:event.target.value})}/></label><label className="wide">Notas<input value={item.notes} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{notes:event.target.value})} placeholder="Indicações técnicas ou adaptações"/></label></div>
             </div>)}
@@ -315,7 +326,7 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
         <div className="trainingAddBlocks">{activeBlockTypes.map(type=><button className="secondary" key={type.code} onClick={() => addBlock(sessionIndex,type.code)}>{type.code==='standard'?<Plus size={15}/>:type.code==='circuit'?<CirclePlay size={15}/>:<Layers3 size={15}/>} {type.name}</button>)}</div>
       </section>)}
     </div>
-    <button className="secondary trainingAddSession" onClick={addSession}><ListPlus size={17}/>Adicionar sessão</button>
+    <button className="secondary trainingAddSession" onClick={addSession}><ListPlus size={17}/>Adicionar treino</button>
     <div className="trainingStickyActions"><button className="secondary" disabled={busy} onClick={() => submit('draft')}><Save size={17}/>Guardar rascunho</button><button className="primary" disabled={busy} onClick={() => submit('published')}><CheckCircle2 size={17}/>Publicar plano</button></div>
   </div>;
 }
@@ -392,10 +403,10 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
   const canCreateForCurrentSelection = canManage && (targetStudent ? targetStudentManageable : manageableStudents.length > 0);
   const defaultNewPlanStudentId = targetStudentManageable ? targetStudent.id : (manageableStudents[0]?.id || '');
   return <div className="trainingPlansPage">
-    <div className="heading"><div><h1>{currentUser.role === 'aluno' ? 'O meu treino' : targetStudent ? `Planos · ${targetStudent.name}` : 'Planos de treino'}</h1><p>{currentUser.role === 'aluno' ? 'Consulta o plano publicado pelo teu professor.' : targetStudent && !targetStudentManageable ? `Modo só de leitura · ${targetStudent.primaryTrainer?.name || 'outro professor'} é o professor responsável por este aluno.` : 'Cria e publica prescrições individuais com sessões e séries especiais configuráveis.'}</p></div>{canCreateForCurrentSelection && <button className="primary" onClick={() => setEditing(emptyPlan(defaultNewPlanStudentId))}><Plus size={17}/>Novo plano</button>}</div>
+    <div className="heading"><div><h1>{currentUser.role === 'aluno' ? 'O meu treino' : targetStudent ? `Planos · ${targetStudent.name}` : 'Planos de treino'}</h1><p>{currentUser.role === 'aluno' ? 'Consulta o plano publicado pelo teu professor.' : targetStudent && !targetStudentManageable ? `Modo só de leitura · ${targetStudent.primaryTrainer?.name || 'outro professor'} é o professor responsável por este aluno.` : 'Cria e publica prescrições individuais com treinos e séries especiais configuráveis.'}</p></div>{canCreateForCurrentSelection && <button className="primary" onClick={() => setEditing(emptyPlan(defaultNewPlanStudentId))}><Plus size={17}/>Novo plano</button>}</div>
     {currentUser.role !== 'aluno' && targetStudent && !targetStudentManageable && <div className="trainingReadOnlyBanner trainingReadOnlyBannerList"><LockKeyhole size={18}/><div><b>Aluno associado a outro professor</b><span>Podes consultar todos os planos deste aluno, mas não os podes alterar. A gestão fica reservada a {targetStudent.primaryTrainer?.name || 'quem estiver definido como professor responsável'}.</span></div></div>}
     {(trainingError || error) && <div className="errorBanner">{trainingError || error}</div>}
     {currentUser.role !== 'aluno' && <div className="filters trainingFilters"><div className="search"><Search size={18}/><input value={q} onChange={event => setQ(event.target.value)} placeholder="Pesquisar plano ou aluno…"/></div><select value={filterStudent} onChange={event => setFilterStudent(event.target.value)}><option value="all">Todos os alunos</option>{visibleStudents.map(student => <option value={student.id} key={student.id}>{student.name}</option>)}</select></div>}
-    {trainingLoading ? <div className="notice">A carregar planos de treino…</div> : plans.length === 0 ? <Card className="pad trainingEmpty"><Dumbbell size={40}/><h2>{currentUser.role === 'aluno' ? 'Ainda não tens um plano publicado' : 'Ainda não existem planos nesta seleção'}</h2><p>{currentUser.role === 'aluno' ? 'Quando o teu professor publicar o plano, aparecerá aqui.' : 'Cria o primeiro plano e guarda-o como rascunho ou publica-o diretamente.'}</p>{canCreateForCurrentSelection && <button className="primary" onClick={() => setEditing(emptyPlan(defaultNewPlanStudentId))}><Plus size={17}/>Criar plano</button>}</Card> : <div className="trainingPlanGrid">{plans.map(plan => { const [label,tone] = planStatus(plan); const student = data.students.find(item => item.id === plan.studentId); const exerciseCount = plan.sessions.reduce((sum,session) => sum + session.blocks.reduce((blockSum,block) => blockSum + block.items.length,0),0); return <button className="card trainingPlanCard" key={plan.id} onClick={() => setPlanRoute(plan.id)}><div className="trainingPlanCardTop"><div className="trainingPlanCardIcon"><Dumbbell/></div><Badge tone={tone}>{label}</Badge></div><h2>{plan.title}</h2>{currentUser.role !== 'aluno' && <span className="trainingStudentName"><UserRound size={14}/>{student?.name || 'Aluno'}</span>}{currentUser.role !== 'aluno' && student && !canManageStudent(student) && <span className="trainingPlanLock"><LockKeyhole size={13}/>Só leitura · {student.primaryTrainer?.name || 'outro professor'}</span>}<p>{plan.goal || plan.description || 'Plano de treino individual.'}</p><div className="trainingPlanStats"><span><Dumbbell size={14}/>{plan.sessions.length} sessão(ões)</span><span><ListPlus size={14}/>{exerciseCount} exercício(s)</span></div><div className="trainingPlanCardFooter"><small>{plan.startDate ? `Início ${plan.startDate}` : 'Sem data definida'}</small><ChevronRight size={18}/></div></button>})}</div>}
+    {trainingLoading ? <div className="notice">A carregar planos de treino…</div> : plans.length === 0 ? <Card className="pad trainingEmpty"><Dumbbell size={40}/><h2>{currentUser.role === 'aluno' ? 'Ainda não tens um plano publicado' : 'Ainda não existem planos nesta seleção'}</h2><p>{currentUser.role === 'aluno' ? 'Quando o teu professor publicar o plano, aparecerá aqui.' : 'Cria o primeiro plano e guarda-o como rascunho ou publica-o diretamente.'}</p>{canCreateForCurrentSelection && <button className="primary" onClick={() => setEditing(emptyPlan(defaultNewPlanStudentId))}><Plus size={17}/>Criar plano</button>}</Card> : <div className="trainingPlanGrid">{plans.map(plan => { const [label,tone] = planStatus(plan); const student = data.students.find(item => item.id === plan.studentId); const exerciseCount = plan.sessions.reduce((sum,session) => sum + session.blocks.reduce((blockSum,block) => blockSum + block.items.length,0),0); return <button className="card trainingPlanCard" key={plan.id} onClick={() => setPlanRoute(plan.id)}><div className="trainingPlanCardTop"><div className="trainingPlanCardIcon"><Dumbbell/></div><Badge tone={tone}>{label}</Badge></div><h2>{plan.title}</h2>{currentUser.role !== 'aluno' && <span className="trainingStudentName"><UserRound size={14}/>{student?.name || 'Aluno'}</span>}{currentUser.role !== 'aluno' && student && !canManageStudent(student) && <span className="trainingPlanLock"><LockKeyhole size={13}/>Só leitura · {student.primaryTrainer?.name || 'outro professor'}</span>}<p>{plan.goal || plan.description || 'Plano de treino individual.'}</p><div className="trainingPlanStats"><span><Dumbbell size={14}/>{plan.sessions.length} treino(s)</span><span><ListPlus size={14}/>{exerciseCount} exercício(s)</span></div><div className="trainingPlanCardFooter"><small>{plan.startDate ? `Início ${plan.startDate}` : 'Sem data definida'}</small><ChevronRight size={18}/></div></button>})}</div>}
   </div>;
 }
