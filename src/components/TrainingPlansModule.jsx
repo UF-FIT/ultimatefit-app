@@ -159,7 +159,6 @@ function PlanViewer({ plan, student, canManage, readOnlyReason = '', blockTypes 
   </div>;
 }
 
-
 function ExercisePicker({ item, exercises, onChange }) {
   const selected = exercises.find(exercise => exercise.id === item.exerciseId) || item.exercise || null;
   const initialMode = item.manualName && !item.exerciseId ? 'manual' : 'library';
@@ -236,6 +235,9 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
 
   const activeBlockTypes = useMemo(() => blockTypes.filter(type => type.active), [blockTypes]);
   const typeByCode = useMemo(() => Object.fromEntries(blockTypes.map(type => [type.code, type])), [blockTypes]);
+  const selectedStudent = useMemo(() => students.find(student => student.id === draft.studentId) || null, [students, draft.studentId]);
+  const selectedStudentInitials = selectedStudent?.name?.split(' ').map(part => part[0]).slice(0, 2).join('') || 'AL';
+  const selectedStudentPhoto = selectedStudent?.photoUrl || selectedStudent?.thumbUrl || '';
 
   function patchPlan(patch) { setDraft(current => ({ ...current, ...patch })); }
   function patchSession(sessionIndex, patch) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index === sessionIndex ? { ...session, ...patch } : session) })); }
@@ -264,7 +266,13 @@ function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCance
 
   return <div className="trainingEditor">
     <button className="backButton" onClick={onCancel}><ArrowLeft size={17}/>Cancelar edição</button>
-    <div className="heading trainingEditorHeading"><div><span className="eyebrow">PRESCRIÇÃO DE EXERCÍCIO</span><h1>{draft.id ? 'Editar plano' : 'Novo plano'}</h1><p>Organiza sessões, séries normais, superséries e circuitos.</p></div><div className="trainingEditorActions"><button className="secondary" disabled={busy} onClick={() => submit('draft')}><Save size={17}/>Guardar rascunho</button><button className="primary" disabled={busy} onClick={() => submit('published')}><CheckCircle2 size={17}/>Publicar para o aluno</button></div></div>
+    <div className="heading trainingEditorHeading">
+      <div><span className="eyebrow">PRESCRIÇÃO DE EXERCÍCIO</span><h1>{draft.id ? 'Editar plano' : 'Novo plano'}</h1><p>Organiza sessões, séries normais, superséries e circuitos.</p></div>
+      <div style={{display:'flex',alignItems:'center',gap:'14px',marginLeft:'auto'}}>
+        {selectedStudent && <div title={`Plano de ${selectedStudent.name}`} aria-label={`Aluno selecionado: ${selectedStudent.name}`} style={{width:'clamp(78px,11vw,104px)',height:'clamp(78px,11vw,104px)',borderRadius:'24px',overflow:'hidden',border:'2px solid #ffd908',background:'#121212',display:'grid',placeItems:'center',flex:'0 0 auto',fontWeight:800,fontSize:'24px',color:'#ffd908'}}>{selectedStudentPhoto ? <img src={selectedStudentPhoto} alt={selectedStudent.name} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/> : <span>{selectedStudentInitials}</span>}</div>}
+        <div className="trainingEditorActions"><button className="secondary" disabled={busy} onClick={() => submit('draft')}><Save size={17}/>Guardar rascunho</button><button className="primary" disabled={busy} onClick={() => submit('published')}><CheckCircle2 size={17}/>Publicar para o aluno</button></div>
+      </div>
+    </div>
     {error && <div className="errorBanner">{error}</div>}
 
     <section className="card pad trainingPlanInfo"><div className="formGrid">
@@ -376,7 +384,6 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
 
   if (activePlanId && trainingLoading) return <div className="notice">A carregar o plano de treino…</div>;
   if (activePlanId && !trainingLoading && !activePlan) {
-    // The URL may contain an old/deleted plan id. Return to the list without leaving a broken detail route.
     window.setTimeout(() => setPlanRoute('', { replace: true }), 0);
   }
 
