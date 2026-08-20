@@ -1,7 +1,27 @@
-/* Prevent iOS Safari/WebKit from auto-zooming login fields on focus. */
+/* Prevent iOS Safari/WebKit from auto-zooming form fields on focus.
+   iOS zooms inputs whose computed font-size is below 16px and may keep the
+   page visually zoomed after the keyboard closes. Keep this mobile-only so
+   desktop typography is untouched. */
 @media (max-width: 760px) {
-  .loginPage .loginField input {
+  input,
+  textarea,
+  select,
+  .loginPage .loginField input,
+  .search input,
+  .formGrid input,
+  .formGrid textarea,
+  .formGrid select,
+  .filters input,
+  .filters select,
+  label input,
+  label textarea,
+  label select {
     font-size: 16px !important;
+  }
+
+  input,
+  textarea,
+  select {
     line-height: 1.35;
   }
 }
