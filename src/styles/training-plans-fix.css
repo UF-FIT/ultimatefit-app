@@ -221,6 +221,33 @@
   .trainingEditorHeading>div:first-child{width:100%!important;min-width:0!important}
   .trainingEditorActions{display:none!important}
 
+  /* Keep the bottom action buttons fully inside their background container. */
+  .trainingEditor .trainingStickyActions{
+    box-sizing:border-box!important;
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    padding:8px!important;
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    overflow:hidden!important;
+  }
+  .trainingEditor .trainingStickyActions>.secondary,
+  .trainingEditor .trainingStickyActions>.primary{
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    margin:0!important;
+    padding:12px 10px!important;
+    white-space:normal!important;
+    text-align:center!important;
+    line-height:1.15!important;
+  }
+  .trainingEditor .trainingStickyActions svg{flex:0 0 auto!important}
+
   .trainingViewer .automaticStretching{padding:13px!important}
   .trainingViewer .automaticStretchingHead{gap:10px!important}
   .trainingViewer .autoStretchBadge{display:none!important}
