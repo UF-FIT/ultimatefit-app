@@ -59,4 +59,10 @@
     font-size:14px!important;
     line-height:1.2!important;
   }
+
+  /* Do not allow the only exercise row in a block to be removed: it would leave the block unusable.
+     In superseries/circuits with multiple exercises, keep remove controls available for the extra rows. */
+  .trainingItemsEditor>.trainingItemEditor:only-child .trainingItemMain>.iconButton{
+    display:none!important;
+  }
 }
