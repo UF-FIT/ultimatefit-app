@@ -1,0 +1,11 @@
+.trainingPrescriptionGrid > label.ufCardioHiddenField {
+  display: none !important;
+}
+
+.trainingPrescriptionGrid > label.cardioDurationField {
+  grid-column: 1 / -1;
+}
+
+.trainingPrescriptionGrid > label.cardioDurationField input {
+  max-width: 100%;
+}
