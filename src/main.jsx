@@ -7,6 +7,7 @@ import './styles/app.css';
 import './styles/student-directory-cards-v2.css';
 import './styles/dashboard-attention.css';
 import './styles/training-editor-error-feedback.css';
+import './styles/training-prescription-cardio.css';
 import './styles/dashboard-mobile-kpis.css';
 import './styles/mobile-bottom-nav-125.css';
 import './styles/mobile-overflow-navigation.css';
@@ -26,6 +27,7 @@ import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhance
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
 import { startTrainingEditorErrorEnhancer } from './lib/trainingEditorErrorEnhancer';
 import { startTrainingLoadInlineEnhancer } from './lib/trainingLoadInlineEnhancer';
+import { startTrainingPrescriptionEnhancer } from './lib/trainingPrescriptionEnhancer';
 import { startMobileBottomNavEnhancer } from './lib/mobileBottomNavEnhancer';
 import { startMobileNavigationLayoutEnhancer } from './lib/mobileNavigationLayoutEnhancer';
 import { startMobileStudentDashboardEnhancer } from './lib/mobileStudentDashboardEnhancer';
@@ -107,6 +109,7 @@ if (entryPath) {
   startTrainingVolumeEnhancer();
   startTrainingEditorErrorEnhancer();
   startTrainingLoadInlineEnhancer();
+  startTrainingPrescriptionEnhancer();
   startMobileBottomNavEnhancer();
   startMobileNavigationLayoutEnhancer();
   startMobileStudentDashboardEnhancer();
