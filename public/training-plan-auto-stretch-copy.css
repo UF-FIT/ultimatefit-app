@@ -1,24 +1,27 @@
-/* Plan editor: clearer automatic stretching label and concise helper text. */
+/* Plan editor: clearer automatic stretching label, concise helper text and compact toggle. */
+.automaticStretchingPlanOption{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:18px!important;
+}
 .automaticStretchingPlanOption>div{
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:flex-start!important;
-  gap:6px!important;
+  display:grid!important;
   min-width:0!important;
+  gap:7px!important;
 }
 .automaticStretchingPlanOption .eyebrow{
   display:block!important;
-  width:100%!important;
   font-size:0!important;
-  line-height:1.2!important;
+  line-height:1!important;
 }
 .automaticStretchingPlanOption .eyebrow::after{
   content:'ALONGAMENTOS AUTOMÁTICOS';
   display:block!important;
   font-size:11px!important;
   font-weight:900!important;
+  line-height:1.2!important;
   letter-spacing:.12em!important;
-  line-height:1.25!important;
   color:var(--y,#ffd908)!important;
 }
 .automaticStretchingPlanOption b{
@@ -26,21 +29,89 @@
 }
 .automaticStretchingPlanOption small{
   display:block!important;
-  width:100%!important;
   margin:0!important;
   font-size:0!important;
-  line-height:1.45!important;
+  line-height:1!important;
 }
 .automaticStretchingPlanOption small::after{
   content:'A app adiciona automaticamente, no final de cada sessão, os alongamentos adequados aos músculos trabalhados.';
   display:block!important;
-  width:100%!important;
   font-size:11px!important;
-  line-height:1.45!important;
+  line-height:1.5!important;
   color:#8e8e94!important;
 }
+
+/* Same toggle language used elsewhere in the app: pill + sliding knob, without Ligado/Desligado copy. */
+.automaticStretchingPlanOption .switchControl{
+  position:relative!important;
+  display:block!important;
+  flex:0 0 auto!important;
+  width:48px!important;
+  height:28px!important;
+  margin:0!important;
+  padding:0!important;
+  cursor:pointer!important;
+}
+.automaticStretchingPlanOption .switchControl input{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+.automaticStretchingPlanOption .switchControl>span{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:48px!important;
+  height:28px!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  border-radius:999px!important;
+  background:#303034!important;
+  transition:background .18s ease,border-color .18s ease!important;
+}
+.automaticStretchingPlanOption .switchControl>span::after{
+  content:''!important;
+  position:absolute!important;
+  top:3px!important;
+  left:3px!important;
+  width:20px!important;
+  height:20px!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.45)!important;
+  transition:transform .18s ease!important;
+}
+.automaticStretchingPlanOption .switchControl input:checked+span{
+  background:var(--y,#ffd908)!important;
+  border-color:var(--y,#ffd908)!important;
+}
+.automaticStretchingPlanOption .switchControl input:checked+span::after{
+  transform:translateX(20px)!important;
+  background:#080808!important;
+}
+.automaticStretchingPlanOption .switchControl input:focus-visible+span{
+  outline:2px solid rgba(255,217,8,.7)!important;
+  outline-offset:3px!important;
+}
+.automaticStretchingPlanOption .switchControl strong{
+  display:none!important;
+}
+
 @media(max-width:720px){
-  .automaticStretchingPlanOption>div{gap:7px!important}
-  .automaticStretchingPlanOption .eyebrow::after{font-size:10px!important}
-  .automaticStretchingPlanOption small::after{font-size:10px!important}
+  .automaticStretchingPlanOption{
+    grid-template-columns:minmax(0,1fr) 48px!important;
+    gap:14px!important;
+    align-items:center!important;
+  }
+  .automaticStretchingPlanOption>div{
+    gap:6px!important;
+  }
+  .automaticStretchingPlanOption .eyebrow::after{
+    font-size:10px!important;
+  }
+  .automaticStretchingPlanOption small::after{
+    font-size:10px!important;
+    line-height:1.5!important;
+  }
 }
