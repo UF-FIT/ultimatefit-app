@@ -35,4 +35,28 @@
   .trainingBlockEditorHead>input{
     display:none!important;
   }
+
+  /* A standard series contains one exercise, so adding more exercises is only relevant for special blocks. */
+  .trainingBlockEditor.standard>.textButton{
+    display:none!important;
+  }
+  .trainingBlockEditor.special>.textButton{
+    display:inline-flex!important;
+  }
+
+  /* Keep the exercise picker prompt on a single line on mobile. */
+  .exercisePickerOpen{
+    min-width:0!important;
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+  .exercisePickerOpen span{
+    display:block!important;
+    min-width:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    font-size:14px!important;
+    line-height:1.2!important;
+  }
 }
