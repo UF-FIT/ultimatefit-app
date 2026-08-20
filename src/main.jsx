@@ -20,6 +20,7 @@ import './styles/install-app.css';
 import './styles/login-remember-access.css';
 import './styles/login-background.css';
 import './styles/professional-student-profile-mobile.css';
+import './styles/action-buttons-system.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
