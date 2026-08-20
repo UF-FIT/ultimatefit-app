@@ -11,33 +11,44 @@
   .studentProfilePage .studentProfileHero.profileHeroV2 {
     position: relative;
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: 101px minmax(0, 1fr);
     grid-template-areas:
       "photo identity"
       "actions actions";
+    grid-template-rows: 140px auto;
     gap: 12px 14px;
-    align-items: center;
+    align-items: start;
     padding: 16px;
     min-height: 0;
   }
 
   .studentProfilePage .studentProfileHero .studentPhoto.large {
     grid-area: photo;
-    width: 92px;
-    height: 92px;
-    min-width: 92px;
-    border-radius: 18px;
+    width: 101px;
+    height: 101px;
+    min-width: 101px;
+    border-radius: 19px;
+    align-self: start;
   }
 
   .studentProfilePage .studentProfileHero .profileIdentity {
     grid-area: identity;
     min-width: 0;
     padding-right: 34px;
+    align-self: start;
   }
 
   .studentProfilePage .studentProfileHero .profileIdentity .eyebrow {
+    position: absolute;
+    top: 122px;
+    left: 16px;
+    width: 101px;
+    margin: 0;
+    text-align: center;
     font-size: 11px;
+    line-height: 1.15;
     letter-spacing: .15em;
+    white-space: nowrap;
   }
 
   .studentProfilePage .studentProfileHero .profileIdentity h1 {
