@@ -9,7 +9,11 @@ function setReactInputValue(input, value) {
 function isCardioItem(editor) {
   const meta = editor.querySelector('.selectedExerciseCard');
   if (!meta) return false;
-  return /(^|\s|·)cardio(\s|·|$)/i.test(meta.textContent || '');
+
+  const groupMeta = meta.querySelector('small')?.textContent || '';
+  if (/\bcardio\b/i.test(groupMeta)) return true;
+
+  return /\bcardio\b/i.test(meta.textContent || '');
 }
 
 function labelByText(editor, text) {
@@ -69,6 +73,7 @@ function restoreStrengthItem(editor) {
     const minutes = Number(durationInput.value);
     if (Number.isFinite(minutes) && minutes > 0) durationInput.value = String(Math.round(minutes * 60));
     durationLabel.childNodes[0].textContent = 'Duração (seg)';
+    durationLabel.classList.remove('cardioDurationField');
     delete durationInput.dataset.cardioMinutes;
   }
   editor.querySelectorAll('.ufCardioHiddenField').forEach(label => label.classList.remove('ufCardioHiddenField'));
