@@ -118,7 +118,22 @@ button.primary { font-weight: 800; }
     margin-inline: auto !important;
   }
   .heading:not(.nutritionPage .heading) > button.primary,
-  .heading:not(.nutritionPage .heading) > div + button.primary { max-width: 58vw !important; }
+  .heading:not(.nutritionPage .heading) > div + button.primary {
+    width: auto !important;
+    max-width: 58vw !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding-inline: 14px !important;
+    border-radius: 999px !important;
+    gap: 6px !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+  .heading:not(.nutritionPage .heading) > button.primary svg,
+  .heading:not(.nutritionPage .heading) > div + button.primary svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
   .nutritionPage > .heading > button.primary,
   .nutritionPage > .heading > div + button.primary {
     width: 100% !important;
