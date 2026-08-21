@@ -63,42 +63,56 @@
     line-height: 1.25;
   }
 
+  /* Metadata is intentionally presented as one compact information block,
+     rather than three unrelated floating chips. */
   .studentProfilePage .profileChips {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 5px 6px;
-    width: min(100%, 270px);
-    margin: 0 auto;
-    align-items: center;
+    grid-template-columns: 1fr;
+    gap: 3px;
+    width: min(100%, 258px);
+    margin: 7px 0 0;
+    padding: 5px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 12px;
+    background: rgba(0,0,0,.22);
   }
 
   .studentProfilePage .profileChips span {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 100%;
     min-width: 0;
-    padding: 5px 9px;
-    font-size: 10px;
+    min-height: 22px;
+    margin: 0;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 7px;
+    background: rgba(255,255,255,.035);
+    font-size: 9.7px;
     line-height: 1.1;
-    text-align: center;
+    text-align: left;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .studentProfilePage .profileChips span:nth-child(1) {
+  .studentProfilePage .profileChips span:nth-child(1),
+  .studentProfilePage .profileChips span:nth-child(2),
+  .studentProfilePage .profileChips span:nth-child(3) {
     grid-column: 1;
     justify-self: stretch;
+    width: 100%;
+    max-width: none;
   }
 
   .studentProfilePage .profileChips span:nth-child(2) {
-    grid-column: 2;
-    justify-self: end;
+    color: #ffd908;
+    background: rgba(255,217,8,.055);
   }
 
   .studentProfilePage .profileChips span:nth-child(3) {
-    grid-column: 1 / -1;
-    justify-self: center;
-    width: auto;
-    max-width: 100%;
-    padding-inline: 14px;
+    color: #c9c9cd;
   }
 
   .studentProfilePage .profileQuickActions {
