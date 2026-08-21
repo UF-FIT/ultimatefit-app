@@ -15,8 +15,8 @@
     grid-template-areas:
       "photo identity"
       "actions actions";
-    grid-template-rows: 128px auto;
-    gap: 4px 14px;
+    grid-template-rows: auto auto;
+    gap: 10px 14px;
     align-items: start;
     padding: 16px;
     min-height: 0;
@@ -36,6 +36,8 @@
     min-width: 0;
     padding-right: 0;
     align-self: start;
+    display: flex;
+    flex-direction: column;
   }
 
   .studentProfilePage .studentProfileHero .profileIdentity .eyebrow {
@@ -122,6 +124,8 @@
     gap: 5px;
     margin: 0;
     padding: 2px 0 0;
+    position: relative;
+    z-index: 1;
   }
 
   .studentProfilePage .profileQuickActions button {
