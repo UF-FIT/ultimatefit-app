@@ -14,10 +14,9 @@
     grid-template-columns: 101px minmax(0, 1fr);
     grid-template-areas:
       "photo identity"
-      "meta meta"
       "actions actions";
-    grid-template-rows: 122px auto auto;
-    gap: 7px 14px;
+    grid-template-rows: 116px auto;
+    gap: 8px 14px;
     align-items: start;
     padding: 16px;
     min-height: 0;
@@ -36,10 +35,10 @@
     grid-area: identity;
     min-width: 0;
     padding: 0;
-    align-self: start;
+    align-self: center;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .studentProfilePage .studentProfileHero .profileIdentity .eyebrow {
@@ -56,7 +55,7 @@
   }
 
   .studentProfilePage .studentProfileHero .profileIdentity h1 {
-    margin: 2px 0 5px;
+    margin: 0 0 6px;
     font-size: clamp(28px, 8vw, 38px);
     line-height: .95;
   }
@@ -67,48 +66,11 @@
     line-height: 1.25;
   }
 
-  /* One full-width metadata strip: no dead column under the photo and no tall box. */
-  .studentProfilePage .profileChips.uf-profile-meta-strip {
-    grid-area: meta;
-    display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(58px, .5fr) minmax(0, 1.35fr);
-    gap: 5px;
-    width: 100%;
-    margin: 0;
-    padding: 5px;
-    box-sizing: border-box;
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 12px;
-    background: rgba(0,0,0,.20);
-  }
-
-  .studentProfilePage .profileChips.uf-profile-meta-strip span {
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    min-height: 32px;
-    margin: 0;
-    padding: 5px 7px;
-    border: 0;
-    border-radius: 8px;
-    background: rgba(255,255,255,.04);
-    font-size: 9.5px;
-    line-height: 1.05;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .studentProfilePage .profileChips.uf-profile-meta-strip span:nth-child(2) {
-    color: #ffd908;
-    background: rgba(255,217,8,.07);
-  }
-
-  .studentProfilePage .profileChips.uf-profile-meta-strip span:nth-child(3) {
-    color: #c9c9cd;
+  /* Mobile should stay focused on information that helps the trainer act.
+     Tracking type, account status and responsible trainer are available lower
+     in the profile and were creating dead space in this compact hero. */
+  .studentProfilePage .profileChips {
+    display: none !important;
   }
 
   .studentProfilePage .profileQuickActions {
