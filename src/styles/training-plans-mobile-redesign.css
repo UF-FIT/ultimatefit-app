@@ -42,7 +42,7 @@
     height:17px!important;
   }
 
-  /* Pesquisa exatamente numa barra única, sem altura excessiva. */
+  /* Pesquisa numa barra única. 16px evita o auto-zoom do iOS ao focar. */
   .trainingPlansPage.uf-training-plans-redesign .trainingFilters{
     display:block!important;
     margin:0!important;
@@ -74,7 +74,8 @@
     border:0!important;
     background:transparent!important;
     color:#fff!important;
-    font-size:12.5px!important;
+    font-size:16px!important;
+    line-height:1.35!important;
   }
   .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search input::placeholder{
     color:#8f9097!important;
@@ -101,58 +102,74 @@
     stroke-linejoin:round;
   }
 
-  /* Segunda linha: Todos os alunos + Todos + Rascunhos + Ativos, sem truques de margem. */
+  /* Segunda linha: mantém os quatro controlos sempre dentro das margens. */
   .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-row{
     display:grid!important;
-    grid-template-columns:1.55fr 2.45fr!important;
-    gap:7px!important;
+    grid-template-columns:minmax(0,1.42fr) minmax(0,2.58fr)!important;
+    gap:6px!important;
     width:100%!important;
+    max-width:100%!important;
     margin:9px 0 12px!important;
     align-items:stretch!important;
+    overflow:hidden!important;
   }
   .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-row>select{
     display:block!important;
     width:100%!important;
     min-width:0!important;
+    max-width:100%!important;
     height:40px!important;
     margin:0!important;
-    padding:0 28px 0 13px!important;
+    padding:0 24px 0 10px!important;
     border:1px solid #303136!important;
     border-radius:11px!important;
     background:#151517!important;
     color:#ececef!important;
-    font-size:10.5px!important;
-    line-height:40px!important;
+    font-size:16px!important;
+    line-height:1.35!important;
     appearance:auto!important;
+    text-overflow:ellipsis!important;
   }
   .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tabs{
     display:grid!important;
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
-    gap:6px!important;
+    gap:4px!important;
     width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
     margin:0!important;
+    overflow:hidden!important;
   }
   .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab{
+    box-sizing:border-box!important;
     min-width:0!important;
+    max-width:100%!important;
     height:40px!important;
     margin:0!important;
-    padding:0 5px!important;
+    padding:0 3px!important;
     display:flex!important;
     align-items:center!important;
     justify-content:center!important;
-    gap:5px!important;
+    gap:3px!important;
     border:1px solid #303136!important;
     border-radius:11px!important;
     background:#151517!important;
     color:#a6a6ad!important;
-    font-size:9.8px!important;
+    font-size:9.2px!important;
     font-weight:700!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab span{
+    min-width:0!important;
+    overflow:hidden!important;
+    text-overflow:clip!important;
     white-space:nowrap!important;
   }
   .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab svg{
-    width:14px!important;
-    height:14px!important;
-    flex:0 0 auto!important;
+    width:13px!important;
+    height:13px!important;
+    flex:0 0 13px!important;
     fill:none!important;
     stroke:currentColor!important;
     stroke-width:1.8!important;
