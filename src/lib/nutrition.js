@@ -18,7 +18,8 @@ async function signedUrl(path, expiresIn = 3600) {
 export async function fetchNutritionDocuments() {
   const { data: rows, error } = await supabase
     .from('nutrition_documents')
-    .select('id,student_id,title,notes,file_path,file_name,file_size_bytes,mime_type,uploaded_by,created_at,updated_at')
+    .select('id,student_id,title,notes,file_path,file_name,file_size_bytes,mime_type,uploaded_by,is_current,created_at,updated_at')
+    .order('is_current', { ascending: false })
     .order('created_at', { ascending: false });
   if (error) {
     if (error.code === '42P01') return [];
@@ -47,6 +48,7 @@ export async function fetchNutritionDocuments() {
       uploadedBy: row.uploaded_by,
       uploadedByName: uploader?.full_name || [uploader?.first_name, uploader?.last_name].filter(Boolean).join(' ') || 'ULTIMATE FIT',
       uploadedByRole: uploader?.role || '',
+      isCurrent: row.is_current !== false,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       url: await signedUrl(row.file_path),
@@ -144,6 +146,7 @@ export async function uploadNutritionDocument({ studentId, title, notes, file })
       file_name: fileName,
       file_size_bytes: file.size,
       mime_type: 'application/pdf',
+      is_current: false,
     })
     .select('id')
     .single();
@@ -151,17 +154,46 @@ export async function uploadNutritionDocument({ studentId, title, notes, file })
     await supabase.storage.from(BUCKET).remove([filePath]);
     throw error;
   }
+
+  const { error: promoteError } = await supabase.rpc('promote_nutrition_document', { p_document_id: data.id });
+  if (promoteError) {
+    await supabase.from('nutrition_documents').delete().eq('id', data.id);
+    await supabase.storage.from(BUCKET).remove([filePath]);
+    throw promoteError;
+  }
   return data.id;
+}
+
+export async function replaceNutritionDocument(input) {
+  return uploadNutritionDocument(input);
 }
 
 export async function deleteNutritionDocument(document) {
   if (!document?.id) throw new Error('Documento inválido.');
-  if (document.filePath) {
-    const { error: storageError } = await supabase.storage.from(BUCKET).remove([document.filePath]);
-    if (storageError) throw storageError;
-  }
+  const wasCurrent = document.isCurrent !== false;
+  const studentId = document.studentId;
+
   const { error } = await supabase.from('nutrition_documents').delete().eq('id', document.id);
   if (error) throw error;
+
+  if (document.filePath) {
+    const { error: storageError } = await supabase.storage.from(BUCKET).remove([document.filePath]);
+    if (storageError) console.warn('Não foi possível remover o PDF órfão do armazenamento:', storageError);
+  }
+
+  if (wasCurrent && studentId) {
+    const { data: fallback } = await supabase
+      .from('nutrition_documents')
+      .select('id')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (fallback?.id) {
+      const { error: promoteError } = await supabase.rpc('promote_nutrition_document', { p_document_id: fallback.id });
+      if (promoteError) console.warn('Não foi possível promover o plano alimentar anterior:', promoteError);
+    }
+  }
 }
 
 export async function refreshNutritionDocumentUrl(document) {
