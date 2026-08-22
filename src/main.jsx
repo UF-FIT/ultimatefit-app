@@ -24,6 +24,7 @@ import './styles/professional-student-profile-mobile.css';
 import './styles/action-buttons-system.css';
 import './styles/training-plans-mobile-redesign.css';
 import './styles/training-plan-detail-mobile.css';
+import './styles/nutrition-mobile-redesign.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
