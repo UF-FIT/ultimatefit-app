@@ -27,6 +27,10 @@
 @media(max-width:1280px){.studentDirectoryGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.studentDirectoryCard{grid-template-columns:92px minmax(0,1fr);padding:17px}.studentDirectoryCard .studentPhoto{width:88px;height:88px}.studentDirectoryCard .studentCardIdentity>h3{font-size:21px}.studentDirectoryCardMeta span{font-size:8px}.studentDirectoryCardMeta b{font-size:11px}}
 @media(max-width:820px){.studentDirectoryGrid{grid-template-columns:1fr}.studentDirectoryCard{max-width:620px;grid-template-columns:108px minmax(0,1fr);padding:18px}.studentDirectoryCard .studentPhoto{width:104px;height:104px}.studentDirectoryCard .studentCardIdentity>h3{font-size:23px}.studentDirectoryCardMeta>div{min-height:45px;padding:8px 9px}.studentDirectoryCardMeta span{font-size:9px}.studentDirectoryCardMeta b{font-size:12px}.studentDirectoryCard>.secondary.full{min-height:50px;font-size:15px}}
 @media(max-width:620px){
+  .content.student-directory-preparing{position:relative;min-height:260px}
+  .content.student-directory-preparing>*{visibility:hidden!important}
+  .content.student-directory-preparing::after{content:'';position:absolute;top:92px;left:50%;width:28px;height:28px;margin-left:-14px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--y);border-radius:50%;visibility:visible;animation:studentDirectorySpin .7s linear infinite}
+  @keyframes studentDirectorySpin{to{transform:rotate(360deg)}}
   .studentFilters{position:relative;display:block}
   .studentFilters>.search{position:relative;width:100%}
   .studentFilters>.search input{width:100%;padding-right:56px}
