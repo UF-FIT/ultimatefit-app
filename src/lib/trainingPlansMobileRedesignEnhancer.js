@@ -35,15 +35,12 @@ function normalizeCard(card){
     if(text.includes('publicado')&&text.includes('ativo')) badge.textContent='Ativo';
     else if(text==='publicado') badge.textContent='Publicado';
   }
-  const status=statusOfCard(card);
-  card.dataset.planStatus=status;
+  card.dataset.planStatus=statusOfCard(card);
 }
 
 function ensureStatusTabs(page){
   let tabs=page.querySelector('.uf-plan-status-tabs');
   if(tabs) return tabs;
-  const filters=page.querySelector('.trainingFilters');
-  if(!filters) return null;
   tabs=document.createElement('div');
   tabs.className='uf-plan-status-tabs';
   tabs.setAttribute('role','group');
@@ -64,8 +61,25 @@ function ensureStatusTabs(page){
     activeStatus=button.dataset.status||'all';
     applyStatusFilter(page);
   });
-  filters.insertAdjacentElement('afterend',tabs);
   return tabs;
+}
+
+function ensureCompactFilterRow(page){
+  const filters=page.querySelector('.trainingFilters');
+  if(!filters) return;
+  const search=filters.querySelector('.search');
+  const select=filters.querySelector('select')||page.querySelector('.uf-plan-filter-row select');
+  const tabs=ensureStatusTabs(page);
+  if(!search||!select||!tabs) return;
+
+  let row=page.querySelector('.uf-plan-filter-row');
+  if(!row){
+    row=document.createElement('div');
+    row.className='uf-plan-filter-row';
+    filters.insertAdjacentElement('afterend',row);
+  }
+  if(select.parentElement!==row) row.appendChild(select);
+  if(tabs.parentElement!==row) row.appendChild(tabs);
 }
 
 function ensureFilterIcon(page){
@@ -85,7 +99,7 @@ function enhance(){
   if(!page) return;
   page.classList.add('uf-training-plans-redesign');
   ensureFilterIcon(page);
-  ensureStatusTabs(page);
+  ensureCompactFilterRow(page);
   page.querySelectorAll('.trainingPlanCard').forEach(normalizeCard);
   applyStatusFilter(page);
 }
