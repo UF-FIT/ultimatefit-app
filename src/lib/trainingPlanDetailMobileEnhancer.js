@@ -29,10 +29,12 @@ function sessionInfo(session,index){
     const group=small.split('·')[0]?.trim();
     if(group&&!/texto livre/i.test(group)&&!groups.includes(group)) groups.push(group);
     const prescription=exercise.querySelector('.prescriptionLine')?.textContent||'';
+    const parts=prescription.split('·').map(part=>part.trim());
     const setMatch=prescription.match(/(\d+(?:[.,]\d+)?)\s*séries/i);
     const repMatch=prescription.match(/(\d+(?:[.,]\d+)?)\s*reps/i);
-    const durationMin=prescription.match(/(\d+)\s*min/i);
-    const durationSec=prescription.match(/(?<!min\s)(\d+)\s*s(?:\s|·|$)/i);
+    const durationPart=parts.find(part=>!/^descanso/i.test(part)&&/^\d+\s*(?:min|s)$/i.test(part));
+    const durationMin=durationPart?.match(/(\d+)\s*min/i);
+    const durationSec=durationPart?.match(/(\d+)\s*s$/i);
     const restMin=prescription.match(/descanso\s+(\d+)\s*min/i);
     const restSec=prescription.match(/descanso\s+(\d+)\s*s/i);
     const itemSets=setMatch?Number(setMatch[1].replace(',','.')):0;
@@ -61,6 +63,10 @@ function makeSparkline(values){
   return `<svg class="uf-plan-sparkline" viewBox="0 0 100 38" aria-hidden="true"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
+function sessionIcon(){
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v6M9 7v10M15 7v10M18 9v6M9 12h6M3.5 10v4M20.5 10v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+}
+
 function formatPlanStatus(hero){
   const badge=hero.querySelector('.badge');
   if(!badge) return;
@@ -86,7 +92,8 @@ function enhanceViewer(viewer){
   const infos=sessions.map(sessionInfo);
   const totalSets=infos.reduce((sum,item)=>sum+item.sets,0);
   const totalExercises=infos.reduce((sum,item)=>sum+item.exercises,0);
-  const progress=dateProgress(...Object.values(parseDateRange(viewer)));
+  const range=parseDateRange(viewer);
+  const progress=dateProgress(range.start,range.end);
 
   const summary=document.createElement('section');
   summary.className='uf-plan-overview-metrics';
@@ -112,7 +119,7 @@ function enhanceViewer(viewer){
     button.type='button';
     button.className='uf-plan-session-row';
     const tags=(info.groups.length?info.groups:['Treino']).map(group=>`<span>${group}</span>`).join('');
-    button.innerHTML=`<div class="uf-plan-session-icon">${index===0?'🏋️':index===1?'💪':'🧘'}</div><div class="uf-plan-session-main"><b>${info.title}</b><div class="uf-plan-session-tags">${tags}</div></div><div class="uf-plan-session-meta"><span>${info.exercises} exercício${info.exercises===1?'':'s'}</span>${info.minutes?`<i>•</i><span>◷ ${info.minutes} min</span>`:''}</div><span class="uf-plan-session-chevron">›</span>`;
+    button.innerHTML=`<div class="uf-plan-session-icon">${sessionIcon()}</div><div class="uf-plan-session-main"><b>${info.title}</b><div class="uf-plan-session-tags">${tags}</div></div><div class="uf-plan-session-meta"><span>${info.exercises} exercício${info.exercises===1?'':'s'}</span>${info.minutes?`<i>•</i><span>◷ ${info.minutes} min</span>`:''}</div><span class="uf-plan-session-chevron">›</span>`;
     button.addEventListener('click',()=>openSession(index));
     rows.appendChild(button);
   });
