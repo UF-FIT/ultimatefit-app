@@ -81,9 +81,15 @@ async function update() {
   const params=new URLSearchParams(location.search);
   const planId=params.get('plano')||'';
   const isPlan=/\/(treino|planos-de-treino|planos)(\/|$)/.test(location.pathname)&&Boolean(planId);
-  // Compact analysis belongs only to the student's own dashboard. Professional
-  // student profiles use the dedicated plan area instead of duplicating analytics here.
   const isStudentArea=location.pathname==='/inicio';
+
+  // The redesigned mobile plan detail already contains its own compact
+  // volume/time summary. Avoid rendering the legacy full analysis there,
+  // otherwise both systems compete for the same space.
+  if(isPlan && window.matchMedia('(max-width: 760px)').matches){
+    removeExisting(); lastKey=''; return;
+  }
+
   if(!isPlan&&!isStudentArea){removeExisting();lastKey='';return;}
   busy=true;
   try {
