@@ -66,9 +66,6 @@
     line-height: 1.25;
   }
 
-  /* Mobile should stay focused on information that helps the trainer act.
-     Tracking type, account status and responsible trainer are available lower
-     in the profile and were creating dead space in this compact hero. */
   .studentProfilePage .profileChips {
     display: none !important;
   }
@@ -202,13 +199,16 @@
     display: none !important;
   }
 
-  .studentProfilePage .profileInfoPanel,
+  /* Dados do aluno passam a ser consultados no modal acionado no topo. */
+  .studentProfilePage .profileInfoPanel {
+    display: none !important;
+  }
+
   .studentProfilePage .profileAccessPanel {
     display: block;
     margin-top: 12px;
   }
 
-  .studentProfilePage .profileInfoPanel,
   .studentProfilePage .profileAccessPanel,
   .studentProfilePage .profileOverviewGrid > .card,
   .studentProfilePage > .parqStatusCard,
@@ -235,13 +235,11 @@
     overflow-wrap: anywhere;
   }
 
-  .studentProfilePage .profileAccessPanel .panelTitle h2,
-  .studentProfilePage .profileInfoPanel .panelTitle h2 {
+  .studentProfilePage .profileAccessPanel .panelTitle h2 {
     font-size: 22px;
   }
 
-  .studentProfilePage .profileAccessPanel .panelTitle p,
-  .studentProfilePage .profileInfoPanel .panelTitle p {
+  .studentProfilePage .profileAccessPanel .panelTitle p {
     font-size: 12px;
   }
 
@@ -255,5 +253,132 @@
     min-height: 44px;
     font-size: 12px;
     padding: 8px;
+  }
+
+  body.uf-student-details-open {
+    overflow: hidden;
+  }
+
+  .uf-student-details-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 14px;
+    background: rgba(0,0,0,.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .uf-student-details-modal {
+    width: 100%;
+    max-width: 560px;
+    max-height: min(88vh, 760px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 22px;
+    background: #111113;
+    box-shadow: 0 24px 70px rgba(0,0,0,.55);
+  }
+
+  .uf-student-details-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+
+  .uf-student-details-modal-head span {
+    display: block;
+    margin-bottom: 3px;
+    color: #ffd908;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .12em;
+  }
+
+  .uf-student-details-modal-head h2 {
+    margin: 0;
+    font-size: 25px;
+    line-height: 1;
+  }
+
+  .uf-student-details-close {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 12px;
+    background: #19191c;
+    color: #fff;
+    font-size: 27px;
+    line-height: 1;
+  }
+
+  .uf-student-details-modal-body {
+    overflow-y: auto;
+    padding: 14px 16px 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .uf-student-details-clone {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .uf-student-details-clone .profileDetailsGrid {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 8px;
+  }
+
+  .uf-student-details-clone .profileDetailsGrid > div {
+    min-height: 64px;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 11px;
+    background: #0b0b0d;
+  }
+
+  .uf-student-details-clone .profileDetailsGrid small {
+    display: block;
+    margin-bottom: 5px;
+    color: #888b91;
+    font-size: 10px;
+  }
+
+  .uf-student-details-clone .profileDetailsGrid b {
+    display: block;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .uf-student-details-modal-actions {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255,255,255,.08);
+    background: #111113;
+  }
+
+  .uf-student-details-edit {
+    width: 100%;
+    min-height: 46px;
+    border: 0;
+    border-radius: 12px;
+    background: #ffd908;
+    color: #070707;
+    font-size: 14px;
+    font-weight: 900;
   }
 }
