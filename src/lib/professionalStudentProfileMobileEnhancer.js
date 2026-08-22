@@ -55,11 +55,16 @@ function openDetailsModal(page,editButton){
   detailsOverlay=overlay;
 }
 
-function prepareDetailsAction(page,hero,actions){
+function prepareDetailsAction(page,actions){
   const editButton=actions.querySelector('button:first-child');
   const label=editButton?.querySelector('span');
   if(!editButton||!label) return;
-  label.textContent='Dados do aluno';
+
+  // Avoid writing into the DOM on every MutationObserver pass. Reassigning
+  // textContent unconditionally caused the observer to trigger itself in a
+  // tight loop as soon as the student profile mounted, freezing the UI.
+  if(label.textContent!=='Dados do aluno') label.textContent='Dados do aluno';
+
   if(editButton.dataset.ufDetailsAction==='true') return;
   editButton.dataset.ufDetailsAction='true';
   editButton.addEventListener('click',event=>{
@@ -78,8 +83,8 @@ function reflowProfessionalProfile(page){
   const actions=hero?.querySelector('.profileQuickActions');
   if(!hero || !actions) return;
   if(chips&&chips.parentElement!==hero) hero.insertBefore(chips,actions);
-  chips?.classList.add('uf-profile-meta-strip');
-  prepareDetailsAction(page,hero,actions);
+  if(chips&&!chips.classList.contains('uf-profile-meta-strip')) chips.classList.add('uf-profile-meta-strip');
+  prepareDetailsAction(page,actions);
 }
 
 function enhance(){
@@ -89,11 +94,21 @@ function enhance(){
 }
 
 let observer;
+let queued=false;
+function scheduleEnhance(){
+  if(queued) return;
+  queued=true;
+  requestAnimationFrame(()=>{
+    queued=false;
+    enhance();
+  });
+}
+
 export function startProfessionalStudentProfileMobileEnhancer(){
   if(observer) return;
-  enhance();
-  observer=new MutationObserver(()=>enhance());
+  scheduleEnhance();
+  observer=new MutationObserver(scheduleEnhance);
   observer.observe(document.body,{childList:true,subtree:true});
-  window.matchMedia(MOBILE_QUERY).addEventListener?.('change',enhance);
+  window.matchMedia(MOBILE_QUERY).addEventListener?.('change',scheduleEnhance);
   window.addEventListener('popstate',closeDetailsModal);
 }
