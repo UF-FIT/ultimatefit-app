@@ -2,8 +2,8 @@ import { fetchStudents, studentStatusLabels } from './students';
 
 let cache = [];
 let lastFetch = 0;
-let timer = null;
 let running = false;
+let queued = false;
 
 async function getStudents() {
   const now = Date.now();
@@ -16,6 +16,16 @@ async function getStudents() {
 function statusClass(student) {
   if (student.status === 'archived') return 'archived';
   return student.active ? 'active' : 'inactive';
+}
+
+function pageContent() {
+  return document.querySelector('.content');
+}
+
+function setPreparing(preparing) {
+  const content = pageContent();
+  if (!content) return;
+  content.classList.toggle('student-directory-preparing', preparing);
 }
 
 function ensureFilterToggle() {
@@ -40,9 +50,9 @@ function ensureFilterToggle() {
 function enhanceCard(card, students) {
   const identity = card.querySelector('.studentCardIdentity');
   const name = identity?.querySelector('h3')?.textContent?.trim();
-  if (!identity || !name) return;
+  if (!identity || !name) return false;
   const student = students.find(item => item.name === name);
-  if (!student) return;
+  if (!student) return false;
 
   let compact = identity.querySelector('.studentDirectoryCompactStatus');
   if (!compact) {
@@ -71,27 +81,40 @@ function enhanceCard(card, students) {
       card.querySelector(':scope > .secondary.full')?.click();
     });
   }
+  return true;
 }
 
 async function enhance() {
-  if (running || !window.location.pathname.toLowerCase().startsWith('/alunos')) return;
-  ensureFilterToggle();
+  queued = false;
+  const onStudentsPage = window.location.pathname.toLowerCase().startsWith('/alunos');
+  if (!onStudentsPage) {
+    setPreparing(false);
+    return;
+  }
+  if (running) return;
+
+  const filters = document.querySelector('.studentFilters');
   const cards = [...document.querySelectorAll('.studentDirectoryCard')];
-  if (!cards.length) return;
+  if (!filters || !cards.length) return;
+
+  setPreparing(true);
+  ensureFilterToggle();
   running = true;
   try {
     const students = await getStudents();
-    cards.forEach(card => enhanceCard(card, students));
+    const allReady = cards.every(card => enhanceCard(card, students));
+    if (allReady && document.querySelector('.studentFilterToggle')) setPreparing(false);
   } catch {
-    // A listagem React continua funcional mesmo que este enriquecimento visual falhe.
+    setPreparing(false);
   } finally {
     running = false;
   }
 }
 
 function scheduleEnhance() {
-  window.clearTimeout(timer);
-  timer = window.setTimeout(enhance, 80);
+  if (queued) return;
+  queued = true;
+  Promise.resolve().then(enhance);
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
