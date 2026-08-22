@@ -25,13 +25,14 @@ function pageContent() {
 function setPreparing(preparing) {
   const content = pageContent();
   if (!content) return;
-  content.classList.toggle('student-directory-preparing', preparing);
+  if (preparing) content.classList.add('student-directory-preparing');
+  else content.classList.remove('student-directory-preparing');
 }
 
 function ensureFilterToggle() {
   const filters = document.querySelector('.studentFilters');
   const search = filters?.querySelector('.search');
-  if (!filters || !search || search.querySelector('.studentFilterToggle')) return;
+  if (!filters || !search || search.querySelector('.studentFilterToggle')) return false;
 
   const button = document.createElement('button');
   button.type = 'button';
@@ -45,6 +46,7 @@ function ensureFilterToggle() {
     button.setAttribute('aria-label', open ? 'Ocultar filtros' : 'Mostrar filtros');
   });
   search.appendChild(button);
+  return true;
 }
 
 function enhanceCard(card, students) {
@@ -95,19 +97,34 @@ async function enhance() {
 
   const filters = document.querySelector('.studentFilters');
   const cards = [...document.querySelectorAll('.studentDirectoryCard')];
-  if (!filters || !cards.length) return;
+  if (!filters || !cards.length) {
+    setPreparing(false);
+    return;
+  }
+
+  /* Only enter the short loading state if the mobile-only additions are actually
+     missing. Never re-hide an already prepared directory on later DOM mutations. */
+  const needsFilter = !document.querySelector('.studentFilterToggle');
+  const needsStatus = cards.some(card => !card.querySelector('.studentDirectoryCompactStatus'));
+  if (!needsFilter && !needsStatus) {
+    setPreparing(false);
+    return;
+  }
 
   setPreparing(true);
   ensureFilterToggle();
   running = true;
   try {
     const students = await getStudents();
-    const allReady = cards.every(card => enhanceCard(card, students));
-    if (allReady && document.querySelector('.studentFilterToggle')) setPreparing(false);
+    cards.forEach(card => enhanceCard(card, students));
   } catch {
-    setPreparing(false);
+    // A listagem React continua funcional mesmo que o enriquecimento visual falhe.
   } finally {
+    /* Critical fail-safe: the page must never remain hidden because an enhancer
+       failed to match one card or a network request returned incomplete data. */
+    setPreparing(false);
     running = false;
+    if (queued) Promise.resolve().then(enhance);
   }
 }
 
