@@ -57,4 +57,57 @@
   .studentDirectoryCard>.secondary.full{display:none}
   .studentDirectoryCard .studentSelect{top:50%;right:16px;width:24px;height:24px;transform:translateY(-50%)}
   .studentDirectoryCard .studentSelect span{width:24px;height:24px;border-radius:7px;background:#0b0b0d}
+
+  /* Compact selection toolbar: four actions in a strict 2x2 grid. */
+  .bulkToolbar{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    padding:12px!important;
+    border-radius:14px!important;
+    align-items:center!important;
+  }
+  .bulkToolbar>b{
+    grid-column:1/-1!important;
+    margin:0 0 2px!important;
+    font-size:14px!important;
+    line-height:1.2!important;
+  }
+  .bulkToolbar>button:not(.textButton){
+    width:100%!important;
+    min-width:0!important;
+    min-height:40px!important;
+    margin:0!important;
+    padding:7px 8px!important;
+    border-radius:9px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:6px!important;
+    font-size:12px!important;
+    line-height:1.1!important;
+    white-space:nowrap!important;
+  }
+  .bulkToolbar>button:not(.textButton) svg{
+    width:15px!important;
+    height:15px!important;
+    flex:0 0 15px!important;
+  }
+  .bulkToolbar>.dangerButton{
+    font-size:10.5px!important;
+    letter-spacing:-.01em!important;
+  }
+  .bulkToolbar>.textButton{
+    grid-column:1/-1!important;
+    justify-self:start!important;
+    width:auto!important;
+    min-height:28px!important;
+    margin:0!important;
+    padding:2px 0!important;
+    border:0!important;
+    background:transparent!important;
+    color:var(--y)!important;
+    font-size:12px!important;
+    font-weight:800!important;
+  }
 }
