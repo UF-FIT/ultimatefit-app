@@ -1,0 +1,6 @@
+@media(max-width:760px){
+  /* Keep the cards interactive, but remove redundant affordance icons. */
+  .trainingViewer .uf-plan-metric-open{display:none!important}
+  #uf-load-analytics>.ufah>:not(:first-child){display:none!important}
+  #uf-load-analytics>.ufah{padding-right:18px!important}
+}
