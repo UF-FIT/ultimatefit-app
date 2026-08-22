@@ -38,7 +38,26 @@
   .uf-plan-session-main{min-width:0}.uf-plan-session-main>b{display:block;margin-bottom:5px;font-size:14px;line-height:1.1}.uf-plan-session-tags{display:flex;gap:5px;min-width:0}.uf-plan-session-tags span{max-width:86px;padding:3px 6px;border:1px solid rgba(255,217,8,.22);border-radius:999px;background:rgba(255,217,8,.07);color:#d8c13b;font-size:6.5px;font-weight:800;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .uf-plan-session-meta{display:flex;align-items:center;gap:5px;color:#9a9aa0;font-size:7.5px;white-space:nowrap}.uf-plan-session-meta i{color:#555;font-style:normal}.uf-plan-session-chevron{font-size:25px;color:#fff;line-height:1}
   .uf-plan-session-back{position:sticky;top:6px;z-index:4;width:max-content;max-width:100%;margin:12px 0 9px;padding:8px 10px;border:1px solid rgba(255,217,8,.22);border-radius:999px;background:#121214;color:var(--y,#ffd908);font-size:10px;font-weight:800}
-  .trainingViewer .trainingSessionsView.uf-plan-sessions-collapsed{display:none!important}.trainingViewer .trainingSessionView.uf-plan-session-hidden{display:none!important}
-  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed){display:block!important;width:100%!important;margin-top:0!important}.trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView{width:100%!important;padding:13px!important;border-radius:13px!important}
+
+  /* `hidden` was being overridden by the redesigned display rules. Honour it explicitly. */
+  .trainingViewer>.uf-plan-overview-metrics[hidden],
+  .trainingViewer>.uf-plan-session-overview[hidden],
+  .trainingViewer>.uf-plan-session-back[hidden]{display:none!important}
+
+  .trainingViewer .trainingSessionsView.uf-plan-sessions-collapsed{display:none!important}
+  .trainingViewer .trainingSessionView.uf-plan-session-hidden{display:none!important}
+  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed){display:block!important;width:100%!important;margin-top:0!important}
+  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView:not(.uf-plan-session-hidden){display:block!important;width:100%!important;padding:15px!important;border-radius:13px!important;background:#111113!important}
+  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView:not(.uf-plan-session-hidden) .trainingSessionTitle{display:flex!important}
+  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView:not(.uf-plan-session-hidden) .trainingBlocksView{display:grid!important;width:100%!important;gap:10px!important;margin-top:14px!important}
+  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView:not(.uf-plan-session-hidden) .trainingBlockView{display:block!important;width:100%!important}
+  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView:not(.uf-plan-session-hidden) .trainingExerciseView{display:grid!important;width:100%!important}
+  .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView:not(.uf-plan-session-hidden) .automaticStretching{display:block!important}
   .trainingViewer .trainingSessionTitle h2{font-size:23px!important}
+
+  /* When a session is open, it becomes the focus instead of appearing below the summary. */
+  .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>.trainingPlanHero,
+  .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>#uf-training-volume-analysis,
+  .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>.trainingLoadAnalysis,
+  .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>.trainingVolumeAnalysis{display:none!important}
 }
