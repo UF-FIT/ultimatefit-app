@@ -26,6 +26,13 @@ function currentScope(profile){
  if(!['owner','admin'].includes(profile.role))return 'assigned';
  try{return localStorage.getItem(scopeKey(profile.id))==='all'?'all':'assigned';}catch{return 'assigned';}
 }
+function currentPath(){return window.location.pathname.replace(/\/$/,'')||'/';}
+function isDashboardPath(path=currentPath()){return path==='/'||path==='/dashboard';}
+function maskDashboard(){
+ if(!isDashboardPath())return;
+ document.querySelector('.content')?.classList.add('uf-dashboard-assembling');
+}
+function revealDashboard(){document.querySelector('.content')?.classList.remove('uf-dashboard-assembling');}
 async function currentProfile(){
  const {data:{user}}=await supabase.auth.getUser();
  if(!user)return null;
@@ -92,11 +99,14 @@ function backofficeScopeHtml(data){return `<section class="uf-backoffice-scope">
 function hideLegacyDashboardScope(){document.querySelectorAll('[data-dashboard-student-scope]').forEach(el=>{el.style.display='none';});}
 async function renderDashboard(profile){
  const content=document.querySelector('.content');if(!content)return;
+ maskDashboard();
  hideLegacyDashboardScope();
  let root=document.getElementById('uf-dashboard-attention-root');
  if(!root){root=document.createElement('div');root.id='uf-dashboard-attention-root';const kpis=content.querySelector('.grid.four');(kpis||content.querySelector('.heading'))?.insertAdjacentElement('afterend',root);}
- if(!root)return;
- const data=await loadAttentionData(profile);root.innerHTML=dashboardHtml(data);root.querySelector('[data-uf-open-pending]')?.addEventListener('click',()=>{history.pushState({},'', '/avaliacoes/pendentes');window.dispatchEvent(new PopStateEvent('popstate'));});
+ if(!root){revealDashboard();return;}
+ try{
+  const data=await loadAttentionData(profile);root.innerHTML=dashboardHtml(data);root.querySelector('[data-uf-open-pending]')?.addEventListener('click',()=>{history.pushState({},'', '/avaliacoes/pendentes');window.dispatchEvent(new PopStateEvent('popstate'));});
+ }finally{requestAnimationFrame(revealDashboard);}
 }
 async function renderPending(profile){
  const content=document.querySelector('.content');if(!content)return;
@@ -116,24 +126,31 @@ async function renderBackoffice(profile){
  const data=await loadAttentionData(profile);root.innerHTML=backofficeScopeHtml(data);
  root.querySelector('[data-uf-toggle-scope]')?.addEventListener('click',()=>{const next=data.scope==='all'?'assigned':'all';try{localStorage.setItem(scopeKey(profile.id),next);}catch{}window.location.reload();});
 }
-function cleanModes(path){const content=document.querySelector('.content');if(content&&!path.startsWith('/avaliacoes/pendentes'))content.classList.remove('uf-pending-mode');if(!path.startsWith('/dashboard')&&path!=='/')document.getElementById('uf-dashboard-attention-root')?.remove();if(!path.startsWith('/avaliacoes/pendentes'))document.getElementById('uf-assessment-pending-root')?.remove();if(!path.startsWith('/backoffice'))document.getElementById('uf-backoffice-scope-root')?.remove();}
+function cleanModes(path){const content=document.querySelector('.content');if(content&&!path.startsWith('/avaliacoes/pendentes'))content.classList.remove('uf-pending-mode');if(!isDashboardPath(path))revealDashboard();if(!path.startsWith('/dashboard')&&path!=='/')document.getElementById('uf-dashboard-attention-root')?.remove();if(!path.startsWith('/avaliacoes/pendentes'))document.getElementById('uf-assessment-pending-root')?.remove();if(!path.startsWith('/backoffice'))document.getElementById('uf-backoffice-scope-root')?.remove();}
 async function run(){
  if(running)return;running=true;
+ const path=currentPath();
+ if(isDashboardPath(path))maskDashboard();
  try{
-  const path=window.location.pathname.replace(/\/$/,'')||'/';cleanModes(path);hideLegacyDashboardScope();
-  const profile=await currentProfile();if(!profile||profile.role==='student')return;
-  const key=`${path}:${profile.id}`;if(key===lastKey&&document.querySelector(path.startsWith('/avaliacoes/pendentes')?'#uf-assessment-pending-root':path.startsWith('/backoffice')?'#uf-backoffice-scope-root':'#uf-dashboard-attention-root'))return;lastKey=key;
-  if(path==='/'||path==='/dashboard')await renderDashboard(profile);
+  cleanModes(path);hideLegacyDashboardScope();
+  const profile=await currentProfile();if(!profile||profile.role==='student'){revealDashboard();return;}
+  const key=`${path}:${profile.id}`;if(key===lastKey&&document.querySelector(path.startsWith('/avaliacoes/pendentes')?'#uf-assessment-pending-root':path.startsWith('/backoffice')?'#uf-backoffice-scope-root':'#uf-dashboard-attention-root')){revealDashboard();return;}lastKey=key;
+  if(isDashboardPath(path))await renderDashboard(profile);
   else if(path.startsWith('/avaliacoes/pendentes'))await renderPending(profile);
   else if(path.startsWith('/backoffice'))await renderBackoffice(profile);
- }catch(error){console.warn('Dashboard attention enhancer:',error);}finally{running=false;}
+ }catch(error){console.warn('Dashboard attention enhancer:',error);revealDashboard();}finally{running=false;}
 }
 export function startDashboardAttentionEnhancer(){
  if(observer)return;
- observer=new MutationObserver(()=>{clearTimeout(startDashboardAttentionEnhancer.timer);startDashboardAttentionEnhancer.timer=setTimeout(run,80);});
+ observer=new MutationObserver(()=>{
+  maskDashboard();
+  clearTimeout(startDashboardAttentionEnhancer.timer);
+  startDashboardAttentionEnhancer.timer=setTimeout(run,0);
+ });
  observer.observe(document.documentElement,{childList:true,subtree:true});
- window.addEventListener('popstate',()=>{lastKey='';setTimeout(run,0)});
- window.addEventListener('focus',()=>{lastKey='';run()});
+ window.addEventListener('popstate',()=>{lastKey='';maskDashboard();setTimeout(run,0)});
+ window.addEventListener('focus',()=>{lastKey='';maskDashboard();run()});
+ maskDashboard();
  run();
 }
 startDashboardAttentionEnhancer.timer=null;
