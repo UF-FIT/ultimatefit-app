@@ -1,48 +1,330 @@
 @media (max-width:760px){
-  .trainingPlansPage.uf-training-plans-redesign{padding-bottom:8px}
-  .trainingPlansPage.uf-training-plans-redesign>.heading{margin-bottom:16px!important}
-  .trainingPlansPage.uf-training-plans-redesign>.heading>div:first-child>h1{padding-right:128px!important;font-size:clamp(31px,9vw,43px)!important;line-height:.95!important;letter-spacing:.01em!important}
-  .trainingPlansPage.uf-training-plans-redesign>.heading>div:first-child>p{max-width:430px!important;margin-top:12px!important;color:#a0a0a6!important;font-size:13px!important;line-height:1.45!important}
-  .trainingPlansPage.uf-training-plans-redesign>.heading>.primary{top:0!important;right:0!important;min-height:42px!important;padding:0 15px!important;border-radius:14px!important;font-size:13px!important;box-shadow:0 9px 30px rgba(255,217,8,.16)!important}
-  .trainingPlansPage.uf-training-plans-redesign>.heading>.primary svg{width:17px!important;height:17px!important}
+  .trainingPlansPage.uf-training-plans-redesign{
+    padding-bottom:4px;
+  }
 
-  /* Pesquisa em cima; aluno + estados na mesma linha, como no conceito aprovado. */
-  .trainingPlansPage.uf-training-plans-redesign .trainingFilters{display:grid!important;grid-template-columns:1fr!important;gap:9px!important;margin-bottom:0!important;background:transparent!important;border:0!important;padding:0!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search{position:relative!important;width:100%!important;min-height:48px!important;border:1px solid #33343a!important;border-radius:14px!important;background:#111113!important;overflow:hidden!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search>svg{left:14px!important;width:20px!important;height:20px!important;color:#f2f2f4!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search input{height:48px!important;padding:0 52px 0 46px!important;border:0!important;background:transparent!important;font-size:13px!important;color:#fff!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search input::placeholder{color:#8d8d94!important}
-  .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-icon{position:absolute;right:0;top:7px;width:46px;height:34px;display:grid;place-items:center;border-left:1px solid rgba(255,255,255,.12);color:#d9d9dd;pointer-events:none}
-  .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  .trainingPlansPage.uf-training-plans-redesign .trainingFilters>select{display:block!important;width:39%!important;height:40px!important;margin:0!important;padding:0 30px 0 14px!important;border:1px solid #33343a!important;border-radius:11px!important;background:#111113!important;color:#e9e9ec!important;font-size:11px!important;appearance:auto!important}
+  /* Cabeçalho compacto, mantendo título e CTA na mesma linha. */
+  .trainingPlansPage.uf-training-plans-redesign>.heading{
+    position:relative!important;
+    display:block!important;
+    margin-bottom:14px!important;
+    min-height:112px!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign>.heading>div:first-child>h1{
+    margin:0!important;
+    padding-right:132px!important;
+    font-size:clamp(31px,8.7vw,42px)!important;
+    line-height:.98!important;
+    letter-spacing:.01em!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign>.heading>div:first-child>p{
+    max-width:430px!important;
+    margin:14px 0 0!important;
+    padding-right:4px!important;
+    color:#9b9ba1!important;
+    font-size:12.5px!important;
+    line-height:1.5!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign>.heading>.primary{
+    position:absolute!important;
+    top:0!important;
+    right:0!important;
+    min-height:42px!important;
+    height:42px!important;
+    padding:0 16px!important;
+    border-radius:13px!important;
+    font-size:13px!important;
+    font-weight:800!important;
+    box-shadow:0 10px 28px rgba(255,217,8,.14)!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign>.heading>.primary svg{
+    width:17px!important;
+    height:17px!important;
+  }
 
-  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:59%;margin:-40px 0 13px auto;position:relative;z-index:2}
-  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab{min-width:0;height:40px;padding:0 5px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid #303136;border-radius:11px;background:#151517;color:#a7a7ad;font-size:10px;font-weight:700;white-space:nowrap}
-  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
-  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab.active{border-color:#ffd908;background:#ffd908;color:#080808;box-shadow:0 8px 22px rgba(255,217,8,.12)}
+  /* Pesquisa exatamente numa barra única, sem altura excessiva. */
+  .trainingPlansPage.uf-training-plans-redesign .trainingFilters{
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    background:transparent!important;
+    border:0!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search{
+    position:relative!important;
+    width:100%!important;
+    min-height:46px!important;
+    height:46px!important;
+    margin:0!important;
+    border:1px solid #34353b!important;
+    border-radius:13px!important;
+    background:#111113!important;
+    overflow:hidden!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search>svg{
+    left:14px!important;
+    width:20px!important;
+    height:20px!important;
+    color:#f2f2f4!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search input{
+    width:100%!important;
+    height:46px!important;
+    padding:0 52px 0 46px!important;
+    border:0!important;
+    background:transparent!important;
+    color:#fff!important;
+    font-size:12.5px!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingFilters .search input::placeholder{
+    color:#8f9097!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-icon{
+    position:absolute;
+    right:0;
+    top:7px;
+    width:46px;
+    height:32px;
+    display:grid;
+    place-items:center;
+    border-left:1px solid rgba(255,255,255,.12);
+    color:#d8d8dd;
+    pointer-events:none;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-icon svg{
+    width:19px;
+    height:19px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.7;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
 
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanGrid{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard{position:relative!important;box-sizing:border-box!important;width:100%!important;min-height:124px!important;height:auto!important;padding:12px 14px 10px 72px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;text-align:left!important;border:1px solid #303136!important;border-radius:17px!important;background:linear-gradient(110deg,#121214 0%,#101012 72%,rgba(255,217,8,.035) 100%)!important;overflow:hidden!important;box-shadow:none!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#ffd908}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard[data-plan-status='active']::before{background:#6ccf54}
+  /* Segunda linha: Todos os alunos + Todos + Rascunhos + Ativos, sem truques de margem. */
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-row{
+    display:grid!important;
+    grid-template-columns:1.55fr 2.45fr!important;
+    gap:7px!important;
+    width:100%!important;
+    margin:9px 0 12px!important;
+    align-items:stretch!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-filter-row>select{
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    height:40px!important;
+    margin:0!important;
+    padding:0 28px 0 13px!important;
+    border:1px solid #303136!important;
+    border-radius:11px!important;
+    background:#151517!important;
+    color:#ececef!important;
+    font-size:10.5px!important;
+    line-height:40px!important;
+    appearance:auto!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tabs{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+    width:100%!important;
+    margin:0!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab{
+    min-width:0!important;
+    height:40px!important;
+    margin:0!important;
+    padding:0 5px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:5px!important;
+    border:1px solid #303136!important;
+    border-radius:11px!important;
+    background:#151517!important;
+    color:#a6a6ad!important;
+    font-size:9.8px!important;
+    font-weight:700!important;
+    white-space:nowrap!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab svg{
+    width:14px!important;
+    height:14px!important;
+    flex:0 0 auto!important;
+    fill:none!important;
+    stroke:currentColor!important;
+    stroke-width:1.8!important;
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .uf-plan-status-tab.active{
+    border-color:#ffd908!important;
+    background:#ffd908!important;
+    color:#080808!important;
+    box-shadow:0 7px 20px rgba(255,217,8,.12)!important;
+  }
+
+  /* Lista compacta: cartões horizontais, densos e com toda a informação visível. */
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanGrid{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+    margin:0!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard{
+    position:relative!important;
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-height:112px!important;
+    height:112px!important;
+    padding:12px 14px 10px 72px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    text-align:left!important;
+    border:1px solid #303136!important;
+    border-radius:16px!important;
+    background:linear-gradient(110deg,#121214 0%,#101012 72%,rgba(255,217,8,.03) 100%)!important;
+    overflow:hidden!important;
+    box-shadow:none!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard::before{
+    content:'';
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:2px;
+    background:#ffd908;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard[data-plan-status='active']::before{background:#69cb53}
   .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard[data-plan-status='archived']::before{background:#777}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardTop{position:static!important;display:block!important;margin:0!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardIcon{position:absolute!important;left:14px!important;top:15px!important;width:44px!important;height:44px!important;min-width:44px!important;display:grid!important;place-items:center!important;border-radius:12px!important;background:rgba(255,217,8,.10)!important;border:1px solid rgba(255,217,8,.09)!important;color:#ffd908!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardIcon svg{width:23px!important;height:23px!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard .badge{position:absolute!important;right:14px!important;top:13px!important;max-width:92px!important;padding:5px 8px!important;border-radius:7px!important;font-size:8px!important;font-weight:900!important;letter-spacing:.02em!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard h2{margin:0 88px 3px 0!important;font-size:20px!important;line-height:1!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;color:#fff!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingStudentName{display:flex!important;align-items:center!important;gap:4px!important;margin:0 90px 2px 0!important;color:#d0d0d4!important;font-size:10px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingStudentName svg{width:12px!important;height:12px!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanLock{margin:3px 88px 0 0!important;font-size:7px!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard>p{margin:2px 74px 6px 0!important;min-height:0!important;color:#8f8f95!important;font-size:10px!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats{display:grid!important;grid-template-columns:auto auto 1fr!important;gap:0!important;margin-top:auto!important;padding:7px 0 0!important;border-top:1px solid rgba(255,255,255,.08)!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats span{min-width:0!important;padding:0 12px!important;display:flex!important;align-items:center!important;gap:5px!important;border-right:1px solid rgba(255,255,255,.10)!important;color:#c2c2c6!important;font-size:9px!important;white-space:nowrap!important}
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardTop{
+    position:static!important;
+    display:block!important;
+    margin:0!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardIcon{
+    position:absolute!important;
+    left:14px!important;
+    top:16px!important;
+    width:44px!important;
+    height:44px!important;
+    min-width:44px!important;
+    display:grid!important;
+    place-items:center!important;
+    border-radius:12px!important;
+    background:rgba(255,217,8,.10)!important;
+    border:1px solid rgba(255,217,8,.09)!important;
+    color:#ffd908!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardIcon svg{
+    width:23px!important;
+    height:23px!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard .badge{
+    position:absolute!important;
+    right:14px!important;
+    top:13px!important;
+    max-width:88px!important;
+    padding:5px 8px!important;
+    border-radius:7px!important;
+    font-size:8px!important;
+    font-weight:900!important;
+    letter-spacing:.02em!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard h2{
+    margin:0 88px 3px 0!important;
+    font-size:19px!important;
+    line-height:1!important;
+    font-weight:800!important;
+    color:#fff!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingStudentName{
+    display:flex!important;
+    align-items:center!important;
+    gap:4px!important;
+    margin:0 90px 2px 0!important;
+    color:#d0d0d4!important;
+    font-size:9.7px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingStudentName svg{
+    width:12px!important;
+    height:12px!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanLock{
+    margin:3px 88px 0 0!important;
+    font-size:7px!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCard>p{
+    margin:2px 70px 5px 0!important;
+    min-height:0!important;
+    color:#929299!important;
+    font-size:9.6px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    display:block!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats{
+    display:grid!important;
+    grid-template-columns:auto auto 1fr!important;
+    gap:0!important;
+    margin-top:auto!important;
+    padding:7px 0 0!important;
+    border-top:1px solid rgba(255,255,255,.08)!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats span{
+    min-width:0!important;
+    padding:0 12px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:5px!important;
+    border-right:1px solid rgba(255,255,255,.10)!important;
+    color:#c3c3c7!important;
+    font-size:8.7px!important;
+    white-space:nowrap!important;
+  }
   .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats span:first-child{padding-left:0!important}
   .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats span:last-child{border-right:0!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats svg{width:13px!important;height:13px!important;color:#d5d5d9!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardFooter{position:absolute!important;right:14px!important;bottom:10px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:7px!important;padding:0!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardFooter small{font-size:8px!important;color:#888b91!important;white-space:nowrap!important}
-  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardFooter svg{width:17px!important;height:17px!important;color:#fff!important}
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanStats svg{
+    width:13px!important;
+    height:13px!important;
+    color:#d5d5d9!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardFooter{
+    position:absolute!important;
+    right:14px!important;
+    bottom:9px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    gap:6px!important;
+    padding:0!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardFooter small{
+    font-size:7.8px!important;
+    color:#888b91!important;
+    white-space:nowrap!important;
+  }
+  .trainingPlansPage.uf-training-plans-redesign .trainingPlanCardFooter svg{
+    width:17px!important;
+    height:17px!important;
+    color:#fff!important;
+  }
 
   .trainingPlansPage.uf-training-plans-redesign .trainingEmpty{border-radius:16px!important}
 }
