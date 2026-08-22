@@ -199,7 +199,6 @@
     display: none !important;
   }
 
-  /* Dados do aluno passam a ser consultados no modal acionado no topo. */
   .studentProfilePage .profileInfoPanel {
     display: none !important;
   }
@@ -264,9 +263,9 @@
     inset: 0;
     z-index: 9999;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    padding: 14px;
+    padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
     background: rgba(0,0,0,.78);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -275,7 +274,7 @@
   .uf-student-details-modal {
     width: 100%;
     max-width: 560px;
-    max-height: min(88vh, 760px);
+    max-height: min(82dvh, 720px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -366,7 +365,7 @@
   }
 
   .uf-student-details-modal-actions {
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    padding: 12px 16px 14px;
     border-top: 1px solid rgba(255,255,255,.08);
     background: #111113;
   }
