@@ -18,6 +18,14 @@ function dateProgress(start,end){
   return {percent,days,label:days===0?'Termina hoje':`${days} dia${days===1?'':'s'} restantes`};
 }
 
+function normalizeGroup(value=''){
+  const raw=String(value||'').trim();
+  const normalized=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/&/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  const aliases={core:'Abdominais',abdominal:'Abdominais',abdominais:'Abdominais',peito:'Peitoral',peitoral:'Peitoral',posterior:'Isquiotibiais',posteriores:'Isquiotibiais','posterior da coxa':'Isquiotibiais','posteriores da coxa':'Isquiotibiais',isquiotibiais:'Isquiotibiais',panturrilha:'Gémeos',panturrilhas:'Gémeos',gemeo:'Gémeos',gemeos:'Gémeos',gluteo:'Glúteos',gluteos:'Glúteos',ombro:'Ombros',ombros:'Ombros',bicep:'Bíceps',biceps:'Bíceps',tricep:'Tríceps',triceps:'Tríceps',trapezio:'Trapézio',trapezios:'Trapézio',quadriceps:'Quadríceps',costas:'Costas',antebraco:'Antebraço',adutor:'Adutores',adutores:'Adutores',abdutor:'Abdutores',abdutores:'Abdutores',perna:'Pernas',pernas:'Pernas',lombar:'Lombar',funcional:'Funcional'};
+  if(!normalized||['cardio','mobilidade','alongamento','alongamentos','stretching','stretching mobility'].includes(normalized)) return '';
+  return aliases[normalized]||raw;
+}
+
 function sessionInfo(session,index){
   const title=session.querySelector('.trainingSessionTitle h2')?.textContent?.trim()||`Treino ${String.fromCharCode(65+index)}`;
   const exercises=[...session.querySelectorAll('.trainingExerciseView')];
@@ -26,8 +34,8 @@ function sessionInfo(session,index){
   let seconds=0;
   exercises.forEach(exercise=>{
     const small=exercise.querySelector('.trainingExerciseCopy small')?.textContent?.trim()||'';
-    const group=small.split('·')[0]?.trim();
-    if(group&&!/texto livre/i.test(group)&&!groups.includes(group)) groups.push(group);
+    const group=normalizeGroup(small.split('·')[0]?.trim());
+    if(group&&!groups.includes(group)) groups.push(group);
     const prescription=exercise.querySelector('.prescriptionLine')?.textContent||'';
     const parts=prescription.split('·').map(part=>part.trim());
     const setMatch=prescription.match(/(\d+(?:[.,]\d+)?)\s*séries/i);
@@ -53,6 +61,25 @@ function sessionInfo(session,index){
   return {title,exercises:exercises.length,groups:groups.slice(0,2),sets,minutes};
 }
 
+function volumeForSessions(sessions){
+  const totals=new Map();
+  let exerciseCount=0;
+  sessions.forEach(session=>{
+    [...session.querySelectorAll('.trainingExerciseView')].forEach(exercise=>{
+      const small=exercise.querySelector('.trainingExerciseCopy small')?.textContent?.trim()||'';
+      const group=normalizeGroup(small.split('·')[0]?.trim());
+      const prescription=exercise.querySelector('.prescriptionLine')?.textContent||'';
+      const match=prescription.match(/(\d+(?:[.,]\d+)?)\s*séries/i);
+      const sets=match?Number(match[1].replace(',','.')):0;
+      if(!group||!Number.isFinite(sets)||sets<=0) return;
+      totals.set(group,(totals.get(group)||0)+sets);
+      exerciseCount+=1;
+    });
+  });
+  const rows=[...totals.entries()].map(([group,sets])=>({group,sets})).sort((a,b)=>b.sets-a.sets||a.group.localeCompare(b.group,'pt'));
+  return {rows,totalSets:rows.reduce((sum,row)=>sum+row.sets,0),exerciseCount,groups:rows.length};
+}
+
 function makeSparkline(values){
   const max=Math.max(1,...values);
   const points=values.map((value,index)=>{
@@ -72,6 +99,38 @@ function formatPlanStatus(hero){
   if(!badge) return;
   const text=(badge.textContent||'').trim().toLowerCase();
   if(text.includes('publicado')&&text.includes('ativo')) badge.textContent='Ativo';
+}
+
+function openVolumeModal(viewer,sessions){
+  document.querySelector('.uf-volume-modal-overlay')?.remove();
+  const overlay=document.createElement('div');
+  overlay.className='uf-volume-modal-overlay';
+  overlay.innerHTML=`<section class="uf-volume-modal" role="dialog" aria-modal="true" aria-label="Volume planeado por grupo muscular">
+    <header class="uf-volume-modal-head"><div><span>ANÁLISE DO PLANO</span><h2>Volume planeado</h2><p>Distribuição das séries diretas prescritas por grupo muscular.</p></div><button type="button" class="uf-volume-modal-close" aria-label="Fechar">×</button></header>
+    <div class="uf-volume-modal-scope"></div>
+    <div class="uf-volume-modal-stats"></div>
+    <div class="uf-volume-modal-chart"></div>
+    <div class="uf-volume-modal-method"><b>Como é calculado?</b><span>Somam-se as séries prescritas de cada exercício ao respetivo grupo muscular principal. Cardio, mobilidade, alongamentos e exercícios sem séries não entram neste indicador.</span></div>
+  </section>`;
+  const scope=overlay.querySelector('.uf-volume-modal-scope');
+  const stats=overlay.querySelector('.uf-volume-modal-stats');
+  const chart=overlay.querySelector('.uf-volume-modal-chart');
+  const options=[{label:'Plano completo',value:'all'},...sessions.map((session,index)=>({label:session.querySelector('.trainingSessionTitle h2')?.textContent?.trim()||`Treino ${String.fromCharCode(65+index)}`,value:String(index)}))];
+  scope.innerHTML=`<label>Âmbito<select>${options.map(item=>`<option value="${item.value}">${item.label}</option>`).join('')}</select></label>`;
+  const select=scope.querySelector('select');
+  function render(){
+    const selected=select.value==='all'?sessions:[sessions[Number(select.value)]].filter(Boolean);
+    const analysis=volumeForSessions(selected);
+    const max=Math.max(1,...analysis.rows.map(row=>row.sets));
+    stats.innerHTML=`<div><small>SÉRIES DIRETAS</small><b>${analysis.totalSets}</b></div><div><small>GRUPOS</small><b>${analysis.groups}</b></div><div><small>EXERCÍCIOS</small><b>${analysis.exerciseCount}</b></div>`;
+    chart.innerHTML=analysis.rows.length?analysis.rows.map(row=>`<div class="uf-volume-chart-row"><div class="uf-volume-chart-label"><b>${row.group}</b><strong>${row.sets}</strong></div><div class="uf-volume-chart-track"><span style="width:${Math.max(7,(row.sets/max)*100)}%"></span></div></div>`).join(''):`<div class="uf-volume-chart-empty"><b>Sem volume muscular calculável</b><span>Este âmbito não tem exercícios musculares com séries prescritas.</span></div>`;
+  }
+  select.addEventListener('change',render);
+  overlay.querySelector('.uf-volume-modal-close').addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',event=>{if(event.target===overlay) overlay.remove();});
+  document.body.appendChild(overlay);
+  render();
+  requestAnimationFrame(()=>overlay.classList.add('open'));
 }
 
 function enhanceViewer(viewer){
@@ -98,17 +157,19 @@ function enhanceViewer(viewer){
   const summary=document.createElement('section');
   summary.className='uf-plan-overview-metrics';
   summary.innerHTML=`
-    <article class="uf-plan-metric-card volume">
+    <button type="button" class="uf-plan-metric-card volume" aria-label="Abrir análise do volume planeado">
       <span>VOLUME PLANEADO</span>
       <strong>${totalSets || '—'}${totalSets?'<small> séries</small>':''}</strong>
       <em>${totalExercises} exercício${totalExercises===1?'':'s'} no plano</em>
       ${makeSparkline(infos.map(item=>item.sets||1))}
-    </article>
+      <i class="uf-plan-metric-open">›</i>
+    </button>
     <article class="uf-plan-metric-card deadline">
       <span>TEMPO RESTANTE</span>
       <div class="uf-plan-deadline-copy"><strong>${progress.percent==null?'—':`${progress.percent}%`}</strong><em>${progress.label}</em></div>
       <div class="uf-plan-progress-ring" style="--progress:${progress.percent??0}" aria-label="${progress.percent==null?'Prazo sem data':`${progress.percent}% do tempo do plano ainda por decorrer`}"><b>${progress.percent==null?'—':`${progress.percent}%`}</b></div>
     </article>`;
+  summary.querySelector('.uf-plan-metric-card.volume').addEventListener('click',()=>openVolumeModal(viewer,sessions));
 
   const list=document.createElement('section');
   list.className='uf-plan-session-overview';
