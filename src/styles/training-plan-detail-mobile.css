@@ -16,15 +16,17 @@
   .trainingViewer .trainingHeroActions>button svg{width:19px!important;height:19px!important;flex:0 0 19px!important}
   .trainingViewer .trainingHeroActions>.destructiveButton{grid-column:auto!important;color:#ff8d8d!important;border-color:rgba(255,105,105,.24)!important;background:rgba(110,20,20,.14)!important}
 
-  /* The redesigned summary owns this area on mobile. Never mix it with the legacy full analysis. */
   .trainingViewer>#uf-training-volume-analysis{display:none!important}
 
   .trainingViewer>.uf-plan-overview-metrics{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important;margin:10px 0 0!important;clear:both!important}
-  .uf-plan-metric-card{position:relative;box-sizing:border-box!important;min-width:0!important;min-height:118px;padding:12px;overflow:hidden;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:#111113}
+  .uf-plan-metric-card{position:relative;box-sizing:border-box!important;min-width:0!important;min-height:118px;padding:12px;overflow:hidden;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:#111113;color:#fff;text-align:left}
+  button.uf-plan-metric-card.volume{appearance:none;cursor:pointer;font:inherit}
+  button.uf-plan-metric-card.volume:active{transform:scale(.985)}
   .uf-plan-metric-card>span{display:block;color:var(--y,#ffd908);font-size:8px;font-weight:900;letter-spacing:.08em}
   .uf-plan-metric-card>strong{display:block;margin-top:8px;color:#fff;font-size:21px;line-height:1}.uf-plan-metric-card>strong small{font-size:10px;font-weight:600;color:#bbb}
   .uf-plan-metric-card>em,.uf-plan-deadline-copy em{display:block;margin-top:8px;color:#7e7e84;font-size:8px;font-style:normal;line-height:1.3}
   .uf-plan-sparkline{position:absolute;right:8px;bottom:7px;width:68px;height:31px;color:var(--y,#ffd908);opacity:.9}
+  .uf-plan-metric-open{position:absolute;right:9px;top:8px;width:21px;height:21px;border:1px solid rgba(255,255,255,.12);border-radius:7px;display:grid;place-items:center;color:#fff;font-size:17px;font-style:normal;line-height:1;background:#151517}
   .uf-plan-metric-card.deadline{display:grid!important;grid-template-columns:minmax(0,1fr) 54px!important;grid-template-rows:auto 1fr!important;column-gap:6px!important}
   .uf-plan-metric-card.deadline>span{grid-column:1/-1}.uf-plan-deadline-copy{min-width:0!important;align-self:center}.uf-plan-deadline-copy strong{display:block;color:#fff;font-size:21px;line-height:1}.uf-plan-deadline-copy em{max-width:76px;overflow-wrap:anywhere}
   .uf-plan-progress-ring{--p:calc(var(--progress) * 1%);align-self:center;justify-self:end;width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--y,#ffd908) var(--p),#2b2b2f 0);position:relative}
@@ -39,7 +41,6 @@
   .uf-plan-session-meta{display:flex;align-items:center;gap:5px;color:#9a9aa0;font-size:7.5px;white-space:nowrap}.uf-plan-session-meta i{color:#555;font-style:normal}.uf-plan-session-chevron{font-size:25px;color:#fff;line-height:1}
   .uf-plan-session-back{position:sticky;top:6px;z-index:4;width:max-content;max-width:100%;margin:12px 0 9px;padding:8px 10px;border:1px solid rgba(255,217,8,.22);border-radius:999px;background:#121214;color:var(--y,#ffd908);font-size:10px;font-weight:800}
 
-  /* `hidden` was being overridden by the redesigned display rules. Honour it explicitly. */
   .trainingViewer>.uf-plan-overview-metrics[hidden],
   .trainingViewer>.uf-plan-session-overview[hidden],
   .trainingViewer>.uf-plan-session-back[hidden]{display:none!important}
@@ -55,9 +56,34 @@
   .trainingViewer .trainingSessionsView:not(.uf-plan-sessions-collapsed)>.trainingSessionView:not(.uf-plan-session-hidden) .automaticStretching{display:block!important}
   .trainingViewer .trainingSessionTitle h2{font-size:23px!important}
 
-  /* When a session is open, it becomes the focus instead of appearing below the summary. */
   .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>.trainingPlanHero,
   .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>#uf-training-volume-analysis,
   .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>.trainingLoadAnalysis,
   .trainingViewer:has(>.uf-plan-session-back:not([hidden]))>.trainingVolumeAnalysis{display:none!important}
+
+  .uf-volume-modal-overlay{position:fixed;inset:0;z-index:230;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.84);backdrop-filter:blur(8px);opacity:0;transition:opacity .18s ease}
+  .uf-volume-modal-overlay.open{opacity:1}
+  .uf-volume-modal{box-sizing:border-box;width:min(560px,96vw);max-height:86vh;overflow:auto;border:1px solid rgba(255,217,8,.22);border-radius:18px;background:#101012;box-shadow:0 28px 90px rgba(0,0,0,.58);padding:16px}
+  .uf-volume-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .uf-volume-modal-head span{display:block;color:var(--y,#ffd908);font-size:8px;font-weight:900;letter-spacing:.11em}
+  .uf-volume-modal-head h2{margin:4px 0 3px;font-size:25px;line-height:1}
+  .uf-volume-modal-head p{margin:0;color:#8c8c92;font-size:9px;line-height:1.4}
+  .uf-volume-modal-close{flex:0 0 auto;width:34px;height:34px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#18181b;color:#fff;font-size:24px;line-height:1;display:grid;place-items:center;padding:0}
+  .uf-volume-modal-scope{margin-top:12px}
+  .uf-volume-modal-scope label{display:grid;gap:5px;color:#888;font-size:8px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+  .uf-volume-modal-scope select{width:100%;height:42px;margin:0;padding:0 11px;border:1px solid rgba(255,255,255,.10);border-radius:9px;background:#0b0b0d;color:#fff;font-size:13px;text-transform:none}
+  .uf-volume-modal-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+  .uf-volume-modal-stats>div{min-width:0;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#0b0b0d}
+  .uf-volume-modal-stats small{display:block;color:#777;font-size:6.8px;font-weight:900;letter-spacing:.06em}
+  .uf-volume-modal-stats b{display:block;margin-top:4px;color:#fff;font-size:21px;line-height:1}
+  .uf-volume-modal-chart{display:grid;gap:11px;margin-top:14px}
+  .uf-volume-chart-row{display:grid;gap:5px}
+  .uf-volume-chart-label{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .uf-volume-chart-label b{font-size:11px;color:#eee}.uf-volume-chart-label strong{font-size:11px;color:var(--y,#ffd908)}
+  .uf-volume-chart-track{height:9px;border-radius:999px;background:#252529;overflow:hidden}
+  .uf-volume-chart-track span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#b99d00,var(--y,#ffd908));box-shadow:0 0 14px rgba(255,217,8,.13)}
+  .uf-volume-chart-empty{padding:24px 12px;border:1px dashed rgba(255,255,255,.10);border-radius:10px;text-align:center;display:grid;gap:5px;color:#777}
+  .uf-volume-chart-empty b{color:#fff;font-size:12px}.uf-volume-chart-empty span{font-size:9px}
+  .uf-volume-modal-method{display:grid;gap:4px;margin-top:14px;padding:10px 11px;border-radius:10px;background:rgba(255,217,8,.05);color:#8d8d92;font-size:8.5px;line-height:1.45}
+  .uf-volume-modal-method b{color:#fff;font-size:9px}
 }
