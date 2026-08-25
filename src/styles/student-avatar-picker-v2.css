@@ -81,10 +81,14 @@
 
 /* Generic default avatar across student views when no photograph exists. */
 .studentPhoto > span {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
   font-size: 0 !important;
   color: transparent !important;
   background: #f2f2f2 !important;
   position: relative;
+  border-radius: inherit;
 }
 
 .studentPhoto > span::before {
