@@ -43,7 +43,9 @@ function mapBy(items, key) {
   return new Map((items || []).map(item => [item[key], item]));
 }
 
-async function signedUrl(bucket, path, expires = 3600) {
+// Student/professional avatar URLs are private signed URLs. Keep them valid long
+// enough for normal PWA usage; AppContext also refreshes them when the app resumes.
+async function signedUrl(bucket, path, expires = 86400) {
   if (!path) return '';
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expires);
   if (error) return '';
