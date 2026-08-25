@@ -29,6 +29,7 @@ import './styles/nutrition-v2-base.css';
 import './styles/nutrition-mobile-redesign.css';
 import './styles/student-access-resend.css';
 import './styles/student-avatar-picker-v2.css';
+import './styles/assessment-student-avatar-consistency.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
