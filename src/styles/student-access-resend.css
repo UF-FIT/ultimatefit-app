@@ -1,0 +1,25 @@
+.ufStudentAccessOverlay{position:fixed;inset:0;z-index:260;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.82);backdrop-filter:blur(8px)}
+.ufStudentAccessModal{box-sizing:border-box;width:min(520px,96vw);max-height:88vh;overflow:auto;border:1px solid rgba(255,217,8,.24);border-radius:18px;background:#101012;box-shadow:0 28px 90px rgba(0,0,0,.62);padding:16px;color:#fff}
+.ufStudentAccessHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)}
+.ufStudentAccessHead span{display:block;color:var(--y,#ffd908);font-size:8px;font-weight:900;letter-spacing:.12em}
+.ufStudentAccessHead h2{margin:4px 0 3px;font-size:26px;line-height:1}
+.ufStudentAccessHead p{margin:0;color:#8b8b92;font-size:11px;overflow-wrap:anywhere}
+.ufStudentAccessClose{flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#18181b;color:#fff;font-size:25px;line-height:1;display:grid;place-items:center}
+.ufStudentAccessStatus{display:grid;gap:5px;margin-top:13px;padding:11px 12px;border-radius:11px;border:1px solid rgba(255,217,8,.14);background:rgba(255,217,8,.045)}
+.ufStudentAccessStatus b{font-size:12px}.ufStudentAccessStatus span{color:#929299;font-size:10px;line-height:1.45}
+.ufStudentAccessStatus.pending b{color:var(--y,#ffd908)}
+.ufStudentAccessStatus.ready{border-color:rgba(68,211,139,.18);background:rgba(68,211,139,.045)}
+.ufStudentAccessStatus.ready b{color:#6de0a4}
+.ufStudentAccessInfo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ufStudentAccessInfo>div{min-width:0;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#0b0b0d}
+.ufStudentAccessInfo small{display:block;color:#777;font-size:7px;font-weight:900;letter-spacing:.07em}
+.ufStudentAccessInfo strong{display:block;margin-top:5px;color:#fff;font-size:10px;line-height:1.35;overflow-wrap:anywhere}
+.ufStudentAccessActions{display:grid;gap:8px;margin-top:12px}
+.ufStudentAccessActions button{width:100%;min-height:44px;border-radius:10px;font-size:12px;font-weight:800}
+.ufStudentAccessFeedback{min-height:0;margin-top:10px;padding:0;border-radius:9px;font-size:10px;line-height:1.4}
+.ufStudentAccessFeedback.success,.ufStudentAccessFeedback.error{padding:9px 10px}
+.ufStudentAccessFeedback.success{color:#92efb9;background:rgba(68,211,139,.09);border:1px solid rgba(68,211,139,.18)}
+.ufStudentAccessFeedback.error{color:#ffaaaa;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.18)}
+.ufStudentAccessNote{margin:10px 1px 0;color:#68686e;font-size:8.5px;line-height:1.45}
+.uf-access-modal-open{overflow:hidden}
+@media(max-width:760px){.ufStudentAccessOverlay{padding:16px}.ufStudentAccessModal{width:100%;padding:15px}.ufStudentAccessHead h2{font-size:24px}.ufStudentAccessInfo{grid-template-columns:1fr}.ufStudentAccessActions button{min-height:46px}}
