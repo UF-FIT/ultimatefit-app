@@ -24,13 +24,100 @@
       html{color-scheme:dark}
       body{min-height:100vh;min-height:100dvh;overflow-x:hidden}
       #uf-boot-splash{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:radial-gradient(circle at 28% 12%,rgba(255,217,8,.10),transparent 28%),#050505;color:#fff;contain:strict}
-      #uf-boot-splash .ufBootInner{display:grid;justify-items:center;gap:18px;padding:30px;text-align:center}
+      #uf-boot-splash .ufBootInner{display:grid;justify-items:center;gap:18px;padding:30px;text-align:center;max-width:420px}
       #uf-boot-splash img{display:block;width:min(260px,64vw);height:auto;aspect-ratio:720/151}
       #uf-boot-splash .ufBootSpinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#ffd908;border-radius:50%;animation:ufBootSpin .8s linear infinite}
       #uf-boot-splash p{margin:0;color:#9b9ba3;font:500 14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      #uf-boot-splash .ufBootRecoveryTitle{margin:2px 0 0;font:800 21px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      #uf-boot-splash .ufBootRecoveryButton{width:min(320px,78vw);min-height:52px;margin-top:4px;border:0;border-radius:14px;background:#ffd908;color:#080808;font:800 16px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
       @keyframes ufBootSpin{to{transform:rotate(360deg)}}
       @media (prefers-reduced-motion:reduce){#uf-boot-splash .ufBootSpinner{animation-duration:1.6s}}
     </style>
+    <script>
+      (() => {
+        const RECOVERY_KEY = 'uf-startup-recovery-attempt';
+
+        function freshReload() {
+          try {
+            sessionStorage.setItem(RECOVERY_KEY, '1');
+            const url = new URL(window.location.href);
+            url.searchParams.set('_uf_recover', String(Date.now()));
+            window.location.replace(url.toString());
+          } catch {
+            window.location.reload();
+          }
+        }
+
+        function ensureSplash() {
+          let splash = document.getElementById('uf-boot-splash');
+          if (splash) return splash;
+          splash = document.createElement('div');
+          splash.id = 'uf-boot-splash';
+          splash.setAttribute('role', 'status');
+          splash.setAttribute('aria-label', 'A recuperar a aplicação');
+          document.body.appendChild(splash);
+          return splash;
+        }
+
+        function showRecovery(message = 'A aplicação demorou mais do que o esperado a iniciar.') {
+          if (window.__UF_APP_READY__) return;
+          const splash = ensureSplash();
+          splash.innerHTML = `
+            <div class="ufBootInner">
+              <img src="/brand/ultimatefit-logo.webp" alt="ULTIMATE FIT" width="720" height="151" />
+              <div class="ufBootRecoveryTitle">Vamos tentar novamente</div>
+              <p>${message}</p>
+              <button class="ufBootRecoveryButton" type="button">Recarregar aplicação</button>
+            </div>`;
+          splash.querySelector('.ufBootRecoveryButton')?.addEventListener('click', freshReload, { once: true });
+        }
+
+        function isCompletelyBlank() {
+          const root = document.getElementById('root');
+          return !document.getElementById('uf-boot-splash') && !root?.firstElementChild;
+        }
+
+        function recoverBlankStandaloneView() {
+          if (!isCompletelyBlank() || window.__UF_APP_READY__) return;
+          let attempted = false;
+          try { attempted = sessionStorage.getItem(RECOVERY_KEY) === '1'; } catch {}
+          if (!attempted) freshReload();
+          else showRecovery('A janela da app ficou sem conteúdo. Recarrega para restabelecer a sessão.');
+        }
+
+        window.__ufShowStartupRecovery = showRecovery;
+
+        window.addEventListener('pageshow', () => setTimeout(recoverBlankStandaloneView, 250));
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') setTimeout(recoverBlankStandaloneView, 350);
+        });
+
+        window.addEventListener('error', event => {
+          const target = event.target;
+          if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
+            setTimeout(() => showRecovery('Não foi possível carregar todos os ficheiros da aplicação.'), 0);
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', () => {
+          setTimeout(() => {
+            const root = document.getElementById('root');
+            if (!root?.firstElementChild) showRecovery('O arranque da aplicação foi interrompido.');
+          }, 0);
+        });
+
+        setTimeout(() => {
+          if (window.__UF_APP_READY__) return;
+          const root = document.getElementById('root');
+          const splash = document.getElementById('uf-boot-splash');
+          if (!root?.firstElementChild || splash) {
+            showRecovery(navigator.onLine === false
+              ? 'O iPhone parece estar sem ligação à Internet.'
+              : 'A aplicação está a demorar mais do que o normal a iniciar.');
+          }
+        }, 15000);
+      })();
+    </script>
   </head>
   <body>
     <div id="uf-boot-splash" role="status" aria-label="A preparar a aplicação">
@@ -41,7 +128,7 @@
       </div>
     </div>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx?v=20260817-2"></script>
+    <script type="module" src="/src/main.jsx?v=20260828-1"></script>
     <script type="module" src="/src/lib/trainingExerciseCompletionBootstrap.js?v=20260816-2"></script>
   </body>
 </html>
