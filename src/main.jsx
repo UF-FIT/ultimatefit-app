@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import AppErrorBoundary from './components/AppErrorBoundary';
 import InstallAppPage from './components/InstallAppPage';
 import './styles/app.css';
 import './styles/student-directory-cards-v2.css';
@@ -58,6 +59,8 @@ const publicInstallPath = window.location.pathname.replace(/\/+$/,'').toLowerCas
 function removeBootSplash() {
   const splash = document.getElementById('uf-boot-splash');
   if (splash) splash.remove();
+  try { sessionStorage.removeItem('uf-startup-recovery-attempt'); } catch {}
+  window.__UF_APP_READY__ = true;
 }
 
 function rootHasReadyView() {
@@ -104,16 +107,20 @@ if (entryPath) {
 } else if (publicInstallPath) {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-      <InstallAppPage />
+      <AppErrorBoundary>
+        <InstallAppPage />
+      </AppErrorBoundary>
     </React.StrictMode>
   );
   finishBootWhenReady();
 } else {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <AppErrorBoundary>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AppErrorBoundary>
     </React.StrictMode>
   );
   finishBootWhenReady();
