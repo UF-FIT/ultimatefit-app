@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>ULTIMATE FIT · Preferências de email</title>
+  <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif}
+    body{min-height:100dvh;display:grid;place-items:center;padding:24px}
+    main{width:min(440px,100%);text-align:center}
+    .logo{display:block;width:min(245px,72vw);height:auto;margin:0 auto 28px}
+    .card{background:#111;border:1px solid #2b2b2b;border-radius:22px;padding:30px 24px;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+    .badge{display:inline-flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:50%;background:#ffd908;color:#080808;font-size:28px;font-weight:900;margin-bottom:18px}
+    h1{font-size:26px;line-height:1.15;margin:0 0 12px}
+    p{color:#aaa;font-size:15px;line-height:1.6;margin:0}
+    .hint{margin-top:18px;color:#777;font-size:12px}
+  </style>
+</head>
+<body>
+  <main>
+    <img class="logo" src="/brand/ultimatefit-logo.webp" alt="ULTIMATE FIT" />
+    <section class="card">
+      <div class="badge" id="icon">✓</div>
+      <h1 id="title">Subscrição cancelada</h1>
+      <p id="message">O teu endereço foi removido das futuras campanhas comerciais da ULTIMATE FIT.</p>
+      <p class="hint">Podes fechar esta página.</p>
+    </section>
+  </main>
+  <script>
+    const state=new URLSearchParams(location.search).get('state')||'cancelled';
+    const copy={
+      cancelled:['✓','Subscrição cancelada','O teu endereço foi removido das futuras campanhas comerciais da ULTIMATE FIT. Continuaremos apenas a poder enviar comunicações operacionais indispensáveis ao serviço.'],
+      already:['✓','Subscrição já cancelada','Este endereço de email já estava excluído das futuras campanhas comerciais da ULTIMATE FIT.'],
+      invalid:['!','Link inválido','Este endereço de cancelamento não é válido ou já não é reconhecido.'],
+      error:['!','Não foi possível concluir','Ocorreu um problema ao processar o pedido. Tenta novamente dentro de alguns minutos.']
+    };
+    const [icon,title,message]=copy[state]||copy.error;
+    document.getElementById('icon').textContent=icon;
+    document.getElementById('title').textContent=title;
+    document.getElementById('message').textContent=message;
+  </script>
+</body>
+</html>
