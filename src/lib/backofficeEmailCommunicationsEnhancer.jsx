@@ -13,6 +13,35 @@ function communicationsPath(){return window.location.pathname.toLowerCase().repl
 function setUrl(isActive){const target=isActive?'/backoffice/comunicacoes':'/backoffice/definicoes';if(window.location.pathname!==target)window.history.pushState({},'',target)}
 function deactivate(page,button){active=false;page?.removeAttribute('data-email-communications-active');button?.classList.remove('active');if(host)host.hidden=true}
 function activate(page,button,{updateUrl=true}={}){active=true;page?.setAttribute('data-email-communications-active','true');button?.classList.add('active');if(host)host.hidden=false;if(updateUrl)setUrl(true)}
+
+function replaceDirectText(element,from,to){
+ if(!element)return;
+ [...element.childNodes].forEach(node=>{
+  if(node.nodeType===Node.TEXT_NODE&&node.textContent?.trim()===from)node.textContent=node.textContent.replace(from,to);
+ });
+}
+
+function patchCommunicationsCopy(){
+ const scope=host?.isConnected?host:document.querySelector('[data-email-communications-host]');
+ if(!scope)return;
+ const subTabs=[...scope.querySelectorAll('.emailCommsSubtabs button')];
+ subTabs.forEach(button=>replaceDirectText(button,'Contactos','Contactos externos'));
+ scope.querySelectorAll('.emailAudienceOptions b').forEach(label=>{
+  if(label.textContent?.trim()==='Contactos importados')label.textContent='Contactos externos';
+ });
+ const contactsSection=[...scope.querySelectorAll('.emailCommsCard')].find(section=>section.querySelector('.emailListHead h2')?.textContent?.trim()==='Lista importada'||section.querySelector('.emailListHead h2')?.textContent?.trim()==='Lista de contactos externos');
+ if(contactsSection){
+  const kicker=contactsSection.querySelector('.emailListHead span');
+  const title=contactsSection.querySelector('.emailListHead h2');
+  const description=contactsSection.querySelector('.emailListHead p');
+  if(kicker)kicker.textContent='CONTACTOS EXTERNOS';
+  if(title)title.textContent='Lista de contactos externos';
+  if(description)description.textContent='Contactos importados manualmente. Os alunos são geridos separadamente e não aparecem nesta lista.';
+  const importButton=contactsSection.querySelector('.emailListHead button');
+  replaceDirectText(importButton,'Importar contactos','Importar contactos externos');
+ }
+}
+
 function ensureHost(page,tabs){
  if(!host||!host.isConnected){host=document.createElement('div');host.dataset.emailCommunicationsHost='true';tabs.insertAdjacentElement('afterend',host);root=createRoot(host);root.render(<EmailCommunicationsModule/>)}
  return host;
@@ -24,13 +53,14 @@ function enhance(){
  let button=tabs.querySelector('[data-email-communications-tab]');
  if(!button){button=document.createElement('button');button.type='button';button.dataset.emailCommunicationsTab='true';button.innerHTML='<span data-email-icon></span><span>Comunicações</span>';const iconTarget=button.querySelector('[data-email-icon]');if(iconTarget){const iconRoot=createRoot(iconTarget);iconRoot.render(<Mail size={16}/>)}button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();ensureHost(page,tabs);activate(page,button)});tabs.appendChild(button)}
  ensureHost(page,tabs);
+ patchCommunicationsCopy();
  [...tabs.querySelectorAll('button')].filter(item=>item!==button).forEach(nativeButton=>{if(nativeButton.dataset.emailCommsBound)return;nativeButton.dataset.emailCommsBound='true';nativeButton.addEventListener('click',()=>{deactivate(page,button)})});
  if(communicationsPath()){activate(page,button,{updateUrl:false})}else if(!active){deactivate(page,button)}
 }
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;enhance()})}
 export function startBackofficeEmailCommunicationsEnhancer(){
  if(installed)return;installed=true;
- const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{childList:true,subtree:true});
+ const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
  window.addEventListener('popstate',()=>{active=communicationsPath();schedule()});
  schedule();
 }
