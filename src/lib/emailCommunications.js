@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 const EMAIL_RE = /^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$/i;
+const IMPORT_BATCH_SIZE = 200;
 
 export function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
@@ -82,8 +83,8 @@ export async function fetchImportedEmailContacts() {
   const rows = contacts.data || [];
   const prefByEmail = new Map();
   const emails = rows.map(item => item.email);
-  for (let i = 0; i < emails.length; i += 200) {
-    const prefs = await supabase.from('email_marketing_preferences').select('email,enabled,unsubscribe_token').in('email', emails.slice(i, i + 200));
+  for (let i = 0; i < emails.length; i += IMPORT_BATCH_SIZE) {
+    const prefs = await supabase.from('email_marketing_preferences').select('email,enabled,unsubscribe_token').in('email', emails.slice(i, i + IMPORT_BATCH_SIZE));
     if (prefs.error) throw prefs.error;
     (prefs.data || []).forEach(pref => prefByEmail.set(pref.email, pref));
   }
@@ -93,17 +94,32 @@ export async function fetchImportedEmailContacts() {
 export async function importEmailContacts(emails) {
   const normalized = [...new Set((emails || []).map(normalizeEmail).filter(isValidEmail))];
   if (!normalized.length) return { imported: 0, existing: 0, total: 0 };
-  const { data: existing, error: existingError } = await supabase.from('email_contacts').select('email').in('email', normalized);
-  if (existingError) throw existingError;
-  const existingSet = new Set((existing || []).map(item => item.email));
-  const rows = normalized.filter(email => !existingSet.has(email)).map(email => ({ email }));
-  if (rows.length) {
-    const { error } = await supabase.from('email_contacts').insert(rows);
-    if (error) throw error;
+
+  // PostgREST serializa .in(...) no URL. Uma lista com milhares de emails pode
+  // ultrapassar o limite do request e devolver apenas "Bad Request". Fazemos
+  // todas as operações em lotes pequenos para que importações grandes sejam estáveis.
+  const existingSet = new Set();
+  for (let i = 0; i < normalized.length; i += IMPORT_BATCH_SIZE) {
+    const batch = normalized.slice(i, i + IMPORT_BATCH_SIZE);
+    const { data, error } = await supabase.from('email_contacts').select('email').in('email', batch);
+    if (error) throw new Error(`Não foi possível verificar os contactos existentes (${i + 1}-${Math.min(i + batch.length, normalized.length)}). ${error.message || ''}`.trim());
+    (data || []).forEach(item => existingSet.add(normalizeEmail(item.email)));
   }
+
+  const rows = normalized.filter(email => !existingSet.has(email)).map(email => ({ email }));
+  for (let i = 0; i < rows.length; i += IMPORT_BATCH_SIZE) {
+    const batch = rows.slice(i, i + IMPORT_BATCH_SIZE);
+    const { error } = await supabase.from('email_contacts').insert(batch);
+    if (error) throw new Error(`Não foi possível importar os contactos (${i + 1}-${Math.min(i + batch.length, rows.length)}). ${error.message || ''}`.trim());
+  }
+
   const preferenceRows = normalized.map(email => ({ email, enabled: true, source: 'imported' }));
-  const { error: preferenceError } = await supabase.from('email_marketing_preferences').upsert(preferenceRows, { onConflict: 'email', ignoreDuplicates: true });
-  if (preferenceError) throw preferenceError;
+  for (let i = 0; i < preferenceRows.length; i += IMPORT_BATCH_SIZE) {
+    const batch = preferenceRows.slice(i, i + IMPORT_BATCH_SIZE);
+    const { error } = await supabase.from('email_marketing_preferences').upsert(batch, { onConflict: 'email', ignoreDuplicates: true });
+    if (error) throw new Error(`Os contactos foram importados, mas não foi possível concluir as preferências de comunicação (${i + 1}-${Math.min(i + batch.length, preferenceRows.length)}). ${error.message || ''}`.trim());
+  }
+
   return { imported: rows.length, existing: existingSet.size, total: normalized.length };
 }
 
