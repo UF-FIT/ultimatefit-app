@@ -1,0 +1,74 @@
+.studentTrainingHeading{margin-bottom:14px!important}
+.studentTrainingHeading>div{width:100%}
+.studentTrainingHeading h1{margin-bottom:0!important}
+.studentTrainingHeading p{margin-top:8px!important}
+.studentTrainingProgress{width:100%;margin:0 0 18px}
+.studentTrainingProgressToggle{width:100%;min-height:64px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid #26272b;border-radius:17px;background:#141416;color:#fff;font:inherit;font-size:18px;font-weight:850;cursor:pointer;transition:border-color .16s ease,background .16s ease}
+.studentTrainingProgressToggle:hover{border-color:#44464d;background:#17171a}
+.studentTrainingProgressToggle.open{border-color:rgba(255,217,8,.42)}
+.studentTrainingProgressToggle svg{flex:0 0 auto;color:#f4f4f5}
+.studentTrainingProgressPanel{margin-top:10px;padding:18px;border:1px solid #28292d;border-radius:18px;background:#111113}
+.studentTrainingProgressHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:15px}
+.studentTrainingProgressHead>svg{color:#ffd908;flex:0 0 auto}
+.studentTrainingProgressHead h2{margin:3px 0 5px;font-size:23px}
+.studentTrainingProgressHead p{margin:0;color:#96969d;font-size:12px;line-height:1.45}
+.studentTrainingProgressToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.studentTrainingProgressModes{display:flex;overflow:hidden;border:1px solid #303137;border-radius:11px;background:#0b0b0d}
+.studentTrainingProgressModes button{min-height:40px;padding:0 18px;border:0;border-radius:0;background:transparent;color:#8f9097;font:inherit;font-size:12px;font-weight:850;cursor:pointer}
+.studentTrainingProgressModes button.active{background:#ffd908;color:#080808}
+.studentTrainingProgressMonth{display:flex;align-items:center;gap:8px}
+.studentTrainingProgressMonth button{width:36px;height:36px;padding:0;display:grid;place-items:center;border:1px solid #303137;border-radius:10px;background:#0b0b0d;color:#fff;cursor:pointer}
+.studentTrainingProgressMonth button:disabled{opacity:.32;cursor:not-allowed}
+.studentTrainingProgressMonth b{min-width:126px;text-align:center;font-size:12px;text-transform:capitalize}
+.studentTrainingProgressStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:14px}
+.studentTrainingProgressStats>div{min-width:0;padding:11px 12px;border:1px solid #24252a;border-radius:11px;background:#0a0a0c}
+.studentTrainingProgressStats small,.studentTrainingProgressStats b{display:block}
+.studentTrainingProgressStats small{color:#777a82;font-size:8px;font-weight:800;letter-spacing:.045em}
+.studentTrainingProgressStats b{margin-top:4px;font-size:17px}
+.studentTrainingProgressChart{display:grid;grid-template-columns:repeat(var(--weeks),minmax(62px,1fr));gap:8px;height:155px;margin:8px 0 14px;padding:12px 10px;border:1px solid #24252a;border-radius:13px;background:#0a0a0c;overflow-x:auto}
+.studentTrainingProgressBar{min-width:56px;display:grid;grid-template-rows:20px 1fr 18px;gap:4px;text-align:center;align-items:end}
+.studentTrainingProgressBar>b{align-self:start;color:#d9d9dc;font-size:9px;white-space:nowrap}
+.studentTrainingProgressBarTrack{height:90px;display:flex;align-items:flex-end;justify-content:center}
+.studentTrainingProgressBarTrack span{display:block;width:54%;min-height:0;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#fff3a0 0%,#ffd908 72%,#c7a900 100%)}
+.studentTrainingProgressBar small{color:#84858d;font-size:9px}
+.studentTrainingProgressTableWrap{overflow:auto;border:1px solid #24252a;border-radius:13px;background:#0a0a0c;-webkit-overflow-scrolling:touch}
+.studentTrainingProgressTable{width:100%;min-width:680px;border-collapse:collapse}
+.studentTrainingProgressTable th,.studentTrainingProgressTable td{padding:11px 12px;border-bottom:1px solid #222329;text-align:right;white-space:nowrap}
+.studentTrainingProgressTable th:first-child,.studentTrainingProgressTable td:first-child{text-align:left;position:sticky;left:0;background:#0a0a0c;z-index:1}
+.studentTrainingProgressTable th{color:#83848b;font-size:9px;vertical-align:bottom}
+.studentTrainingProgressTable th b,.studentTrainingProgressTable th small{display:block}
+.studentTrainingProgressTable th small{margin-top:2px;font-size:8px;font-weight:500}
+.studentTrainingProgressTable td{font-size:11px;color:#d7d7da}
+.studentTrainingProgressTable td:first-child>b,.studentTrainingProgressTable td:first-child>small{display:block}
+.studentTrainingProgressTable td:first-child>small{margin-top:3px;color:#777a82;font-size:9px}
+.studentTrainingProgressTotal{color:#ffd908!important;font-weight:900}
+.studentTrainingProgressEmpty{display:grid;place-items:center;text-align:center;gap:7px;padding:28px 18px;border:1px solid #24252a;border-radius:13px;background:#0a0a0c}
+.studentTrainingProgressEmpty svg{color:#ffd908}
+.studentTrainingProgressEmpty b{font-size:15px}
+.studentTrainingProgressEmpty span{max-width:440px;color:#8b8c93;font-size:11px;line-height:1.5}
+.studentTrainingProgressFormula{margin-top:12px;padding:10px 12px;border-left:2px solid #ffd908;background:rgba(255,217,8,.04);color:#8c8d94;font-size:10px;line-height:1.45}
+.studentTrainingProgressFormula b{color:#d8d8dc}
+.studentTrainingProgressLoading,.studentTrainingProgressError{padding:22px;border:1px solid #292a2f;border-radius:12px;background:#0a0a0c;color:#92939a;text-align:center;font-size:12px}
+.studentTrainingProgressError{border-color:rgba(255,84,84,.32);color:#ff9f9f}
+
+@media(max-width:760px){
+  .trainingPlansPage .studentTrainingHeading{min-height:0!important;margin:0 0 13px!important}
+  .trainingPlansPage .studentTrainingHeading>div:first-child>h1{padding-right:0!important;font-size:31px!important;line-height:1!important}
+  .trainingPlansPage .studentTrainingHeading>div:first-child>p{margin:9px 0 0!important;padding-right:0!important;font-size:11.5px!important}
+  .studentTrainingProgress{margin-bottom:15px}
+  .studentTrainingProgressToggle{min-height:58px;padding:0 17px;border-radius:15px;font-size:17px}
+  .studentTrainingProgressPanel{padding:14px;border-radius:15px}
+  .studentTrainingProgressHead h2{font-size:21px}
+  .studentTrainingProgressHead>svg{display:none}
+  .studentTrainingProgressToolbar{display:grid;grid-template-columns:1fr;gap:9px}
+  .studentTrainingProgressModes{width:100%}
+  .studentTrainingProgressModes button{flex:1 1 50%;min-width:0;padding:0 8px}
+  .studentTrainingProgressMonth{justify-content:space-between}
+  .studentTrainingProgressMonth b{flex:1}
+  .studentTrainingProgressStats{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid #24252a;border-radius:11px;overflow:hidden;background:#0a0a0c}
+  .studentTrainingProgressStats>div{padding:10px 8px;border:0;border-radius:0;background:transparent}
+  .studentTrainingProgressStats>div+div{border-left:1px solid #24252a}
+  .studentTrainingProgressStats small{font-size:6.8px;line-height:1.2}
+  .studentTrainingProgressStats b{font-size:14px}
+  .studentTrainingProgressChart{grid-template-columns:repeat(var(--weeks),70px);height:145px}
+}
