@@ -43,18 +43,18 @@ const groupAliases = {
 };
 
 const bodyMuscles = [
-  { key: 'costas', label: 'Costas', side: 'left', top: 9, points: '98,70 126,70 167,116' },
-  { key: 'peito', label: 'Peito', side: 'left', top: 22, points: '98,140 126,140 174,163' },
-  { key: 'triceps', label: 'Tríceps', side: 'left', top: 35, points: '98,210 124,210 151,189' },
-  { key: 'biceps', label: 'Bíceps', side: 'left', top: 48, points: '98,280 122,280 157,222' },
-  { key: 'abdominais', label: 'Abdominais', side: 'left', top: 61, points: '98,350 124,350 193,251' },
-  { key: 'gluteos', label: 'Glúteos', side: 'left', top: 74, points: '98,420 125,420 181,316' },
-  { key: 'trapezio', label: 'Trapézio', side: 'right', top: 9, points: '302,70 274,70 221,111' },
-  { key: 'ombros', label: 'Ombros', side: 'right', top: 22, points: '302,140 275,140 242,151' },
-  { key: 'antebraco', label: 'Antebraço', side: 'right', top: 39, points: '302,230 276,230 255,225' },
-  { key: 'pernas', label: 'Pernas', side: 'right', top: 56, points: '302,320 275,320 226,337' },
-  { key: 'gemeos', label: 'Gémeos', side: 'right', top: 73, points: '302,410 275,410 231,431' },
-  { key: 'outros', label: 'Outros', side: 'right', top: 86, points: '302,478 275,478 205,282' },
+  { key: 'costas', label: 'Costas', side: 'left', top: 13, points: '102,92 126,92 168,136' },
+  { key: 'peito', label: 'Peitoral', side: 'left', top: 27, points: '102,174 126,174 179,193' },
+  { key: 'triceps', label: 'Tríceps', side: 'left', top: 41, points: '102,256 124,256 153,190' },
+  { key: 'biceps', label: 'Bíceps', side: 'left', top: 55, points: '102,338 124,338 163,220' },
+  { key: 'abdominais', label: 'Abdómen', side: 'left', top: 69, points: '102,420 126,420 199,286' },
+  { key: 'gluteos', label: 'Glúteo', side: 'left', top: 83, points: '102,502 127,502 177,350' },
+  { key: 'outros', label: 'Outros', side: 'left', top: 95, points: '' },
+  { key: 'trapezio', label: 'Trapézio', side: 'right', top: 13, points: '298,92 274,92 229,132' },
+  { key: 'ombros', label: 'Ombros', side: 'right', top: 27, points: '298,174 274,174 252,158' },
+  { key: 'antebraco', label: 'Antebraço', side: 'right', top: 48, points: '298,296 276,296 271,249' },
+  { key: 'pernas', label: 'Pernas', side: 'right', top: 69, points: '298,420 276,420 230,350' },
+  { key: 'gemeos', label: 'Panturrilha', side: 'right', top: 86, points: '298,518 276,518 238,468' },
 ];
 
 function normalize(value = '') {
@@ -184,15 +184,10 @@ function muscleDistribution(records) {
     const bucket = bodyBucket(record.muscle_group);
     totals.set(bucket, (totals.get(bucket) || 0) + volume);
   });
-  const total = [...totals.values()].reduce((sum, value) => sum + value, 0);
-  return bodyMuscles.map(item => {
-    const volume = totals.get(item.key) || 0;
-    return {
-      ...item,
-      volume,
-      percent: total > 0 ? Math.round((volume / total) * 100) : 0,
-    };
-  });
+  return bodyMuscles.map(item => ({
+    ...item,
+    volume: totals.get(item.key) || 0,
+  }));
 }
 
 function MuscleBodyMap({ records }) {
@@ -200,35 +195,46 @@ function MuscleBodyMap({ records }) {
 
   return <div className="studentMuscleMap">
     <div className="studentMuscleMapCanvas">
-      <svg className="studentMuscleMapGraphic" viewBox="0 0 400 520" aria-hidden="true">
+      <svg className="studentMuscleMapGraphic" viewBox="0 0 400 570" aria-hidden="true">
+        <defs>
+          <filter id="ufMuscleGlow" x="-120%" y="-120%" width="340%" height="340%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
         <g className="studentMuscleMapBody">
-          <circle cx="200" cy="74" r="25"/>
-          <rect x="181" y="94" width="38" height="25" rx="15"/>
-          <path d="M166 116 C145 127 139 160 145 205 L158 282 C161 302 169 318 176 330 L224 330 C231 318 239 302 242 282 L255 205 C261 160 255 127 234 116 C222 108 178 108 166 116 Z"/>
-          <path d="M156 132 C139 137 128 153 122 177 L105 255 C102 268 109 279 120 281 C132 283 140 274 143 262 L158 195 Z"/>
-          <path d="M244 132 C261 137 272 153 278 177 L295 255 C298 268 291 279 280 281 C268 283 260 274 257 262 L242 195 Z"/>
-          <path d="M176 323 C164 350 160 382 164 420 L171 486 C173 500 184 507 195 501 C201 497 203 489 202 480 L201 352 Z"/>
-          <path d="M224 323 C236 350 240 382 236 420 L229 486 C227 500 216 507 205 501 C199 497 197 489 198 480 L199 352 Z"/>
+          <ellipse cx="200" cy="94" rx="30" ry="35"/>
+          <path d="M178 121 C185 126 215 126 222 121 L224 143 C248 150 262 166 267 196 L276 282 L292 333 L283 344 L268 326 L251 269 L247 213 L239 300 C236 326 232 345 229 357 L171 357 C168 345 164 326 161 300 L153 213 L149 269 L132 326 L117 344 L108 333 L124 282 L133 196 C138 166 152 150 176 143 Z"/>
+          <path d="M172 354 C161 382 158 418 161 455 L171 530 L194 530 L200 389 L206 530 L229 530 L239 455 C242 418 239 382 228 354 Z"/>
+          <path className="studentMuscleMapFoot" d="M171 529 L194 529 L194 542 L164 542 Z"/>
+          <path className="studentMuscleMapFoot" d="M206 529 L229 529 L236 542 L206 542 Z"/>
         </g>
+
         <g className="studentMuscleMapLines">
-          {distribution.map(item => <React.Fragment key={item.key}>
-            <polyline points={item.points}/>
-            <circle cx={item.points.split(' ').at(-1).split(',')[0]} cy={item.points.split(' ').at(-1).split(',')[1]} r="6"/>
-            <circle className="studentMuscleMapLineEnd" cx={item.points.split(' ')[0].split(',')[0]} cy={item.points.split(' ')[0].split(',')[1]} r="3"/>
-          </React.Fragment>)}
+          {distribution.filter(item => item.points).map(item => {
+            const pointList = item.points.split(' ');
+            const start = pointList[0].split(',');
+            const end = pointList[pointList.length - 1].split(',');
+            return <React.Fragment key={item.key}>
+              <polyline points={item.points}/>
+              <circle className="studentMuscleMapTarget" cx={end[0]} cy={end[1]} r="6"/>
+              <circle className="studentMuscleMapLineEnd" cx={start[0]} cy={start[1]} r="3"/>
+            </React.Fragment>;
+          })}
         </g>
       </svg>
 
       {distribution.map(item => <div
-        className={`studentMuscleMapLabel ${item.side}`}
+        className={`studentMuscleMapLabel ${item.side} ${item.key === 'outros' ? 'no-line' : ''}`}
         style={{ top: `${item.top}%` }}
         key={item.key}
       >
-        <strong>{item.percent}%</strong>
+        <strong>{formatKg(item.volume)} kg</strong>
         <span>{item.label}</span>
       </div>)}
     </div>
-    <p className="studentMuscleMapNote">* baseado no volume dos exercícios registados no período selecionado</p>
+    <p className="studentMuscleMapNote">* baseado no histórico dos exercícios realizados</p>
   </div>;
 }
 
@@ -379,7 +385,7 @@ export default function StudentTrainingProgress({ studentId }) {
               <span>Abre um treino, introduz a carga no campo “Hoje” de cada exercício e regista o treino. A evolução aparecerá aqui automaticamente.</span>
             </div>}
 
-          <div className="studentTrainingProgressFormula"><b>Cálculo:</b> carga × séries × repetições. No mapa corporal, cada percentagem representa a parte do volume total atribuída a esse grupo muscular.</div>
+          <div className="studentTrainingProgressFormula"><b>Cálculo:</b> carga × séries × repetições. No mapa corporal, cada valor mostra o volume total realizado nesse grupo muscular no período selecionado.</div>
         </>}
     </div>}
   </section>;
