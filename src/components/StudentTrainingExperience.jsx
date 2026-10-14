@@ -343,11 +343,12 @@ function PlanExerciseCard({ item, blockType, expanded, onToggle, onVideo }) {
   </article>;
 }
 
-function PlanDetail({ plan, selectedSessionId, activeRun, onBack, onStart, onAccessRun }) {
+function PlanDetail({ plan, selectedSessionId, activeRun, completions = [], onBack, onStart, onAccessRun }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [expandedItem, setExpandedItem] = useState('');
   const [video, setVideo] = useState(null);
   const selectedSession = plan.sessions.find(session => session.id === selectedSessionId) || plan.sessions[0];
+  const selectedSessionCompletions = completions.filter(item => item.planId === plan.id && item.sessionId === selectedSession?.id).length;
 
   const distribution = useMemo(() => {
     const totals = new Map();
@@ -368,6 +369,7 @@ function PlanDetail({ plan, selectedSessionId, activeRun, onBack, onStart, onAcc
       <div className="ufStudentPlanHeroIcon"><Dumbbell/></div>
       <h1>{plan.title}</h1>
       <p>{selectedSession?.title || 'Treino'}</p>
+      <span className="ufStudentPlanRunCount">{selectedSessionCompletions ? `${selectedSessionCompletions} treino${selectedSessionCompletions===1?'':'s'} realizado${selectedSessionCompletions===1?'':'s'}` : 'Nenhum treino realizado'}</span>
       {activeRun ? <button type="button" className="ufBigYellowButton" onClick={onAccessRun}>Aceder ao treino em curso</button>
         : <button type="button" className="ufBigYellowButton" onClick={() => onStart(selectedSession)}>Iniciar treino</button>}
     </section>
@@ -388,10 +390,26 @@ function PlanDetail({ plan, selectedSessionId, activeRun, onBack, onStart, onAcc
         <div className="ufPlanSessionLabel">{sessionLabel(sessionIndex)}</div>
         {session.id !== selectedSession?.id && <button type="button" className="ufPlanChooseSession" onClick={() => onStart(session)} disabled={Boolean(activeRun)}>Iniciar este treino</button>}
         {(session.blocks || []).map((block, blockIndex) => block.type !== 'standard'
-          ? <div className="ufPlanSpecialGroup" key={block.id || blockIndex}>
-              <span className="ufPlanSpecialGroupTitle">{(block.title || block.type).replace(/-/g,' ').toUpperCase()}</span>
-              {(block.items || []).map((item, itemIndex) => <PlanExerciseCard
-                key={item.id || itemIndex}
+          ? <React.Fragment key={block.id || blockIndex}>
+              <div className="ufPlanSpecialGroup">
+                <span className="ufPlanSpecialGroupTitle">{(block.title || block.type).replace(/-/g,' ').toUpperCase()}</span>
+                {(block.items || []).map((item, itemIndex) => <PlanExerciseCard
+                  key={item.id || itemIndex}
+                  item={item}
+                  expanded={expandedItem === item.id}
+                  onToggle={()=>setExpandedItem(current=>current===item.id?'':item.id)}
+                  onVideo={()=>setVideo({
+                    exerciseId:item.exerciseId, name:item.exercise?.name, group:item.exercise?.group,
+                    description:item.exercise?.description, instructions:item.exercise?.instructions,
+                    mediaUrl:item.exercise?.mediaUrl, mediaKind:item.exercise?.mediaKind,
+                    externalMediaUrl:item.exercise?.externalMediaUrl,
+                  })}
+                />)}
+              </div>
+              {Number(block.restAfterSeconds)>0 && <div className="ufPlanRestPill"><Timer size={15}/>Intervalo de {block.restAfterSeconds}s</div>}
+            </React.Fragment>
+          : (block.items || []).map((item, itemIndex) => <React.Fragment key={item.id || itemIndex}>
+              <PlanExerciseCard
                 item={item}
                 expanded={expandedItem === item.id}
                 onToggle={()=>setExpandedItem(current=>current===item.id?'':item.id)}
@@ -401,20 +419,9 @@ function PlanDetail({ plan, selectedSessionId, activeRun, onBack, onStart, onAcc
                   mediaUrl:item.exercise?.mediaUrl, mediaKind:item.exercise?.mediaKind,
                   externalMediaUrl:item.exercise?.externalMediaUrl,
                 })}
-              />)}
-            </div>
-          : (block.items || []).map((item, itemIndex) => <PlanExerciseCard
-              key={item.id || itemIndex}
-              item={item}
-              expanded={expandedItem === item.id}
-              onToggle={()=>setExpandedItem(current=>current===item.id?'':item.id)}
-              onVideo={()=>setVideo({
-                exerciseId:item.exerciseId, name:item.exercise?.name, group:item.exercise?.group,
-                description:item.exercise?.description, instructions:item.exercise?.instructions,
-                mediaUrl:item.exercise?.mediaUrl, mediaKind:item.exercise?.mediaKind,
-                externalMediaUrl:item.exercise?.externalMediaUrl,
-              })}
-            />)
+              />
+              {Number(item.restSeconds)>0 && <div className="ufPlanRestPill"><Timer size={15}/>Intervalo de {item.restSeconds}s</div>}
+            </React.Fragment>)
         )}
       </section>)}
     </div>
@@ -945,6 +952,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
     plan={selectedPlan}
     selectedSessionId={selectedSession?.id}
     activeRun={activeRun}
+    completions={completions}
     onBack={()=>setView('home')}
     onStart={begin}
     onAccessRun={()=>setView('runner')}
