@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import ExerciseMedia from './ExerciseMedia';
 import StudentTrainingProgress from './StudentTrainingProgress';
+import StudentTrainingProgressPage from './StudentTrainingProgressPage';
 import {
   buildWorkoutRunState,
   cancelWorkoutRun,
@@ -979,6 +980,8 @@ export default function StudentTrainingExperience({ student, plans = [], complet
   const dayCompletionSession = dayCompletionPlan?.sessions?.find(session => session.id === dayCompletion?.sessionId) || null;
   const selectedDateRuns = workoutRuns.filter(run => run.status === 'completed' && run.workoutDate === selectedDate);
 
+  if (view==='progress') return <StudentTrainingProgressPage studentId={studentId} onBack={()=>setView('home')}/>;
+
   if (view==='plan' && selectedPlan) return <PlanDetail
     plan={selectedPlan}
     selectedSessionId={selectedSession?.id}
@@ -996,7 +999,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
         <div className="ufStudentTrainingStreak"><Flame/><b>{streak}</b><span>{streak===1?'semana':'semanas'}</span></div>
       </div>
 
-      <StudentTrainingProgress studentId={studentId}/>
+      <StudentTrainingProgress studentId={studentId} onOpenPage={()=>setView('progress')}/>
 
       <WeekStrip completions={completions} selectedDate={selectedDate} onSelect={setSelectedDate}/>
 
