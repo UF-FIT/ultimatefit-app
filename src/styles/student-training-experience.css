@@ -1,0 +1,176 @@
+
+.ufStudentTrainingExperience,
+.ufStudentPlanDetail{
+  width:min(100%,920px);
+  margin:0 auto;
+  color:#fff;
+}
+.ufStudentTrainingExperience{padding-bottom:120px}
+.ufStudentTrainingHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.ufStudentTrainingTitle{display:flex;align-items:center;gap:14px;min-width:0}
+.ufStudentTrainingTitle>span{width:48px;height:48px;display:grid;place-items:center;border-radius:10px;background:#ffd908;color:#080808;flex:0 0 auto}
+.ufStudentTrainingTitle>span svg{width:25px;height:25px}
+.ufStudentTrainingTitle h1{margin:0;font-size:34px;line-height:1;font-weight:900;letter-spacing:-.02em}
+.ufStudentTrainingStreak{min-height:48px;padding:0 18px;display:flex;align-items:center;gap:7px;border-radius:24px;background:#6f8070;color:#fff;white-space:nowrap}
+.ufStudentTrainingStreak svg{width:23px;height:23px}
+.ufStudentTrainingStreak b{font-size:18px}
+.ufStudentTrainingStreak span{font-size:13px;font-weight:700}
+.ufTrainingWeekWrap{position:relative;margin:18px 0 20px;padding:0 4px}
+.ufTrainingWeek{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+.ufTrainingDay{position:relative;min-width:0;padding:0;border:0;background:transparent;color:#f4f4f4;font:inherit;cursor:pointer;display:grid;justify-items:center;gap:7px}
+.ufTrainingDay>span{font-size:13px;font-weight:700;white-space:nowrap}
+.ufTrainingDay>b{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#151517;color:#a8a8aa;font-size:15px;font-weight:500;transition:.16s ease}
+.ufTrainingDay.selected>b{background:#ffd908;color:#090909}
+.ufTrainingDay.completed>b{background:#74daa4;color:#08150d}
+.ufTrainingDay.completed.selected>b{box-shadow:0 0 0 3px rgba(255,217,8,.6)}
+.ufTrainingDay>i{position:absolute;right:8px;bottom:-4px;font-style:normal;font-size:11px}
+.ufTrainingWeekArrow{position:absolute;top:29px;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:50%;background:#222225;color:#aaa;opacity:0;pointer-events:none}
+.ufTrainingWeekArrow.left{left:-32px}.ufTrainingWeekArrow.right{right:-32px}
+.ufTrainingDayHistoryNotice{margin:-5px 0 16px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid #25262a;border-radius:13px;background:#111113;color:#d9d9dc}
+.ufTrainingDayHistoryNotice>span{font-size:18px}.ufTrainingDayHistoryNotice b,.ufTrainingDayHistoryNotice small{display:block}.ufTrainingDayHistoryNotice small{margin-top:2px;color:#7e7f86;font-size:10px}
+.ufTrainingSuccessNote{margin:0 0 16px;padding:12px 14px;display:flex;align-items:center;gap:10px;border:1px solid rgba(93,218,146,.28);border-radius:13px;background:rgba(31,110,67,.13);color:#8be6b2;font-size:12px;font-weight:800}
+.ufTrainingCurrentCard{padding:22px;border:1px solid #242529;border-radius:22px;background:#141416}
+.ufTrainingCurrentCard h2{margin:0 0 16px;text-align:center;font-size:21px;font-weight:600;letter-spacing:.01em}
+.ufTrainingCurrentCard.active-run{padding-top:28px}
+.ufTrainingPlanSelector{display:grid;gap:6px;margin-bottom:14px;color:#84858b;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.ufTrainingPlanSelector select{height:48px;border:1px solid #44464a;border-radius:12px;background:#0d0d0f;color:#fff;padding:0 13px;font:inherit;font-size:14px;text-transform:none}
+.ufTrainingSessionSelector{position:relative;display:grid;padding:12px 16px 11px;margin-bottom:14px;border:1px solid #c6cbbf;border-radius:16px;background:#111113;overflow:hidden}
+.ufTrainingSessionSelector select{appearance:none;width:100%;border:0;background:transparent;color:#fff;font:inherit;font-size:14px;font-weight:700;outline:none;padding-right:34px}
+.ufTrainingSessionSelector>svg{position:absolute;right:16px;top:15px;width:17px;height:17px;color:#adb3a5;pointer-events:none}
+.ufTrainingSessionSelector small{margin-top:7px;color:#aaa;font-size:11px;line-height:1.3}
+.ufBigYellowButton{width:100%;min-height:54px;border:0;border-radius:18px;background:#ffd908;color:#0a0a0a;font:inherit;font-size:15px;font-weight:800;cursor:pointer}
+.ufBigYellowButton:disabled{opacity:.55;cursor:not-allowed}
+.ufViewPlanButton{width:100%;min-height:50px;margin-top:12px;border:1px solid #1e1e21;border-radius:16px;background:#09090a;color:#eee;font:inherit;font-size:14px;cursor:pointer}
+.ufTrainingNoPlan{min-height:260px;padding:35px;display:grid;place-items:center;text-align:center;border:1px solid #242529;border-radius:22px;background:#141416}
+.ufTrainingNoPlan svg{width:40px;height:40px;color:#ffd908}.ufTrainingNoPlan h2{margin:10px 0 3px}.ufTrainingNoPlan p{margin:0;color:#8d8e94;font-size:12px}
+
+.ufStudentPlanDetail{padding-bottom:120px}
+.ufRoundBack{width:52px;height:52px;display:grid;place-items:center;border:0;border-radius:50%;background:#fff;color:#0a0a0a;cursor:pointer;margin-bottom:18px}
+.ufRoundBack svg{width:26px;height:26px}
+.ufRoundBack.dark{background:#151517;color:#fff;border:1px solid #303137}
+.ufStudentPlanHero{padding:34px 26px 28px;border-radius:22px;background:#141416;text-align:center}
+.ufStudentPlanHeroIcon{width:62px;height:62px;margin:0 auto 16px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#111}
+.ufStudentPlanHeroIcon svg{width:28px;height:28px}
+.ufStudentPlanHero h1{margin:0;font-size:28px;line-height:1.05}.ufStudentPlanHero p{margin:10px 0 18px;color:#b9b9bc}
+.ufPlanDetailsPanel{margin-top:14px;border-radius:18px;background:#141416;overflow:hidden}
+.ufPlanDetailsPanel>button{width:100%;min-height:58px;padding:0 20px;border:0;background:transparent;color:#fff;font:inherit;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.ufPlanDetailsPanel.open>button svg{transform:rotate(180deg)}
+.ufPlanDetailsContent{padding:0 20px 20px;display:grid;gap:9px}
+.ufPlanDetailsContent>div:not(.ufPlanDistribution){display:flex;justify-content:space-between;gap:15px;color:#e4e4e5;font-size:12px}
+.ufPlanDetailsContent>div span{color:#8a8b90}.ufPlanDetailsContent>div b{text-align:right}
+.ufPlanDistribution{margin-top:4px;padding-top:13px;border-top:1px solid #2b2c2f;display:grid;gap:8px}
+.ufPlanDistribution>div{display:grid;grid-template-columns:94px 1fr 36px;align-items:center;gap:9px;font-size:10px}
+.ufPlanDistribution i{height:7px;background:#ededed;border-radius:0;overflow:hidden}.ufPlanDistribution i b{display:block;height:100%;background:#ffd908}
+.ufPlanDistribution strong{text-align:right;color:#fff}
+.ufPlanSessionsCompact{margin-top:22px;display:grid;gap:28px}
+.ufPlanSessionCompact{display:grid;gap:10px}.ufPlanSessionLabel{font-size:12px;letter-spacing:.06em;color:#c8c8ca}
+.ufPlanChooseSession{justify-self:start;border:0;background:#1d1d20;color:#ffd908;border-radius:8px;padding:7px 10px;font:inherit;font-size:10px;font-weight:800;cursor:pointer}
+.ufPlanExerciseCard{position:relative;padding:20px;border-radius:20px;background:#141416;border:1px solid #1e1f22}
+.ufPlanExerciseCard.manual{padding-top:46px}
+.ufPlanExerciseTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.ufPlanExerciseTop h3{margin:6px 0 0;font-size:17px;font-weight:800}.ufWorkoutKicker{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#a9ae9f}
+.ufPlanVideoButton{display:flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid #666b61;border-radius:13px;background:transparent;color:#fff;font:inherit;font-size:11px;cursor:pointer;white-space:nowrap}
+.ufPlanExerciseNote{margin:10px 0;color:#d4d4d6;font-size:12px;line-height:1.45;white-space:pre-line}
+.ufPlanSetChips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.ufPlanSetChips span{padding:7px 10px;border-radius:9px;background:#09090b;color:#fff;font-size:11px;font-weight:800}
+.ufPlanMore{display:flex;align-items:center;gap:3px;margin:10px 0 0 0;padding:0;border:0;background:transparent;color:#657164;font:inherit;font-size:10px;font-weight:800;cursor:pointer}.ufPlanMore svg{transition:.15s ease}
+.ufPlanExpandedCopy{margin-top:10px;padding-top:10px;border-top:1px solid #242529;color:#bdbdc1;font-size:11px;line-height:1.5}
+.ufPlanExpandedCopy p{margin:0 0 8px}.ufPlanExpandedCopy>div{display:flex;gap:12px;flex-wrap:wrap;color:#7f8086}
+.ufPlanSpecialGroup{padding:14px;border-radius:22px;background:#111113;border:1px solid #292a2e;display:grid;gap:10px}
+.ufPlanSpecialGroupTitle,.ufPlanSpecialTag{font-size:10px;font-weight:900;letter-spacing:.06em;color:#fff}
+.ufPlanSpecialTag{position:absolute;top:14px;left:20px;padding:5px 8px;border-radius:8px;background:#282923}
+
+body.ufWorkoutImmersiveOpen{overflow:hidden}
+.ufWorkoutRunner{position:fixed;inset:0;z-index:9999;background:#050506;color:#fff;overflow:auto;padding:20px 24px 180px;font-family:inherit}
+.ufWorkoutTopControls{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 18px;background:linear-gradient(#050506 72%,rgba(5,5,6,0))}
+.ufWorkoutTopRight{display:flex;align-items:center;gap:9px}
+.ufWorkoutCircleButton{width:50px;height:50px;display:grid;place-items:center;border:0;border-radius:50%;background:#fff;color:#090909;cursor:pointer}
+.ufWorkoutCircleButton.sound{background:#718072;color:#fff}.ufWorkoutCircleButton svg{width:23px;height:23px}
+.ufWorkoutEndButton{height:50px;padding:0 20px;display:flex;align-items:center;gap:8px;border:0;border-radius:25px;background:#fff;color:#070707;font:inherit;font-weight:900;cursor:pointer}
+.ufWorkoutMenuWrap{position:relative}.ufWorkoutMoreMenu{position:absolute;right:0;top:58px;width:190px;border:1px solid #303136;border-radius:14px;background:#111113;box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:hidden;z-index:70}
+.ufWorkoutMoreMenu button{width:100%;padding:14px 16px;border:0;border-bottom:1px solid #25262a;background:transparent;color:#fff;text-align:left;font:inherit;font-size:12px;cursor:pointer}.ufWorkoutMoreMenu button:last-child{border-bottom:0}.ufWorkoutMoreMenu button.danger{color:#ff8585}
+
+.ufGuidedActivityWrap{width:min(100%,720px);margin:20px auto 0}.ufGuidedActivityNumber{display:block;width:max-content;margin:0 auto 12px;padding:6px 10px;border-radius:12px;background:#101012;color:#ddd;font-size:10px;font-weight:900;letter-spacing:.06em}
+.ufGuidedActivityCard{padding:24px 26px;border-radius:22px;background:#141416;border:1px solid #1f2023;text-align:center}
+.ufGuidedActivityTop{display:flex;align-items:center;justify-content:center;gap:12px;color:#d8d8db;font-size:12px}.ufGuidedActivityTop>span{text-transform:capitalize}
+.ufGuidedActivityTop button{display:flex;align-items:center;gap:6px;padding:9px 13px;border:1px solid #656961;border-radius:14px;background:transparent;color:#fff;font:inherit;font-size:12px;cursor:pointer}
+.ufGuidedActivityCard h2{margin:15px 0 9px;font-size:24px;font-weight:500}.ufGuidedInstructions{max-width:590px;margin:0 auto 14px;color:#c5c5c8;font-size:12px;line-height:1.5}
+.ufGuidedActivityCard.manual h2{margin-top:2px}.ufGuidedManualText{white-space:pre-line;color:#e4e4e5;font-size:15px;line-height:1.55}
+.ufGuidedSets{margin-top:18px;display:grid;gap:8px}.ufGuidedSetLabels,.ufGuidedSetRow{display:grid;grid-template-columns:34px minmax(82px,1fr) minmax(92px,1fr) minmax(90px,1fr) 46px;gap:8px;align-items:center}
+.ufGuidedSetLabels{color:#aaa;font-size:9px}.ufGuidedSetRow{padding:6px 7px;border-radius:12px;background:#09090a}.ufGuidedSetRow.done{background:#0f1712}
+.ufGuidedSetRow>b{font-size:12px}.ufGuidedSetRow input{width:100%;height:44px;border:1px solid #777d70;border-radius:12px;background:#151517;color:#fff;text-align:center;font:inherit;font-size:14px;outline:none}
+.ufGuidedSetRow>span{color:#b0b1b5;font-size:10px;line-height:1.25}
+.ufGuidedSetDone{width:38px;height:38px;display:grid;place-items:center;border:0;background:transparent;color:#728072;cursor:pointer}.ufGuidedSetDone svg{width:26px;height:26px}.ufGuidedSetDone.done{border-radius:50%;background:#ffd908;color:#080808}
+.ufGuidedCardioGrid{margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr 46px;gap:8px;align-items:end}.ufGuidedCardioGrid label,.ufGuidedCardioGrid>div{display:grid;gap:5px;color:#aaa;font-size:9px}.ufGuidedCardioGrid input{height:48px;border:1px solid #777d70;border-radius:12px;background:#151517;color:#fff;text-align:center;font:inherit;font-size:14px}.ufGuidedCardioGrid>div b{height:48px;display:grid;place-items:center;color:#aaa}
+.ufActivityHistoryButton{width:100%;min-height:48px;margin-top:18px;padding-top:13px;border:0;border-top:1px solid #2b2c2f;background:transparent;color:#fff;font:inherit;font-size:12px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.ufGuidedBottomBar{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:14px 24px max(18px,env(safe-area-inset-bottom));background:#111113;border-top:1px solid #1c1d20}
+.ufGuidedBottomMeta{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:9px}.ufGuidedBottomMeta b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ufGuidedBottomMeta strong{font-size:13px}
+.ufGuidedProgressSegments{display:grid;grid-template-columns:repeat(auto-fit,minmax(18px,1fr));gap:7px;margin-bottom:14px}.ufGuidedProgressSegments span{height:7px;border-radius:7px;background:#788273}.ufGuidedProgressSegments span.done{background:#ffd908}.ufGuidedProgressSegments span.skipped{background:#ff6f70}.ufGuidedProgressSegments span.current{box-shadow:0 0 0 2px rgba(255,217,8,.25)}
+.ufGuidedBottomActions{display:grid;grid-template-columns:minmax(105px,.45fr) minmax(170px,1fr);gap:10px}.ufGuidedBottomActions button{min-height:48px;border:0;border-radius:17px;font:inherit;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.ufSkipButton{background:#758171;color:#fff}.ufSkipButton svg{padding:3px;border-radius:50%;background:#ff6f70;color:#111}.ufCompleteActivityButton{background:#ffd908;color:#080808}
+
+.ufWorkoutModalBackdrop{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(5px)}
+.ufWorkoutModalBackdrop.dark{background:rgba(0,0,0,.82)}
+.ufWorkoutVideoModal,.ufWorkoutRpeModal,.ufWorkoutHistoryModal,.ufWorkoutQuickSetModal,.ufWorkoutRestModal{position:relative;width:min(100%,560px);max-height:min(88vh,820px);overflow:auto;padding:24px;border:1px solid #242529;border-radius:24px;background:#141416;color:#fff}
+.ufWorkoutModalClose{position:absolute;right:16px;top:16px;width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center;cursor:pointer}.ufWorkoutModalClose.static{position:static}
+.ufWorkoutVideoModal h2,.ufWorkoutRpeModal h2,.ufWorkoutHistoryModal h2,.ufWorkoutQuickSetModal h2{margin:6px 0 16px}.ufWorkoutVideoMedia{min-height:220px;border-radius:16px;overflow:hidden;background:#09090a}.ufWorkoutVideoModal>p{color:#bbb;font-size:12px;line-height:1.5}
+.ufWorkoutRpeModal{text-align:center}.ufWorkoutRpeModal>p{color:#d2d2d4;line-height:1.5}.ufWorkoutRpeValue{width:118px;height:118px;margin:20px auto;display:grid;place-items:center;align-content:center;border-radius:50%;border:8px solid #fff;background:#788474;color:#fff}.ufWorkoutRpeValue b{font-size:38px}.ufWorkoutRpeValue span{font-size:10px;font-weight:900;letter-spacing:.06em}
+.ufWorkoutRpeModal input[type="range"]{width:100%;accent-color:#ffd908}
+.ufWorkoutModalActions{display:grid;grid-template-columns:1fr 1.25fr;gap:10px;margin-top:22px}.ufWorkoutModalActions button{min-height:48px;border-radius:16px;font:inherit;font-weight:800;cursor:pointer}.ufWorkoutModalActions .secondary{border:1px solid #aaa;background:transparent;color:#fff}.ufWorkoutModalActions .primary{border:0;background:#ffd908;color:#080808}
+.ufWorkoutHistoryHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.ufWorkoutHistoryDays{display:grid;gap:10px}.ufWorkoutHistoryDay{padding:13px;border-radius:13px;background:#0b0b0d}.ufWorkoutHistoryDay>b{display:block;margin-bottom:7px;color:#a7aa9e;font-size:10px}.ufWorkoutHistoryDay>div{display:flex;flex-wrap:wrap;gap:7px}.ufWorkoutHistoryDay span{padding:6px 8px;border-radius:8px;background:#1b1c1f;font-size:10px}.ufWorkoutEmptyHistory{padding:25px;text-align:center;color:#8a8b91}
+.ufWorkoutQuickSetFields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ufWorkoutQuickSetFields label{display:grid;gap:6px;color:#aaa;font-size:10px}.ufWorkoutQuickSetFields input{height:48px;border:1px solid #555b52;border-radius:13px;background:#0b0b0d;color:#fff;padding:0 12px;font:inherit;font-size:15px}
+.ufWorkoutRestModal{text-align:center}.ufWorkoutRestModal h2{margin:0 0 7px;font-size:25px}.ufWorkoutRestModal>p{margin:0;color:#d2d2d4}.ufWorkoutRestRing{--rest-progress:0deg;width:190px;height:190px;margin:28px auto;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#ffd908 var(--rest-progress),#748071 0);position:relative}.ufWorkoutRestRing::after{content:"";position:absolute;inset:8px;border-radius:50%;background:#748071}.ufWorkoutRestRing b{position:relative;z-index:1;font-size:40px;font-weight:500}.ufWorkoutNextActivity{display:grid;gap:7px;margin:0 0 22px}.ufWorkoutNextActivity>b{font-size:14px}.ufWorkoutNextActivity>span{font-size:10px;letter-spacing:.08em}.ufWorkoutNextActivity>strong{font-size:16px;font-weight:500}.ufWorkoutRestModal .full{min-height:50px;border:0;border-radius:16px;background:#ffd908;color:#111;font:inherit;cursor:pointer;width:100%}
+
+.ufWorkoutRunner.simplified{background:#ffd908;color:#0b0b0b;padding:18px 24px 120px}
+.ufWorkoutRunner.simplified .ufWorkoutTopControls{background:linear-gradient(#ffd908 72%,rgba(255,217,8,0))}
+.ufWorkoutRunner.simplified .ufWorkoutCircleButton.sound{background:#111;color:#ffd908}
+.ufWorkoutRunner.simplified .ufWorkoutEndButton,.ufWorkoutRunner.simplified .ufWorkoutCircleButton{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.ufWorkoutRunner.simplified .ufWorkoutMoreMenu{background:#111;color:#fff}
+.ufSimplifiedList{width:min(100%,760px);margin:28px auto 0;display:grid;gap:14px}
+.ufSimplifiedActivityCard{padding:22px 22px 20px;border-radius:22px;background:#111113;color:#fff;min-height:150px}
+.ufSimplifiedActivityHead{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.ufSimplifiedActivityMeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.ufSimplifiedActivityMeta>span{font-size:11px;letter-spacing:.06em;color:#d1d5cc;text-transform:uppercase}.ufSimplifiedActivityMeta button{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #6b7068;border-radius:14px;background:transparent;color:#fff;font:inherit;font-size:12px}
+.ufSimplifiedDoneCircle{width:44px;height:44px;display:grid;place-items:center;border:0;background:transparent;color:#b5c0ac;cursor:pointer}.ufSimplifiedDoneCircle svg{width:35px;height:35px}.ufSimplifiedDoneCircle.done{border-radius:50%;background:#ffd908;color:#111}.ufSimplifiedDoneCircle.skipped{color:#ff7373}
+.ufSimplifiedActivityCard h3{margin:13px 0 7px;font-size:16px;font-weight:500}.ufSimplifiedActivityCard>p{margin:0;color:#c7c7c9;font-size:11px;line-height:1.45}.ufSimplifiedManual{white-space:pre-line}
+.ufSimplifiedSetChips{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.ufSimplifiedSetChips button{min-height:48px;padding:0 13px;border:0;border-radius:10px;background:#242622;color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.ufSimplifiedSetChips button.done{background:#dce8d2;color:#111}
+.ufSimplifiedActivityCard.done .ufSimplifiedSetChips button{background:#dce8d2;color:#111}.ufSimplifiedActivityCard.skipped{opacity:.6}
+.ufSimplifiedSpecialGroup{padding:18px;border-radius:24px;background:#111113;display:grid;gap:10px}.ufSimplifiedSpecialTitle{color:#fff;font-size:15px;letter-spacing:.06em}.ufSimplifiedSpecialGroup .ufSimplifiedActivityCard{padding:14px 4px;border-radius:0;border-bottom:1px dashed #7a7e75}.ufSimplifiedSpecialGroup .ufSimplifiedActivityCard:last-child{border-bottom:0}
+.ufSimplifiedRestCard{position:relative;padding:24px 20px;border-radius:22px;background:#f1f1f1;color:#111;text-align:center}.ufSimplifiedRestCard>button{position:absolute;right:16px;top:16px;width:44px;height:44px;border:0;border-radius:50%;background:#ff6f70;color:#111;display:grid;place-items:center;cursor:pointer}.ufSimplifiedRestCard>b{display:block;margin:6px 0 12px;font-size:18px}.ufSimplifiedRestTrack{width:55%;height:8px;background:#ddd;overflow:hidden}.ufSimplifiedRestTrack span{display:block;height:100%;background:#111}.ufSimplifiedRestCard>span{display:block;margin-top:12px;font-size:13px}
+.ufSimplifiedFooter{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:12px 24px max(18px,env(safe-area-inset-bottom));background:#080809;color:#fff}.ufSimplifiedFooter>div{display:flex;align-items:center;justify-content:space-between;gap:15px}.ufSimplifiedFooter b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ufSimplifiedFooter strong{font-size:13px}.ufSimplifiedFooter>i{display:block;height:7px;margin-top:10px;border-radius:7px;background:#788273;overflow:hidden}.ufSimplifiedFooter>i span{display:block;height:100%;background:#ffd908}
+
+.ufWorkoutSummaryScreen{position:fixed;inset:0;z-index:10100;overflow:auto;padding:24px 24px 120px;background:#09090a;color:#fff;text-align:center}.ufWorkoutSummaryScreen>.ufRoundBack{margin-right:auto}.ufWorkoutSummaryMedal{width:110px;height:110px;margin:35px auto 20px;display:grid;place-items:center;border-radius:50%;background:#ffd908;color:#111}.ufWorkoutSummaryMedal svg{width:58px;height:58px}.ufWorkoutSummaryScreen h1{margin:0;font-size:32px}.ufWorkoutSummaryScreen>p{margin:8px 0 24px;color:#aaa}
+.ufWorkoutSummaryInsight{width:min(100%,620px);margin:0 auto 16px;padding:22px;border:1px solid #43444a;border-radius:18px;background:#111113;text-align:left}.ufWorkoutSummaryInsight>span{display:block;color:#ffd908;font-size:10px;font-weight:900;letter-spacing:.07em}.ufWorkoutSummaryInsight>strong{display:block;margin:8px 0;font-size:16px}.ufWorkoutSummaryInsight>p{margin:0;color:#aaa;font-size:12px}
+.ufWorkoutSummaryGrid{width:min(100%,620px);margin:0 auto 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ufWorkoutSummaryGrid>div{padding:15px 8px;border-radius:14px;background:#141416}.ufWorkoutSummaryGrid small,.ufWorkoutSummaryGrid b{display:block}.ufWorkoutSummaryGrid small{color:#77787e;font-size:8px;font-weight:900;letter-spacing:.04em}.ufWorkoutSummaryGrid b{margin-top:5px;font-size:16px}.ufWorkoutSummaryScreen>.ufBigYellowButton{width:min(100%,620px)}
+
+@media(max-width:760px){
+  .ufStudentTrainingExperience,.ufStudentPlanDetail{width:100%}
+  .ufStudentTrainingHeader{margin:0 0 15px}
+  .ufStudentTrainingTitle{gap:11px}.ufStudentTrainingTitle>span{width:42px;height:42px;border-radius:9px}.ufStudentTrainingTitle h1{font-size:28px}
+  .ufStudentTrainingStreak{min-height:42px;padding:0 14px;border-radius:22px}.ufStudentTrainingStreak svg{width:20px}.ufStudentTrainingStreak b{font-size:15px}.ufStudentTrainingStreak span{font-size:11px}
+  .ufTrainingWeek{gap:4px}.ufTrainingDay{gap:5px}.ufTrainingDay>span{font-size:10px}.ufTrainingDay>b{width:43px;height:43px;font-size:12px}.ufTrainingDay>i{right:1px;font-size:9px}
+  .ufTrainingWeekArrow{display:none}
+  .ufTrainingCurrentCard{padding:17px;border-radius:18px}.ufTrainingCurrentCard h2{font-size:17px}
+  .ufBigYellowButton{min-height:52px;border-radius:16px}.ufViewPlanButton{min-height:48px;border-radius:15px}
+  .ufRoundBack{width:48px;height:48px}
+  .ufStudentPlanHero{padding:28px 18px 22px;border-radius:18px}.ufStudentPlanHero h1{font-size:23px}
+  .ufPlanExerciseCard{padding:17px;border-radius:17px}.ufPlanExerciseCard.manual{padding-top:44px}.ufPlanExerciseTop h3{font-size:15px}
+  .ufWorkoutRunner{padding:14px 14px 170px}
+  .ufWorkoutTopControls{padding:4px 0 14px}
+  .ufWorkoutCircleButton{width:44px;height:44px}.ufWorkoutEndButton{height:44px;padding:0 16px;font-size:13px}.ufWorkoutTopRight{gap:7px}
+  .ufGuidedActivityWrap{margin-top:8px}.ufGuidedActivityCard{padding:18px 14px;border-radius:18px}.ufGuidedActivityCard h2{font-size:21px}
+  .ufGuidedSetLabels,.ufGuidedSetRow{grid-template-columns:24px minmax(64px,1fr) minmax(72px,1fr) minmax(70px,.9fr) 38px;gap:5px}
+  .ufGuidedSetRow{padding:5px}.ufGuidedSetRow input{height:42px;font-size:12px}.ufGuidedSetRow>span{font-size:8.5px}.ufGuidedSetDone{width:34px;height:34px}.ufGuidedSetDone svg{width:24px}
+  .ufGuidedCardioGrid{grid-template-columns:1fr 1fr .8fr 38px;gap:5px}
+  .ufGuidedBottomBar{padding:12px 14px max(14px,env(safe-area-inset-bottom))}
+  .ufGuidedBottomActions{grid-template-columns:.42fr 1fr;gap:8px}.ufGuidedBottomActions button{font-size:11px;min-height:46px}
+  .ufWorkoutRunner.simplified{padding:14px 14px 105px}
+  .ufSimplifiedList{margin-top:18px;gap:11px}.ufSimplifiedActivityCard{padding:18px 15px;border-radius:18px}.ufSimplifiedSpecialGroup{padding:14px;border-radius:19px}
+  .ufSimplifiedActivityMeta button{padding:7px 9px;font-size:10px}.ufSimplifiedDoneCircle{width:40px;height:40px}.ufSimplifiedDoneCircle svg{width:31px}
+  .ufSimplifiedSetChips{gap:7px}.ufSimplifiedSetChips button{min-height:43px;padding:0 10px;font-size:10px}
+  .ufSimplifiedRestCard{padding:22px 14px;border-radius:18px}
+  .ufSimplifiedFooter{padding:10px 14px max(14px,env(safe-area-inset-bottom))}
+  .ufWorkoutModalBackdrop{padding:12px}.ufWorkoutVideoModal,.ufWorkoutRpeModal,.ufWorkoutHistoryModal,.ufWorkoutQuickSetModal,.ufWorkoutRestModal{padding:20px;border-radius:20px}
+  .ufWorkoutRestRing{width:165px;height:165px}.ufWorkoutRestRing b{font-size:34px}
+  .ufWorkoutSummaryScreen{padding:16px 14px 100px}.ufWorkoutSummaryGrid{grid-template-columns:repeat(2,1fr)}
+}
+
+@media(min-width:761px){
+  .ufTrainingWeekArrow{opacity:1;pointer-events:auto}
+}
