@@ -16,10 +16,23 @@ function repsFromText(value = '') {
   return number && number > 0 ? Math.round(number) : 1;
 }
 
-function loadFromText(value = '') {
+function weightsFromText(value = '', setCount = 1) {
   const text = String(value || '');
-  if (!/kg/i.test(text)) return null;
-  return firstNumber(text);
+  if (!/kg/i.test(text)) return Array.from({ length: setCount }, () => null);
+  const matches = [...text.matchAll(/(?:S\s*\d+\s*)?(?:>|≥)?\s*(\d+(?:[.,]\d+)?)\s*kg/gi)]
+    .map(match => Number(match[1].replace(',', '.')))
+    .filter(Number.isFinite);
+  if (!matches.length) return Array.from({ length: setCount }, () => null);
+  if (matches.length === 1) return Array.from({ length: setCount }, () => matches[0]);
+  return Array.from({ length: setCount }, (_, index) => matches[index] ?? matches[matches.length - 1]);
+}
+
+function cardioIntensity(item) {
+  const fromLoad = firstNumber(item?.loadText || '');
+  if (fromLoad != null) return fromLoad;
+  const note = String(item?.notes || '');
+  const match = note.match(/carga\s*(?:de\s*)?(\d+(?:[.,]\d+)?)/i);
+  return match ? Number(match[1].replace(',', '.')) : null;
 }
 
 function isCardioItem(item) {
@@ -27,13 +40,22 @@ function isCardioItem(item) {
   return /cardio|aerob/.test(group);
 }
 
-function activityFromItem(item, block, activityIndex) {
+function activityFromItem(item, block, activityIndex, itemIndex = 0) {
   const cardio = isCardioItem(item);
   const manual = !item?.exercise;
-  const setCount = manual ? 0 : Math.max(1, Number(item?.sets) || 1);
+  const special = Boolean(block && block.type && block.type !== 'standard');
+  const blockItems = block?.items || [];
+  const lastInBlock = itemIndex === Math.max(0, blockItems.length - 1);
+  const fallbackRounds = special ? Math.max(1, Number(block?.rounds) || 1) : 1;
+  const setCount = manual ? 0 : Math.max(1, Number(item?.sets) || fallbackRounds);
   const plannedReps = item?.reps || '';
-  const defaultReps = cardio ? 1 : repsFromText(plannedReps);
-  const suggestedWeight = cardio ? null : loadFromText(item?.loadText);
+  const timed = !cardio && !manual && Number(item?.durationSeconds) > 0 && !plannedReps;
+  const defaultReps = timed ? 1 : cardio ? 1 : repsFromText(plannedReps);
+  const suggestedWeights = weightsFromText(item?.loadText, setCount);
+  const restSeconds = special
+    ? (lastInBlock ? Math.max(0, Number(block?.restAfterSeconds) || 0) : 0)
+    : Math.max(0, Number(item?.restSeconds) || 45);
+
   return {
     key: item?.id || `activity-${activityIndex + 1}`,
     activityIndex,
@@ -43,7 +65,7 @@ function activityFromItem(item, block, activityIndex) {
     blockTitle: block?.title || '',
     blockRounds: Number(block?.rounds) || 1,
     exerciseId: item?.exerciseId || item?.exercise?.id || '',
-    type: manual ? 'manual' : cardio ? 'cardio' : 'exercise',
+    type: manual ? 'manual' : cardio ? 'cardio' : timed ? 'timed' : 'exercise',
     name: item?.exercise?.name || item?.manualName || 'Texto livre',
     manualName: item?.manualName || '',
     group: manual ? 'Texto livre' : (item?.exercise?.group || 'Outro'),
@@ -54,29 +76,31 @@ function activityFromItem(item, block, activityIndex) {
     mediaKind: item?.exercise?.mediaKind || '',
     externalMediaUrl: item?.exercise?.externalMediaUrl || '',
     notes: item?.notes || '',
-    plannedSets: Number(item?.sets) || (manual ? 0 : 1),
+    plannedSets: Number(item?.sets) || (manual ? 0 : fallbackRounds),
     plannedReps,
     durationSeconds: Number(item?.durationSeconds) || 0,
-    restSeconds: Number(item?.restSeconds) || 45,
+    restSeconds,
     loadText: item?.loadText || '',
+    rpe: null,
     prescribedRpe: item?.rpe == null ? null : Number(item.rpe),
     tempo: item?.tempo || '',
     status: 'pending',
-    rpe: null,
     startedAt: null,
     completedAt: null,
     skippedAt: null,
     sets: Array.from({ length: setCount }, (_, index) => ({
       index: index + 1,
-      plannedReps,
+      plannedReps: timed ? `${Number(item.durationSeconds)}s` : plannedReps,
       reps: defaultReps,
-      weightKg: suggestedWeight,
+      weightKg: suggestedWeights[index],
+      plannedWeightText: item?.loadText || '',
+      durationSeconds: timed ? Number(item.durationSeconds) : 0,
       completed: false,
       completedAt: null,
     })),
     cardio: cardio ? {
       minutes: item?.durationSeconds ? Math.max(1, Math.round(Number(item.durationSeconds) / 60)) : Math.max(1, repsFromText(item?.reps || '1')),
-      intensity: firstNumber(item?.loadText || '') || null,
+      intensity: cardioIntensity(item),
     } : null,
   };
 }
@@ -93,7 +117,7 @@ export function buildWorkoutRunState(plan, session) {
 
   const activities = [];
   (session?.blocks || []).forEach(block => {
-    (block.items || []).forEach(item => activities.push(activityFromItem(item, block, activities.length)));
+    (block.items || []).forEach((item, itemIndex) => activities.push(activityFromItem(item, block, activities.length, itemIndex)));
   });
 
   return {
