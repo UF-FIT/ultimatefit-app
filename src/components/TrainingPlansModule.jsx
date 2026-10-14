@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import ExerciseMedia from './ExerciseMedia';
-import StudentTrainingProgress from './StudentTrainingProgress';
+import StudentTrainingExperience from './StudentTrainingExperience';
 import {
   archiveWorkoutPlan, restoreWorkoutPlan, canManageWorkoutPlans, deleteWorkoutPlanPermanently, formatSeconds, saveWorkoutPlan, recordWorkoutCompletion
 } from '../lib/training';
@@ -374,6 +374,15 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
     routeNavigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace });
   };
 
+  if (currentUser.role === 'aluno') {
+    return <StudentTrainingExperience
+      student={ownStudent}
+      plans={plans}
+      completions={(data.workoutCompletions || []).filter(item => item.studentId === ownStudent?.id)}
+      onRefreshTraining={refreshTraining}
+    />;
+  }
+
   const activePlan = data.plans.find(plan => plan.id === activePlanId);
   if (editing) return <PlanEditor initialPlan={editing} students={manageableStudents} exercises={data.exercises} blockTypes={data.blockTypes||[]} onCancel={() => setEditing(null)} onSaved={async id => { setEditing(null); await refreshTraining(); setPlanRoute(id, { replace: true }); }}/>;
   if (activePlan) {
@@ -405,7 +414,6 @@ export default function TrainingPlansModule({ context = {}, onNavigate }) {
   const defaultNewPlanStudentId = targetStudentManageable ? targetStudent.id : (manageableStudents[0]?.id || '');
   return <div className="trainingPlansPage">
     <div className={cx('heading', currentUser.role === 'aluno' && 'studentTrainingHeading')}><div><h1>{currentUser.role === 'aluno' ? 'Meu treino' : targetStudent ? `Planos · ${targetStudent.name}` : 'Planos de treino'}</h1><p>{currentUser.role === 'aluno' ? 'Consulta o plano publicado pelo teu professor.' : targetStudent && !targetStudentManageable ? `Modo só de leitura · ${targetStudent.primaryTrainer?.name || 'outro professor'} é o professor responsável por este aluno.` : 'Cria e publica prescrições individuais com treinos e séries especiais configuráveis.'}</p></div>{canCreateForCurrentSelection && <button className="primary" onClick={() => setEditing(emptyPlan(defaultNewPlanStudentId))}><Plus size={17}/>Novo plano</button>}</div>
-    {currentUser.role === 'aluno' && <StudentTrainingProgress studentId={ownStudent?.id}/>} 
     {currentUser.role !== 'aluno' && targetStudent && !targetStudentManageable && <div className="trainingReadOnlyBanner trainingReadOnlyBannerList"><LockKeyhole size={18}/><div><b>Aluno associado a outro professor</b><span>Podes consultar todos os planos deste aluno, mas não os podes alterar. A gestão fica reservada a {targetStudent.primaryTrainer?.name || 'quem estiver definido como professor responsável'}.</span></div></div>}
     {(trainingError || error) && <div className="errorBanner">{trainingError || error}</div>}
     {currentUser.role !== 'aluno' && <div className="filters trainingFilters"><div className="search"><Search size={18}/><input value={q} onChange={event => setQ(event.target.value)} placeholder="Pesquisar plano ou aluno…"/></div><select value={filterStudent} onChange={event => setFilterStudent(event.target.value)}><option value="all">Todos os alunos</option>{visibleStudents.map(student => <option value={student.id} key={student.id}>{student.name}</option>)}</select></div>}
