@@ -238,7 +238,7 @@ function MuscleBodyMap({ records }) {
   </div>;
 }
 
-export default function StudentTrainingProgress({ studentId }) {
+export default function StudentTrainingProgress({ studentId, onOpenPage }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState('muscle');
   const [offset, setOffset] = useState(0);
@@ -327,14 +327,14 @@ export default function StudentTrainingProgress({ studentId }) {
     <button
       type="button"
       className={`studentTrainingProgressToggle ${open ? 'open' : ''}`}
-      onClick={() => setOpen(value => !value)}
-      aria-expanded={open}
+      onClick={() => onOpenPage ? onOpenPage() : setOpen(value => !value)}
+      aria-expanded={onOpenPage ? false : open}
     >
       <span>Meu progresso</span>
-      {open ? <ChevronDown size={24}/> : <ChevronRight size={24}/>}
+      {onOpenPage ? <ChevronRight size={24}/> : open ? <ChevronDown size={24}/> : <ChevronRight size={24}/>}
     </button>
 
-    {open && <div className="studentTrainingProgressPanel">
+    {!onOpenPage && open && <div className="studentTrainingProgressPanel">
       <div className="studentTrainingProgressHead">
         <div>
           <span className="eyebrow">EVOLUÇÃO DE CARGA</span>
