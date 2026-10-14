@@ -51,7 +51,8 @@
 .ufStudentPlanHero{padding:34px 26px 28px;border-radius:22px;background:#141416;text-align:center}
 .ufStudentPlanHeroIcon{width:62px;height:62px;margin:0 auto 16px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#111}
 .ufStudentPlanHeroIcon svg{width:28px;height:28px}
-.ufStudentPlanHero h1{margin:0;font-size:28px;line-height:1.05}.ufStudentPlanHero p{margin:10px 0 18px;color:#b9b9bc}
+.ufStudentPlanHero h1{margin:0;font-size:28px;line-height:1.05}.ufStudentPlanHero p{margin:10px 0 5px;color:#b9b9bc}
+.ufStudentPlanRunCount{display:block;margin:0 0 18px;color:#8f9096;font-size:11px}
 .ufPlanDetailsPanel{margin-top:14px;border-radius:18px;background:#141416;overflow:hidden}
 .ufPlanDetailsPanel>button{width:100%;min-height:58px;padding:0 20px;border:0;background:transparent;color:#fff;font:inherit;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
 .ufPlanDetailsPanel.open>button svg{transform:rotate(180deg)}
@@ -77,6 +78,7 @@
 .ufPlanExpandedCopy p{margin:0 0 8px}.ufPlanExpandedCopy>div{display:flex;gap:12px;flex-wrap:wrap;color:#7f8086}
 .ufPlanSpecialGroup{padding:14px;border-radius:22px;background:#111113;border:1px solid #292a2e;display:grid;gap:10px}
 .ufPlanSpecialGroupTitle,.ufPlanSpecialTag{font-size:10px;font-weight:900;letter-spacing:.06em;color:#fff}
+.ufPlanRestPill{width:max-content;max-width:100%;margin:-2px 0 2px 0;padding:7px 10px;display:flex;align-items:center;gap:6px;border-radius:11px;background:#0a0a0b;color:#f2f2f2;font-size:10px;font-weight:800}
 .ufPlanSpecialTag{position:absolute;top:14px;left:20px;padding:5px 8px;border-radius:8px;background:#282923}
 
 body.ufWorkoutImmersiveOpen{overflow:hidden}
