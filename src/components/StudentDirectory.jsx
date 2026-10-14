@@ -10,6 +10,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import { useApp } from '../contexts/AppContext';
 import ParqStatusCard from './ParqStatusCard';
 import TrainingActivityCalendar from './TrainingActivityCalendar';
+import ProfessorWorkoutAnalytics from './ProfessorWorkoutAnalytics';
 import {
   buildStudentAccessMessage, fetchAvailableTrainers, invokeStudentAction,
   sexOptions, studentStatusLabels, trackingTypeOptions, uploadStudentAvatar,
@@ -301,6 +302,7 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
 
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate}/>
     <TrainingActivityCalendar completions={studentCompletions}/>
+    <ProfessorWorkoutAnalytics studentId={student.id}/>
     <div className="grid two profileOverviewGrid"><AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/><AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/></div>
     <div className="grid two profileOverviewGrid"><StudentGoalPanel student={student} editable={currentUser.role !== 'aluno'} onRefresh={onRefresh}/><StudentDetailsPanel student={student}/></div>
     <ParqStatusCard studentId={student.id} studentName={student.name}/>
