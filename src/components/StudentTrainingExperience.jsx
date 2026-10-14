@@ -843,7 +843,12 @@ function WorkoutRunner({
 
 export default function StudentTrainingExperience({ student, plans = [], completions = [], onRefreshTraining }) {
   const studentId = student?.id || '';
-  const publishedPlans = useMemo(() => plans.filter(plan => plan.studentId===studentId && plan.status==='published').sort(planSort), [plans, studentId]);
+  const publishedPlans = useMemo(() => plans.filter(plan =>
+    plan.studentId===studentId
+    && plan.status==='published'
+    && plan.active !== false
+    && !plan.archivedAt
+  ).sort(planSort), [plans, studentId]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [selectedDate, setSelectedDate] = useState(isoLocal());
