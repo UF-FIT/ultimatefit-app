@@ -886,6 +886,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
     setLastSummary(summary);
     setView('home');
     setActiveRun(null);
+    window.dispatchEvent(new Event('uf:exercise-load-saved'));
     await onRefreshTraining?.();
     await reloadRunData();
   }
