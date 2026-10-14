@@ -29,6 +29,7 @@
 .ufTrainingDayHistoryNotice{margin:-5px 0 16px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid #25262a;border-radius:13px;background:#111113;color:#d9d9dc}
 .ufTrainingDayHistoryNotice>span{font-size:18px}.ufTrainingDayHistoryNotice b,.ufTrainingDayHistoryNotice small{display:block}.ufTrainingDayHistoryNotice small{margin-top:2px;color:#7e7f86;font-size:10px}
 .ufTrainingSuccessNote{margin:0 0 16px;padding:12px 14px;display:flex;align-items:center;gap:10px;border:1px solid rgba(93,218,146,.28);border-radius:13px;background:rgba(31,110,67,.13);color:#8be6b2;font-size:12px;font-weight:800}
+.ufTrainingReturnCaution{position:relative;margin:20px 0 0;padding:18px 20px;border-radius:17px;background:#0c0c0e;text-align:center;color:#fff;isolation:isolate}.ufTrainingReturnCaution::before{content:"";position:absolute;inset:-1px;border-radius:18px;padding:1px;background:linear-gradient(100deg,#ffd908,#f29b62,#ba74e6,#69d8b9);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;z-index:-1}.ufTrainingReturnCaution b,.ufTrainingReturnCaution span{display:block}.ufTrainingReturnCaution b{font-size:13px}.ufTrainingReturnCaution span{margin-top:5px;color:#d2d2d4;font-size:11px;line-height:1.45}
 .ufTrainingCurrentCard{padding:22px;border:1px solid #242529;border-radius:22px;background:#141416}
 .ufTrainingCurrentCard h2{margin:0 0 16px;text-align:center;font-size:21px;font-weight:600;letter-spacing:.01em}
 .ufTrainingCurrentCard.active-run{padding-top:28px}
