@@ -84,7 +84,7 @@
 .ufPlanSpecialTag{position:absolute;top:14px;left:20px;padding:5px 8px;border-radius:8px;background:#282923}
 
 body.ufWorkoutImmersiveOpen{overflow:hidden}
-.ufWorkoutRunner{position:fixed;inset:0;z-index:9999;background:#050506;color:#fff;overflow:auto;padding:20px 24px 180px;font-family:inherit}
+.ufWorkoutRunner{position:fixed;inset:0;z-index:9999;width:100%;max-width:100vw;box-sizing:border-box;background:#050506;color:#fff;overflow-y:auto;overflow-x:hidden;overscroll-behavior-x:none;padding:20px 24px 180px;font-family:inherit}
 .ufWorkoutTopControls{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 18px;background:linear-gradient(#050506 72%,rgba(5,5,6,0))}
 .ufWorkoutTopRight{display:flex;align-items:center;gap:9px}
 .ufWorkoutCircleButton{width:50px;height:50px;display:grid;place-items:center;border:0;border-radius:50%;background:#fff;color:#090909;cursor:pointer}
@@ -93,8 +93,8 @@ body.ufWorkoutImmersiveOpen{overflow:hidden}
 .ufWorkoutMenuWrap{position:relative}.ufWorkoutMoreMenu{position:absolute;right:0;top:58px;width:190px;border:1px solid #303136;border-radius:14px;background:#111113;box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:hidden;z-index:70}
 .ufWorkoutMoreMenu button{width:100%;padding:14px 16px;border:0;border-bottom:1px solid #25262a;background:transparent;color:#fff;text-align:left;font:inherit;font-size:12px;cursor:pointer}.ufWorkoutMoreMenu button:last-child{border-bottom:0}.ufWorkoutMoreMenu button.danger{color:#ff8585}
 
-.ufGuidedActivityWrap{width:min(100%,720px);margin:20px auto 0}.ufGuidedActivityNumber{display:block;width:max-content;margin:0 auto 12px;padding:6px 10px;border-radius:12px;background:#101012;color:#ddd;font-size:10px;font-weight:900;letter-spacing:.06em}
-.ufGuidedActivityCard{padding:24px 26px;border-radius:22px;background:#141416;border:1px solid #1f2023;text-align:center}
+.ufGuidedActivityWrap{width:min(100%,720px);max-width:100%;min-width:0;box-sizing:border-box;margin:20px auto 0}.ufGuidedActivityNumber{display:block;width:max-content;margin:0 auto 12px;padding:6px 10px;border-radius:12px;background:#101012;color:#ddd;font-size:10px;font-weight:900;letter-spacing:.06em}
+.ufGuidedActivityCard{width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:24px 26px;border-radius:22px;background:#141416;border:1px solid #1f2023;text-align:center;overflow:hidden}
 .ufGuidedActivityTop{display:flex;align-items:center;justify-content:center;gap:12px;color:#d8d8db;font-size:12px}.ufGuidedActivityTop>span{text-transform:capitalize}
 .ufGuidedActivityTop button{display:flex;align-items:center;gap:6px;padding:9px 13px;border:1px solid #656961;border-radius:14px;background:transparent;color:#fff;font:inherit;font-size:12px;cursor:pointer}
 .ufGuidedActivityCard h2{margin:15px 0 9px;font-size:24px;font-weight:500}.ufGuidedInstructions{max-width:590px;margin:0 auto 14px;color:#c5c5c8;font-size:12px;line-height:1.5}
@@ -104,7 +104,7 @@ body.ufWorkoutImmersiveOpen{overflow:hidden}
 .ufGuidedSetRow>b{font-size:12px}.ufGuidedSetRow input{width:100%;height:44px;border:1px solid #777d70;border-radius:12px;background:#151517;color:#fff;text-align:center;font:inherit;font-size:14px;outline:none}
 .ufGuidedSetRow>span{color:#b0b1b5;font-size:10px;line-height:1.25}
 .ufGuidedSetDone{width:38px;height:38px;display:grid;place-items:center;border:0;background:transparent;color:#728072;cursor:pointer}.ufGuidedSetDone svg{width:26px;height:26px}.ufGuidedSetDone.done{border-radius:50%;background:#ffd908;color:#080808}
-.ufGuidedCardioGrid{margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr 46px;gap:8px;align-items:end}.ufGuidedCardioGrid label,.ufGuidedCardioGrid>div{display:grid;gap:5px;color:#aaa;font-size:9px}.ufGuidedCardioGrid input{height:48px;border:1px solid #777d70;border-radius:12px;background:#151517;color:#fff;text-align:center;font:inherit;font-size:14px}.ufGuidedCardioGrid>div b{height:48px;display:grid;place-items:center;color:#aaa}
+.ufGuidedCardioGrid{width:100%;max-width:100%;min-width:0;box-sizing:border-box;margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 46px;gap:8px;align-items:end}.ufGuidedCardioGrid label,.ufGuidedCardioGrid>div{min-width:0;display:grid;gap:5px;color:#aaa;font-size:9px}.ufGuidedCardioGrid input{width:100%;min-width:0;max-width:100%;box-sizing:border-box;height:48px;border:1px solid #777d70;border-radius:12px;background:#151517;color:#fff;text-align:center;font:inherit;font-size:14px}.ufGuidedCardioGrid>div b{height:48px;display:grid;place-items:center;color:#aaa}
 .ufGuidedTimedSets{margin-top:18px;display:grid;gap:8px}.ufGuidedTimedLabels,.ufGuidedTimedRow{display:grid;grid-template-columns:34px 1fr 46px;gap:8px;align-items:center}.ufGuidedTimedLabels{color:#aaa;font-size:9px}.ufGuidedTimedRow{padding:7px;border-radius:12px;background:#09090a}.ufGuidedTimedRow.done{background:#0f1712}.ufGuidedTimedRow>b{font-size:12px}.ufGuidedTimedRow>span{height:44px;display:grid;place-items:center;border:1px solid #777d70;border-radius:12px;background:#151517;color:#fff;font-size:14px;font-weight:800}
 .ufActivityHistoryButton{width:100%;min-height:48px;margin-top:18px;padding-top:13px;border:0;border-top:1px solid #2b2c2f;background:transparent;color:#fff;font:inherit;font-size:12px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
 .ufGuidedBottomBar{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:14px 24px max(18px,env(safe-area-inset-bottom));background:#111113;border-top:1px solid #1c1d20}
@@ -162,7 +162,7 @@ body.ufWorkoutImmersiveOpen{overflow:hidden}
   .ufGuidedActivityWrap{margin-top:8px}.ufGuidedActivityCard{padding:18px 14px;border-radius:18px}.ufGuidedActivityCard h2{font-size:21px}
   .ufGuidedSetLabels,.ufGuidedSetRow{grid-template-columns:24px minmax(64px,1fr) minmax(72px,1fr) minmax(70px,.9fr) 38px;gap:5px}
   .ufGuidedSetRow{padding:5px}.ufGuidedSetRow input{height:42px;font-size:12px}.ufGuidedSetRow>span{font-size:8.5px}.ufGuidedSetDone{width:34px;height:34px}.ufGuidedSetDone svg{width:24px}
-  .ufGuidedCardioGrid{grid-template-columns:1fr 1fr .8fr 38px;gap:5px}
+  .ufGuidedCardioGrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr) 38px;gap:5px}
   .ufGuidedTimedLabels,.ufGuidedTimedRow{grid-template-columns:24px 1fr 38px;gap:5px}
   .ufGuidedBottomBar{padding:12px 14px max(14px,env(safe-area-inset-bottom))}
   .ufGuidedBottomActions{grid-template-columns:.42fr 1fr;gap:8px}.ufGuidedBottomActions button{font-size:11px;min-height:46px}
