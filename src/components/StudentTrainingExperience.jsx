@@ -22,6 +22,9 @@ import {
 import '../styles/student-training-experience.css';
 
 const cx = (...items) => items.filter(Boolean).join(' ');
+const cloneValue = value => typeof structuredClone === 'function'
+  ? structuredClone(value)
+  : JSON.parse(JSON.stringify(value));
 
 function isoLocal(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -447,6 +450,7 @@ function GuidedActivity({ activity, historyRows, onChangeSet, onToggleSet, onVid
   if (!activity) return null;
   const manual = activity.type === 'manual';
   const cardio = activity.type === 'cardio';
+  const timed = activity.type === 'timed';
 
   return <div className="ufGuidedActivityWrap">
     <span className="ufGuidedActivityNumber">ATIVIDADE {activity.activityIndex + 1}</span>
@@ -464,9 +468,16 @@ function GuidedActivity({ activity, historyRows, onChangeSet, onToggleSet, onVid
 
         {cardio ? <div className="ufGuidedCardioGrid">
           <label><span>Minutos</span><input inputMode="numeric" value={activity.cardio?.minutes || ''} readOnly/></label>
-          <label><span>Carga (%)</span><input inputMode="decimal" value={activity.cardio?.intensity || ''} readOnly/></label>
+          <label><span>Carga (%)</span><input inputMode="decimal" value={activity.cardio?.intensity ?? ''} readOnly/></label>
           <div><span>Último treino</span><b>—</b></div>
           <button type="button" className={cx('ufGuidedSetDone', activity.sets?.[0]?.completed && 'done')} onClick={()=>onToggleSet(0)}>{activity.sets?.[0]?.completed?<Check/>:<Circle/>}</button>
+        </div> : timed && activity.sets?.length ? <div className="ufGuidedTimedSets">
+          <div className="ufGuidedTimedLabels"><span></span><span>Tempo</span><span></span></div>
+          {activity.sets.map((set,index)=><div className={cx('ufGuidedTimedRow',set.completed&&'done')} key={set.index}>
+            <b>{set.index}</b>
+            <span>{set.durationSeconds || activity.durationSeconds}s</span>
+            <button type="button" className={cx('ufGuidedSetDone', set.completed && 'done')} onClick={()=>onToggleSet(index)}>{set.completed?<Check/>:<Circle/>}</button>
+          </div>)}
         </div> : activity.sets?.length ? <div className="ufGuidedSets">
           <div className="ufGuidedSetLabels"><span></span><span>Reps</span><span>Carga (kg)</span><span>Último treino</span><span></span></div>
           {activity.sets.map((set, index) => {
@@ -491,6 +502,7 @@ function SimplifiedActivityCard({ activity, blockTitle, onVideo, onComplete, onE
   const skipped = activity.status === 'skipped';
   const manual = activity.type === 'manual';
   const cardio = activity.type === 'cardio';
+  const timed = activity.type === 'timed';
 
   return <article className={cx('ufSimplifiedActivityCard', done && 'done', skipped && 'skipped')}>
     {blockTitle && <span className="ufSimplifiedBlockTitle">{blockTitle}</span>}
@@ -505,8 +517,13 @@ function SimplifiedActivityCard({ activity, blockTitle, onVideo, onComplete, onE
     {manual ? <p className="ufSimplifiedManual">{activity.manualName || activity.name}{activity.notes ? `\n${activity.notes}` : ''}</p>
       : <>
         {activity.notes && <p>{activity.notes}</p>}
-        {cardio ? <div className="ufSimplifiedSetChips"><button type="button">{activity.cardio?.minutes || 0} × {activity.cardio?.intensity || 0}%</button></div>
-          : <div className="ufSimplifiedSetChips">{activity.sets.map((set,index)=><button type="button" className={set.completed?'done':''} key={set.index} onClick={()=>onEditSet(index)}>{repsDisplay(set.plannedReps || set.reps)} × {set.weightKg == null ? '—' : `${formatKg(set.weightKg)} kg`}</button>)}</div>}
+        {cardio ? <div className="ufSimplifiedSetChips"><button type="button">{activity.cardio?.minutes || 0} × {activity.cardio?.intensity ?? '—'}%</button></div>
+          : <div className="ufSimplifiedSetChips">{activity.sets.map((set,index)=><button
+              type="button"
+              className={set.completed?'done':''}
+              key={set.index}
+              onClick={timed ? undefined : ()=>onEditSet(index)}
+            >{timed ? (set.plannedReps || `${activity.durationSeconds}s`) : `${repsDisplay(set.plannedReps || set.reps)} × ${set.weightKg == null ? '—' : `${formatKg(set.weightKg)} kg`}`}</button>)}</div>}
       </>}
   </article>;
 }
@@ -546,7 +563,7 @@ function WorkoutRunner({
     const index = Math.max(0, Math.min(state.currentIndex || 0, state.activities.length - 1));
     if (state.activities[index]?.status !== 'pending') return;
     setState(current => {
-      const next = structuredClone(current);
+      const next = cloneValue(current);
       next.activities[index].status = 'active';
       next.activities[index].startedAt ||= new Date().toISOString();
       return next;
@@ -560,6 +577,21 @@ function WorkoutRunner({
       saveWorkoutRunState(run.id, mode, state).catch(error => console.warn('Não foi possível sincronizar o treino em curso.', error));
     }, 500);
     return () => window.clearTimeout(saveTimer.current);
+  }, [run?.id, mode, state]);
+
+  useEffect(() => {
+    if (!run?.id) return undefined;
+    const flush = () => {
+      window.clearTimeout(saveTimer.current);
+      saveWorkoutRunState(run.id, mode, state).catch(() => {});
+    };
+    const visibility = () => { if (document.hidden) flush(); };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', visibility);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', visibility);
+    };
   }, [run?.id, mode, state]);
 
   useEffect(() => {
@@ -600,7 +632,7 @@ function WorkoutRunner({
 
   function patchState(mutator) {
     setState(currentState => {
-      const next = structuredClone(currentState);
+      const next = cloneValue(currentState);
       mutator(next);
       return next;
     });
@@ -697,6 +729,17 @@ function WorkoutRunner({
     } finally { setBusy(false); }
   }
 
+  async function exitToHome() {
+    window.clearTimeout(saveTimer.current);
+    try {
+      if (run?.id) await saveWorkoutRunState(run.id, mode, state);
+    } catch (error) {
+      console.warn('Não foi possível sincronizar o treino antes de sair.', error);
+    } finally {
+      onExitToHome();
+    }
+  }
+
   async function finalise(summary) {
     setBusy(true);
     try {
@@ -713,7 +756,7 @@ function WorkoutRunner({
   </div>;
 
   const topControls = <div className="ufWorkoutTopControls">
-    <button type="button" className="ufWorkoutCircleButton" onClick={onExitToHome}><ArrowLeft/></button>
+    <button type="button" className="ufWorkoutCircleButton" onClick={exitToHome}><ArrowLeft/></button>
     <div className="ufWorkoutTopRight">
       <button type="button" className="ufWorkoutCircleButton sound" onClick={()=>patchState(next=>{next.soundEnabled=!next.soundEnabled;})}>{state.soundEnabled?<Volume2/>:<VolumeX/>}</button>
       <button type="button" className="ufWorkoutEndButton" onClick={()=>setSummaryOpen(true)}><Check/>Encerrar</button>
