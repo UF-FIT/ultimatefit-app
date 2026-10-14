@@ -870,6 +870,13 @@ export default function StudentTrainingExperience({ student, plans = [], complet
   const selectedPlan = publishedPlans.find(plan=>plan.id===selectedPlanId) || publishedPlans[0] || null;
   const selectedSession = selectedPlan?.sessions?.find(session=>session.id===selectedSessionId) || selectedPlan?.sessions?.[0] || null;
   const streak = streakWeeks(completions);
+  const lastCompletionDate = useMemo(() => (completions || [])
+    .map(item => item.completedOn)
+    .filter(Boolean)
+    .sort((a,b)=>b.localeCompare(a))[0] || '', [completions]);
+  const daysSinceLastWorkout = lastCompletionDate
+    ? Math.floor((new Date(`${isoLocal()}T12:00:00`).getTime() - new Date(`${lastCompletionDate}T12:00:00`).getTime()) / 86400000)
+    : null;
 
   useEffect(() => {
     if (!selectedPlan && publishedPlans[0]) setSelectedPlanId(publishedPlans[0].id);
@@ -947,6 +954,8 @@ export default function StudentTrainingExperience({ student, plans = [], complet
   }
 
   const dayCompletion = completions.find(item=>item.completedOn===selectedDate);
+  const dayCompletionPlan = dayCompletion ? publishedPlans.find(plan => plan.id === dayCompletion.planId) : null;
+  const dayCompletionSession = dayCompletionPlan?.sessions?.find(session => session.id === dayCompletion?.sessionId) || null;
 
   if (view==='plan' && selectedPlan) return <PlanDetail
     plan={selectedPlan}
@@ -969,7 +978,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
 
       <WeekStrip completions={completions} selectedDate={selectedDate} onSelect={setSelectedDate}/>
 
-      {dayCompletion && <div className="ufTrainingDayHistoryNotice"><span>🔥</span><div><b>Treino realizado</b><small>{selectedDate}</small></div></div>}
+      {dayCompletion && <div className="ufTrainingDayHistoryNotice"><span>🔥</span><div><b>{dayCompletionPlan?.title || 'Treino realizado'}</b><small>{dayCompletionSession?.title ? `${dayCompletionSession.title} · ${selectedDate}` : selectedDate}</small></div></div>}
 
       {error && <div className="errorBanner">{error}</div>}
       {lastSummary && <div className="ufTrainingSuccessNote"><CheckCircle2/><span>Treino concluído · {lastSummary.completionPercent}% · {formatDuration(lastSummary.durationSeconds)}</span></div>}
@@ -998,6 +1007,11 @@ export default function StudentTrainingExperience({ student, plans = [], complet
         <button type="button" className="ufBigYellowButton" disabled={busy} onClick={()=>begin(selectedSession)}>{busy?'A iniciar…':'Iniciar treino'}</button>
         <button type="button" className="ufViewPlanButton" onClick={()=>setView('plan')}>Ver treino</button>
       </section>}
+
+      {daysSinceLastWorkout != null && daysSinceLastWorkout >= 7 && <div className="ufTrainingReturnCaution">
+        <b>Já passou algum tempo desde o teu último treino.</b>
+        <span>Recomeça com calma e respeita os limites do teu corpo.</span>
+      </div>}
     </div>
 
     {view==='runner' && activeRun && <WorkoutRunner
