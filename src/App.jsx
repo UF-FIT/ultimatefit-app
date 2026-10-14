@@ -101,6 +101,11 @@ function Shell(){
  const location=useLocation();
  const routeNavigate=useNavigate();
  const challengeHost=typeof window!=='undefined'&&window.location.hostname.toLowerCase().startsWith('desafios.');
+ useEffect(()=>{
+  if(challengeHost||currentUser.role!=='aluno')return;
+  const path=(location.pathname||'/').toLowerCase().replace(/\/+$/,'')||'/';
+  if(path==='/'||path==='/dashboard') routeNavigate('/inicio',{replace:true});
+ },[challengeHost,currentUser.role,location.pathname,routeNavigate]);
  const pathResolved=routeFromPath(location.pathname,currentUser.role);
  const resolved=challengeHost?(pathResolved.page==='challenges'?pathResolved:{page:'challenges',context:{}}):pathResolved;
  const page=resolved.page;
