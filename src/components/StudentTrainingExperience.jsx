@@ -545,7 +545,7 @@ function WorkoutRunner({
   const [menuOpen, setMenuOpen] = useState(false);
   const [video, setVideo] = useState(null);
   const [historyActivity, setHistoryActivity] = useState(null);
-  const [rpeActivityIndex, setRpeActivityIndex] = useState(null);
+  const [rpeRequest, setRpeRequest] = useState(null);
   const [quickSet, setQuickSet] = useState(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -660,25 +660,27 @@ function WorkoutRunner({
     });
   }
 
-  function requestComplete(index) {
+  function requestComplete(index, completeAllSets = false) {
     const activity = activities[index];
     if (!activity || activity.status === 'completed') return;
-    setRpeActivityIndex(index);
+    setRpeRequest({ index, completeAllSets });
   }
 
-  function finishActivity(index, rpe) {
+  function finishActivity(index, rpe, completeAllSets = false) {
     const now = new Date();
     patchState(next => {
       const activity = next.activities[index];
       activity.status = 'completed';
       activity.rpe = rpe;
       activity.completedAt = now.toISOString();
-      (activity.sets || []).forEach(set => {
-        if (!set.completed) {
-          set.completed = true;
-          set.completedAt = now.toISOString();
-        }
-      });
+      if (completeAllSets) {
+        (activity.sets || []).forEach(set => {
+          if (!set.completed) {
+            set.completed = true;
+            set.completedAt = now.toISOString();
+          }
+        });
+      }
       const nextPending = next.activities.findIndex((item, itemIndex) => itemIndex > index && !['completed','skipped'].includes(item.status));
       const fallbackPending = next.activities.findIndex(item => !['completed','skipped'].includes(item.status));
       const nextIndex = nextPending >= 0 ? nextPending : fallbackPending;
@@ -698,7 +700,7 @@ function WorkoutRunner({
         next.rest = { active:false, startedAt:null, endsAt:null, afterActivityIndex:null };
       }
     });
-    setRpeActivityIndex(null);
+    setRpeRequest(null);
     const after = activities.map((item,i)=>i===index?{...item,status:'completed'}:item);
     if (after.every(item => ['completed','skipped'].includes(item.status))) {
       window.setTimeout(()=>setSummaryOpen(true), 200);
@@ -791,7 +793,7 @@ function WorkoutRunner({
         <div className="ufGuidedProgressSegments">{activities.map((item,index)=><span key={item.key||index} className={cx(item.status==='completed'&&'done',item.status==='skipped'&&'skipped',index===state.currentIndex&&'current')}/>)}</div>
         <div className="ufGuidedBottomActions">
           <button type="button" className="ufSkipButton" onClick={()=>skipActivity(current.activityIndex)} disabled={busy}><X/>Pular</button>
-          <button type="button" className="ufCompleteActivityButton" onClick={()=>requestComplete(current.activityIndex)} disabled={busy}><CheckCircle2/>Completar atividade</button>
+          <button type="button" className="ufCompleteActivityButton" onClick={()=>requestComplete(current.activityIndex, false)} disabled={busy}><CheckCircle2/>Completar atividade</button>
         </div>
       </div>
       <RestView rest={state.rest} activity={activities[state.rest?.afterActivityIndex]} nextActivity={current} onSkip={skipRest}/>
@@ -806,7 +808,7 @@ function WorkoutRunner({
               <SimplifiedActivityCard
                 activity={activity}
                 onVideo={()=>setVideo(activity)}
-                onComplete={()=>requestComplete(activity.activityIndex)}
+                onComplete={()=>requestComplete(activity.activityIndex, true)}
                 onEditSet={setIndex=>setQuickSet({activityIndex:activity.activityIndex,setIndex})}
               />
               {state.rest?.active && state.rest.afterActivityIndex===activity.activityIndex && <RestView rest={state.rest} activity={activity} nextActivity={activities[state.currentIndex]} simplified onSkip={skipRest}/>}
@@ -816,7 +818,7 @@ function WorkoutRunner({
             <SimplifiedActivityCard
               activity={activity}
               onVideo={()=>setVideo(activity)}
-              onComplete={()=>requestComplete(activity.activityIndex)}
+              onComplete={()=>requestComplete(activity.activityIndex, true)}
               onEditSet={setIndex=>setQuickSet({activityIndex:activity.activityIndex,setIndex})}
             />
             {state.rest?.active && state.rest.afterActivityIndex===activity.activityIndex && <RestView rest={state.rest} activity={activity} nextActivity={activities[state.currentIndex]} simplified onSkip={skipRest}/>}
@@ -831,11 +833,11 @@ function WorkoutRunner({
 
     <VideoModal activity={video} onClose={()=>setVideo(null)}/>
     <HistoryModal activity={historyActivity} rows={historyActivity?groupHistoryRows(historySets,legacyLoads,historyActivity):[]} onClose={()=>setHistoryActivity(null)}/>
-    {rpeActivityIndex != null && <RpeModal
-      activity={activities[rpeActivityIndex]}
-      initialValue={activities[rpeActivityIndex]?.rpe || 5}
-      onCancel={()=>setRpeActivityIndex(null)}
-      onSave={value=>finishActivity(rpeActivityIndex,value)}
+    {rpeRequest != null && <RpeModal
+      activity={activities[rpeRequest.index]}
+      initialValue={activities[rpeRequest.index]?.rpe || 5}
+      onCancel={()=>setRpeRequest(null)}
+      onSave={value=>finishActivity(rpeRequest.index,value,rpeRequest.completeAllSets)}
     />}
     {quickSet && <QuickSetModal
       activity={activities[quickSet.activityIndex]}
