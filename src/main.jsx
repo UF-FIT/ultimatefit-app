@@ -22,6 +22,7 @@ import './styles/install-app.css';
 import './styles/login-remember-access.css';
 import './styles/login-background.css';
 import './styles/professional-student-profile-mobile.css';
+import './styles/professor-workout-analytics.css';
 import './styles/action-buttons-system.css';
 import './styles/training-plans-mobile-redesign.css';
 import './styles/training-plan-detail-mobile.css';
