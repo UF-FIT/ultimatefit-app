@@ -645,6 +645,10 @@ function WorkoutRunner({
   const historyRows = current ? groupHistoryRows(historySets, legacyLoads, current) : [];
   const completedCount = activities.filter(item=>item.status==='completed').length;
   const progressPercent = activities.length ? (completedCount / activities.length) * 100 : 0;
+  const currentSets = current?.sets || [];
+  const currentRequiresSets = currentSets.length > 0;
+  const currentSetsComplete = !currentRequiresSets || currentSets.every(set => set.completed);
+  const canCompleteCurrent = Boolean(current) && currentSetsComplete;
 
   function patchState(mutator) {
     setState(currentState => {
@@ -671,6 +675,7 @@ function WorkoutRunner({
   function requestComplete(index, completeAllSets = false) {
     const activity = activities[index];
     if (!activity || activity.status === 'completed') return;
+    if (!completeAllSets && (activity.sets || []).length && !(activity.sets || []).every(set => set.completed)) return;
     setRpeRequest({ index, completeAllSets });
   }
 
@@ -801,7 +806,7 @@ function WorkoutRunner({
         <div className="ufGuidedProgressSegments">{activities.map((item,index)=><span key={item.key||index} className={cx(item.status==='completed'&&'done',item.status==='skipped'&&'skipped',index===state.currentIndex&&'current')}/>)}</div>
         <div className="ufGuidedBottomActions">
           <button type="button" className="ufSkipButton" onClick={()=>skipActivity(current.activityIndex)} disabled={busy}><X/>Pular</button>
-          <button type="button" className="ufCompleteActivityButton" onClick={()=>requestComplete(current.activityIndex, false)} disabled={busy}><CheckCircle2/>Completar atividade</button>
+          <button type="button" className="ufCompleteActivityButton" onClick={()=>requestComplete(current.activityIndex, false)} disabled={busy || !canCompleteCurrent} aria-disabled={busy || !canCompleteCurrent} title={!canCompleteCurrent ? 'Conclui primeiro todas as séries desta atividade.' : undefined}><CheckCircle2/>Completar atividade</button>
         </div>
       </div>
       <RestView rest={state.rest} activity={activities[state.rest?.afterActivityIndex]} nextActivity={current} onSkip={skipRest}/>
