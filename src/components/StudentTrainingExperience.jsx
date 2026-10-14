@@ -227,10 +227,18 @@ function VideoModal({ activity, onClose }) {
 
 function RpeModal({ activity, initialValue = 5, onCancel, onSave }) {
   const [value, setValue] = useState(initialValue || 5);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!activity?.startedAt) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [activity?.startedAt]);
   if (!activity) return null;
   const descriptor = value <= 2 ? 'MUITO LEVE' : value <= 4 ? 'LEVE' : value <= 6 ? 'MODERADO' : value <= 8 ? 'DIFÍCIL' : 'MUITO DIFÍCIL';
+  const activitySeconds = activity.startedAt ? Math.max(0, Math.floor((now - new Date(activity.startedAt).getTime()) / 1000)) : 0;
   return createPortal(<div className="ufWorkoutModalBackdrop">
     <div className="ufWorkoutRpeModal">
+      <div className="ufWorkoutRpeElapsed"><span></span><b>{formatDuration(activitySeconds)}</b></div>
       <span className="ufWorkoutKicker">ATIVIDADE CONCLUÍDA</span>
       <h2>Esforço percebido</h2>
       <p>De 1 a 10, qual foi a tua perceção de esforço nesta atividade?</p>
