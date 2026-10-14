@@ -13,6 +13,7 @@ import {
   elapsedRunSeconds,
   fetchActiveWorkoutRun,
   fetchLegacyWorkoutLoads,
+  fetchWorkoutRuns,
   fetchWorkoutSetHistory,
   normaliseRunState,
   saveWorkoutRunState,
@@ -863,6 +864,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
   const [activeRun, setActiveRun] = useState(null);
   const [historySets, setHistorySets] = useState([]);
   const [legacyLoads, setLegacyLoads] = useState([]);
+  const [workoutRuns, setWorkoutRuns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [lastSummary, setLastSummary] = useState(null);
@@ -896,11 +898,13 @@ export default function StudentTrainingExperience({ student, plans = [], complet
       fetchActiveWorkoutRun(studentId),
       fetchWorkoutSetHistory(studentId).catch(()=>[]),
       fetchLegacyWorkoutLoads(studentId).catch(()=>[]),
-    ]).then(([run, sets, legacy]) => {
+      fetchWorkoutRuns(studentId, { limit: 120 }).catch(()=>[]),
+    ]).then(([run, sets, legacy, runs]) => {
       if (cancelled) return;
       setActiveRun(run);
       setHistorySets(sets);
       setLegacyLoads(legacy);
+      setWorkoutRuns(runs);
     }).catch(err => {
       if (!cancelled) setError(err.message || 'Não foi possível carregar o treino.');
     });
@@ -908,14 +912,16 @@ export default function StudentTrainingExperience({ student, plans = [], complet
   }, [studentId]);
 
   async function reloadRunData() {
-    const [run, sets, legacy] = await Promise.all([
+    const [run, sets, legacy, runs] = await Promise.all([
       fetchActiveWorkoutRun(studentId),
       fetchWorkoutSetHistory(studentId).catch(()=>[]),
       fetchLegacyWorkoutLoads(studentId).catch(()=>[]),
+      fetchWorkoutRuns(studentId, { limit: 120 }).catch(()=>[]),
     ]);
     setActiveRun(run);
     setHistorySets(sets);
     setLegacyLoads(legacy);
+    setWorkoutRuns(runs);
     return run;
   }
 
@@ -956,6 +962,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
   const dayCompletion = completions.find(item=>item.completedOn===selectedDate);
   const dayCompletionPlan = dayCompletion ? publishedPlans.find(plan => plan.id === dayCompletion.planId) : null;
   const dayCompletionSession = dayCompletionPlan?.sessions?.find(session => session.id === dayCompletion?.sessionId) || null;
+  const selectedDateRuns = workoutRuns.filter(run => run.status === 'completed' && run.workoutDate === selectedDate);
 
   if (view==='plan' && selectedPlan) return <PlanDetail
     plan={selectedPlan}
@@ -978,7 +985,23 @@ export default function StudentTrainingExperience({ student, plans = [], complet
 
       <WeekStrip completions={completions} selectedDate={selectedDate} onSelect={setSelectedDate}/>
 
-      {dayCompletion && <div className="ufTrainingDayHistoryNotice"><span>🔥</span><div><b>{dayCompletionPlan?.title || 'Treino realizado'}</b><small>{dayCompletionSession?.title ? `${dayCompletionSession.title} · ${selectedDate}` : selectedDate}</small></div></div>}
+      {selectedDateRuns.length ? <div className="ufTrainingHistoryCards">
+        {selectedDateRuns.map(run => {
+          const summary = run.summary || {};
+          return <article className="ufTrainingHistoryCard" key={run.id}>
+            <div className="ufTrainingHistoryIcon">🔥</div>
+            <div className="ufTrainingHistoryMain">
+              <b>{run.planTitle || 'Treino realizado'}</b>
+              <span>{run.sessionTitle || selectedDate}</span>
+              <div className="ufTrainingHistoryMeta">
+                {summary.durationSeconds != null && <small><Timer size={12}/>{formatDuration(summary.durationSeconds)}</small>}
+                {summary.volumeKg != null && <small><Dumbbell size={12}/>{formatKg(summary.volumeKg)} kg</small>}
+                {summary.completionPercent != null && <small><CheckCircle2 size={12}/>{summary.completionPercent}%</small>}
+              </div>
+            </div>
+          </article>;
+        })}
+      </div> : dayCompletion && <div className="ufTrainingDayHistoryNotice"><span>🔥</span><div><b>{dayCompletionPlan?.title || 'Treino realizado'}</b><small>{dayCompletionSession?.title ? `${dayCompletionSession.title} · ${selectedDate}` : selectedDate}</small></div></div>}
 
       {error && <div className="errorBanner">{error}</div>}
       {lastSummary && <div className="ufTrainingSuccessNote"><CheckCircle2/><span>Treino concluído · {lastSummary.completionPercent}% · {formatDuration(lastSummary.durationSeconds)}</span></div>}
