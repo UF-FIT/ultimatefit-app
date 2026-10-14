@@ -27,7 +27,8 @@ function currentScope(profile){
  try{return localStorage.getItem(scopeKey(profile.id))==='all'?'all':'assigned';}catch{return 'assigned';}
 }
 function currentPath(){return window.location.pathname.replace(/\/$/,'')||'/';}
-function isDashboardPath(path=currentPath()){return path==='/'||path==='/dashboard';}
+function isDashboardPath(path=currentPath()){return path==='/'||path==='/dashboard'||path==='/inicio';}
+function isProfessionalRole(role){return ['owner','admin','trainer','professor'].includes(String(role||'').toLowerCase());}
 function maskDashboard(){
  if(!isDashboardPath())return;
  document.querySelector('.content')?.classList.add('uf-dashboard-assembling');
@@ -130,10 +131,11 @@ function cleanModes(path){const content=document.querySelector('.content');if(co
 async function run(){
  if(running)return;running=true;
  const path=currentPath();
- if(isDashboardPath(path))maskDashboard();
  try{
   cleanModes(path);hideLegacyDashboardScope();
-  const profile=await currentProfile();if(!profile||profile.role==='student'){revealDashboard();return;}
+  const profile=await currentProfile();
+  if(!profile||!isProfessionalRole(profile.role)){revealDashboard();return;}
+  if(isDashboardPath(path))maskDashboard();
   const key=`${path}:${profile.id}`;if(key===lastKey&&document.querySelector(path.startsWith('/avaliacoes/pendentes')?'#uf-assessment-pending-root':path.startsWith('/backoffice')?'#uf-backoffice-scope-root':'#uf-dashboard-attention-root')){revealDashboard();return;}lastKey=key;
   if(isDashboardPath(path))await renderDashboard(profile);
   else if(path.startsWith('/avaliacoes/pendentes'))await renderPending(profile);
@@ -143,14 +145,13 @@ async function run(){
 export function startDashboardAttentionEnhancer(){
  if(observer)return;
  observer=new MutationObserver(()=>{
-  maskDashboard();
   clearTimeout(startDashboardAttentionEnhancer.timer);
   startDashboardAttentionEnhancer.timer=setTimeout(run,0);
  });
  observer.observe(document.documentElement,{childList:true,subtree:true});
- window.addEventListener('popstate',()=>{lastKey='';maskDashboard();setTimeout(run,0)});
- window.addEventListener('focus',()=>{lastKey='';maskDashboard();run()});
- maskDashboard();
+ window.addEventListener('popstate',()=>{lastKey='';setTimeout(run,0)});
+ window.addEventListener('focus',()=>{lastKey='';run()});
+ revealDashboard();
  run();
 }
 startDashboardAttentionEnhancer.timer=null;
