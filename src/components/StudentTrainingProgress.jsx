@@ -252,20 +252,34 @@ export default function StudentTrainingProgress({ studentId }) {
     let cancelled = false;
     setLoading(true);
     setError('');
-    supabase
-      .from('workout_exercise_loads')
-      .select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on,created_at')
-      .eq('student_id', studentId)
-      .order('completed_on', { ascending: true })
-      .order('created_at', { ascending: true })
-      .then(({ data, error: queryError }) => {
+    Promise.all([
+      supabase
+        .from('workout_exercise_loads')
+        .select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on,created_at')
+        .eq('student_id', studentId)
+        .order('completed_on', { ascending: true })
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('workout_run_set_results')
+        .select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on,created_at,run_id,workout_item_id,set_index')
+        .eq('student_id', studentId)
+        .order('completed_on', { ascending: true })
+        .order('created_at', { ascending: true }),
+    ])
+      .then(([legacyResult, runResult]) => {
         if (cancelled) return;
+        const queryError = legacyResult.error || runResult.error;
         if (queryError) {
           setError(queryError.message || 'Não foi possível carregar o teu progresso.');
           setRecords([]);
           return;
         }
-        setRecords(data || []);
+        const legacy = (legacyResult.data || []).map(row => ({ ...row, source_kind: 'legacy' }));
+        const runSets = (runResult.data || []).map(row => ({ ...row, source_kind: 'run_set' }));
+        setRecords([...legacy, ...runSets].sort((a,b) =>
+          String(a.completed_on).localeCompare(String(b.completed_on))
+          || String(a.created_at || '').localeCompare(String(b.created_at || ''))
+        ));
         setLoadedFor(studentId);
       })
       .finally(() => {
@@ -298,7 +312,11 @@ export default function StudentTrainingProgress({ studentId }) {
       weekly,
       rows,
       totalVolume: weekly.reduce((sum, value) => sum + value, 0),
-      weightedExercises: monthRecords.filter(record => Number(record.weight_kg) > 0).length,
+      weightedExercises: new Set(
+        monthRecords
+          .filter(record => Number(record.weight_kg) > 0)
+          .map(record => `${record.completed_on}|${record.exercise_name || 'Exercício'}`)
+      ).size,
       trainingDays: new Set(monthRecords.map(record => record.completed_on)).size,
     };
   }, [records, offset, mode]);
@@ -382,7 +400,7 @@ export default function StudentTrainingProgress({ studentId }) {
             </> : <div className="studentTrainingProgressEmpty">
               <Dumbbell size={30}/>
               <b>Ainda não tens registos neste mês</b>
-              <span>Abre um treino, introduz a carga no campo “Hoje” de cada exercício e regista o treino. A evolução aparecerá aqui automaticamente.</span>
+              <span>Conclui os exercícios durante o treino e regista as cargas utilizadas. A evolução aparecerá aqui automaticamente.</span>
             </div>}
 
           <div className="studentTrainingProgressFormula"><b>Cálculo:</b> carga × séries × repetições. No mapa corporal, cada valor mostra o volume total realizado nesse grupo muscular no período selecionado.</div>
