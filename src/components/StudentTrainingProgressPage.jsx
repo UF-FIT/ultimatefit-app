@@ -87,10 +87,10 @@ function BodyMap({records}){
       <svg viewBox="0 0 400 570" aria-hidden="true">
         <defs><filter id="ufProgressGlow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
         <g className="ufProgressBodyShape">
-          <ellipse cx="200" cy="94" rx="30" ry="35"/>
-          <path d="M178 121 C185 126 215 126 222 121 L224 143 C248 150 262 166 267 196 L276 282 L292 333 L283 344 L268 326 L251 269 L247 213 L239 300 C236 326 232 345 229 357 L171 357 C168 345 164 326 161 300 L153 213 L149 269 L132 326 L117 344 L108 333 L124 282 L133 196 C138 166 152 150 176 143 Z"/>
-          <path d="M172 354 C161 382 158 418 161 455 L171 530 L194 530 L200 389 L206 530 L229 530 L239 455 C242 418 239 382 228 354 Z"/>
-          <path d="M171 529 L194 529 L194 542 L164 542 Z"/><path d="M206 529 L229 529 L236 542 L206 542 Z"/>
+          {/* Silhueta anatómica compacta, com braços e pernas proporcionais à referência. */}
+          <path d="M200 51 C180 51 174 66 174 87 L174 103 Q171 104 172 114 Q174 121 178 122 C180 137 190 145 200 145 C210 145 220 137 222 122 Q227 119 228 109 Q228 104 225 103 L225 87 C225 66 219 51 200 51 Z"/>
+          <path d="M185 140 L185 150 C166 151 151 158 140 174 C131 187 128 211 127 232 L120 295 L110 332 L115 345 L123 342 L136 314 L145 262 L153 216 L156 280 C160 308 165 329 171 354 L229 354 C235 329 240 308 244 280 L247 216 L255 262 L264 314 L277 342 L285 345 L290 332 L280 295 L273 232 C272 211 269 187 260 174 C249 158 234 151 215 150 L215 140 C207 149 193 149 185 140 Z"/>
+          <path d="M171 351 C160 373 158 397 162 432 L169 489 L176 525 L169 537 L169 543 L195 543 L196 517 L199 435 L200 390 L201 435 L204 517 L205 543 L231 543 L231 537 L224 525 L231 489 L238 432 C242 397 240 373 229 351 Z"/>
         </g>
         <g className="ufProgressBodyLines">
           {rows.filter(item=>item.points).map(item=>{
