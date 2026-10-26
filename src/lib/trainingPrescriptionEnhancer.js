@@ -82,8 +82,6 @@ function restoreStrengthItem(editor) {
 
 function enhanceTrainingPrescription() {
   document.querySelectorAll('.trainingItemEditor').forEach(editor => {
-    const rpe = labelByText(editor, 'RPE');
-    if (rpe) rpe.remove();
     if (isCardioItem(editor)) prepareCardioItem(editor);
     else restoreStrengthItem(editor);
   });

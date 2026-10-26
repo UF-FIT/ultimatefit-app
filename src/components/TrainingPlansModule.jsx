@@ -22,7 +22,7 @@ function Badge({ children, tone = 'gray' }) { return <span className={`badge ${t
 function Card({ children, className = '' }) { return <div className={cx('card', className)}>{children}</div>; }
 
 function emptyItem() {
-  return { exerciseId: '', manualName: '', sets: 3, reps: '10', durationSeconds: '', restSeconds: 60, tempo: '', loadText: '', rpe: '', notes: '' };
+  return { exerciseId: '', manualName: '', sets: 3, reps: '10', durationSeconds: '', restSeconds: 60, tempo: '', loadText: '', notes: '' };
 }
 
 function emptyBlock(type = 'standard') {
@@ -150,7 +150,7 @@ function PlanViewer({ plan, student, canManage, readOnlyReason = '', blockTypes 
             <div className="trainingBlockHeading"><div><Badge tone={block.type === 'standard' ? 'gray' : 'yellow'}>{definition.name}</Badge>{block.title && <b>{block.title}</b>}</div>{definition.supportsRounds && <span>{block.rounds || 1} volta(s){block.restAfterSeconds ? ` · ${formatSeconds(block.restAfterSeconds)} após bloco` : ''}</span>}</div>
             {block.items.map((item, itemIndex) => <button className={cx('trainingExerciseView', item.manualName && 'manual')} key={item.id || itemIndex} onClick={() => item.exercise && setOpenExercise(item)}>
               <div className="trainingExerciseThumb"><ExerciseMedia exercise={item.exercise || { name:item.manualName, group:'Texto livre' }} compact manual={!item.exercise}/></div>
-              <div className="trainingExerciseCopy"><div><b>{itemExerciseName(item)}</b>{item.exercise && <ChevronRight size={17}/>}</div><small>{item.exercise ? `${item.exercise.group || ''}${item.exercise.equipment ? ` · ${item.exercise.equipment}` : ''}` : 'Texto livre · sem vídeo demonstrativo'}</small><ExercisePrescription item={item}/>{item.loadText && <span>Carga: {item.loadText}</span>}{item.rpe != null && <span>RPE: {item.rpe}</span>}{item.notes && <p>{item.notes}</p>}</div>
+              <div className="trainingExerciseCopy"><div><b>{itemExerciseName(item)}</b>{item.exercise && <ChevronRight size={17}/>}</div><small>{item.exercise ? `${item.exercise.group || ''}${item.exercise.equipment ? ` · ${item.exercise.equipment}` : ''}` : 'Texto livre · sem vídeo demonstrativo'}</small><ExercisePrescription item={item}/>{item.loadText && <span>Carga: {item.loadText}</span>}{item.notes && <p>{item.notes}</p>}</div>
             </button>)}
           </div>})}
         </div>
@@ -218,205 +218,313 @@ function ExercisePicker({ item, exercises, onChange }) {
           <div className="search"><Search size={16}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Ex.: agachamento…"/></div>
           <select value={group} onChange={event=>setGroup(event.target.value)}>{groups.map(name=><option value={name} key={name}>{name}</option>)}</select>
         </div>
-        <div className="exercisePickerHint">{query ? `${results.length} resultado(s) visíveis` : group !== 'Todos' ? `Exercícios de ${group}` : 'Escreve para encontrar rapidamente um exercício ou escolhe um grupo muscular.'}</div>
-        <div className="exercisePickerResults">
-          {results.map(exercise=><button type="button" className="exercisePickerResult" key={exercise.id} onClick={()=>selectExercise(exercise)}>
-            <span className="exercisePickerResultThumb"><ExerciseMedia exercise={exercise} compact/></span>
-            <span><b>{exercise.name}</b><small>{exercise.group}{exercise.equipment ? ` · ${exercise.equipment}` : ''}</small></span>
-          </button>)}
-          {results.length===0 && <div className="exercisePickerEmpty">Nenhum exercício encontrado com estes filtros.</div>}
-        </div>
-      </div>}
-    </>}
-  </div>;
+        <div className="exercisePickerHint">{query ? `${results.length} resultado(s) visíveis` : group !== 'Todos' ? `Exercícios de ${gr…6568 tokens truncated…'.')))
+    .filter(Number.isFinite);
+  if (!matches.length) return Array.from({ length: setCount }, () => null);
+  if (matches.length === 1) return Array.from({ length: setCount }, () => matches[0]);
+  return Array.from({ length: setCount }, (_, index) => matches[index] ?? matches[matches.length - 1]);
 }
 
-function PlanEditor({ initialPlan, students, exercises, blockTypes = [], onCancel, onSaved }) {
-  const { refreshTraining } = useApp();
-  const [draft, setDraft] = useState(() => deepCopyPlan(initialPlan));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  const activeBlockTypes = useMemo(() => blockTypes.filter(type => type.active), [blockTypes]);
-  const typeByCode = useMemo(() => Object.fromEntries(blockTypes.map(type => [type.code, type])), [blockTypes]);
-  const selectedStudent = useMemo(() => students.find(student => student.id === draft.studentId) || null, [students, draft.studentId]);
-  const selectedStudentInitials = selectedStudent?.name?.split(' ').map(part => part[0]).slice(0, 2).join('') || 'AL';
-  const selectedStudentPhoto = selectedStudent?.photoUrl || selectedStudent?.thumbUrl || '';
-
-  function patchPlan(patch) { setDraft(current => ({ ...current, ...patch })); }
-  function patchSession(sessionIndex, patch) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index === sessionIndex ? { ...session, ...patch } : session) })); }
-  function patchBlock(sessionIndex, blockIndex, patch) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.map((block,bIndex) => bIndex === blockIndex ? { ...block, ...patch } : block) }) })); }
-  function patchItem(sessionIndex, blockIndex, itemIndex, patch) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.map((block,bIndex) => bIndex !== blockIndex ? block : { ...block, items: block.items.map((item,iIndex) => iIndex === itemIndex ? { ...item, ...patch } : item) }) }) })); }
-
-  function addSession() {
-    setDraft(current => ({ ...current, sessions: [...normalizeWorkoutSessions(current.sessions), emptySession(current.sessions.length)] }));
-  }
-  function removeSession(index) {
-    setDraft(current => {
-      if (current.sessions.length === 1) return current;
-      return { ...current, sessions: normalizeWorkoutSessions(current.sessions.filter((_, i) => i !== index)) };
-    });
-  }
-  function addBlock(sessionIndex, type='standard') { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index === sessionIndex ? { ...session, blocks: [...session.blocks, emptyBlock(type)] } : session) })); }
-  function removeBlock(sessionIndex, blockIndex) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.filter((_,i) => i !== blockIndex) }) })); }
-  function addItem(sessionIndex, blockIndex) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.map((block,bIndex) => bIndex !== blockIndex ? block : { ...block, items: [...block.items, emptyItem()] }) }) })); }
-  function removeItem(sessionIndex, blockIndex, itemIndex) { setDraft(current => ({ ...current, sessions: current.sessions.map((session,index) => index !== sessionIndex ? session : { ...session, blocks: session.blocks.map((block,bIndex) => bIndex !== blockIndex ? block : { ...block, items: block.items.filter((_,i) => i !== itemIndex) }) }) })); }
-
-  async function submit(status) {
-    setError('');
-    if (!draft.studentId) { setError('Seleciona o aluno.'); return; }
-    if (!draft.title.trim()) { setError('Indica o nome do plano.'); return; }
-    setBusy(true);
-    try {
-      const normalizedDraft = { ...draft, sessions: normalizeWorkoutSessions(draft.sessions) };
-      const id = await saveWorkoutPlan({ ...normalizedDraft, status });
-      await refreshTraining();
-      onSaved(id);
-    } catch (err) { setError(err.message || 'Não foi possível guardar o plano.'); }
-    finally { setBusy(false); }
-  }
-
-  return <div className="trainingEditor">
-    <button className="backButton" onClick={onCancel}><ArrowLeft size={17}/>Cancelar edição</button>
-    <div className="heading trainingEditorHeading">
-      <div><span className="eyebrow">PRESCRIÇÃO DE EXERCÍCIO</span><h1>{draft.id ? 'Editar plano' : 'Novo plano'}</h1><p>Organiza treinos, séries normais, superséries e circuitos.</p></div>
-      <div style={{display:'flex',alignItems:'center',gap:'14px',marginLeft:'auto'}}>
-        {selectedStudent && <div title={`Plano de ${selectedStudent.name}`} aria-label={`Aluno selecionado: ${selectedStudent.name}`} style={{width:'clamp(78px,11vw,104px)',height:'clamp(78px,11vw,104px)',borderRadius:'24px',overflow:'hidden',border:'2px solid #ffd908',background:'#121212',display:'grid',placeItems:'center',flex:'0 0 auto',fontWeight:800,fontSize:'24px',color:'#ffd908'}}>{selectedStudentPhoto ? <img src={selectedStudentPhoto} alt={selectedStudent.name} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/> : <span>{selectedStudentInitials}</span>}</div>}
-        <div className="trainingEditorActions"><button className="secondary" disabled={busy} onClick={() => submit('draft')}><Save size={17}/>Guardar rascunho</button><button className="primary" disabled={busy} onClick={() => submit('published')}><CheckCircle2 size={17}/>Publicar para o aluno</button></div>
-      </div>
-    </div>
-    {error && <div className="errorBanner">{error}</div>}
-
-    <section className="card pad trainingPlanInfo"><div className="formGrid">
-      <label>Aluno*<select value={draft.studentId} onChange={event => patchPlan({ studentId: event.target.value })}><option value="">Selecionar aluno</option>{students.map(student => <option value={student.id} key={student.id}>{student.name}</option>)}</select></label>
-      <label>Título do plano*<input value={draft.title} onChange={event => patchPlan({ title: event.target.value })} placeholder="Ex.: Fase 1 · Força e mobilidade"/></label>
-      <label>Data de início<input type="date" value={draft.startDate || ''} onChange={event => patchPlan({ startDate: event.target.value })}/></label>
-      <label>Data de fim<input type="date" value={draft.endDate || ''} onChange={event => patchPlan({ endDate: event.target.value })}/></label>
-      <label className="wide">Objetivo do plano<input value={draft.goal} onChange={event => patchPlan({ goal: event.target.value })} placeholder="Ex.: ganho de força, redução de dor, hipertrofia…"/></label>
-      <label className="wide">Notas gerais<textarea value={draft.description} onChange={event => patchPlan({ description: event.target.value })} placeholder="Indicações gerais para o aluno."/></label>
-      <div className="wide automaticStretchingPlanOption">
-        <div>
-          <span className="eyebrow">RECUPERAÇÃO AUTOMÁTICA</span>
-          <b>Alongamentos automáticos no final do treino</b>
-          <small>Quando ligado, a app escolhe os alongamentos adequados a partir dos grupos musculares trabalhados em cada treino.</small>
-        </div>
-        <label className="switchControl" title="Ativar ou desativar alongamentos automáticos">
-          <input type="checkbox" checked={draft.autoStretchingEnabled !== false} onChange={event => patchPlan({ autoStretchingEnabled: event.target.checked })}/>
-          <span aria-hidden="true"></span>
-          <strong>{draft.autoStretchingEnabled !== false ? 'Ligado' : 'Desligado'}</strong>
-        </label>
-      </div>
-    </div></section>
-
-    <div className="trainingSessionsEditor">
-      {draft.sessions.map((session,sessionIndex) => <section className="card pad trainingSessionEditor" key={session.id || sessionIndex}>
-        <div className="trainingEditorSectionHead"><div><input className="trainingTitleInput" value={workoutTitle(sessionIndex)} readOnly aria-label={workoutTitle(sessionIndex)}/></div><button className="iconButton dangerText" onClick={() => removeSession(sessionIndex)} disabled={draft.sessions.length === 1} title="Remover treino"><Trash2 size={18}/></button></div>
-        <input className="trainingDescriptionInput" value={session.description} onChange={event => patchSession(sessionIndex,{description:event.target.value})} placeholder="Descrição opcional do treino"/>
-
-        {session.blocks.map((block,blockIndex) => <div className={cx('trainingBlockEditor',block.type,block.type !== 'standard' && 'special')} key={block.id || blockIndex}>
-          <div className="trainingBlockEditorHead"><GripVertical size={17}/><select value={block.type} onChange={event => patchBlock(sessionIndex,blockIndex,{type:event.target.value})}>{activeBlockTypes.map(type=><option value={type.code} key={type.code}>{type.name}</option>)}</select><input value={block.title} onChange={event => patchBlock(sessionIndex,blockIndex,{title:event.target.value})} placeholder="Nome do bloco (opcional)"/>{(typeByCode[block.type]?.supportsRounds ?? block.type !== 'standard') && <><label>Voltas<input type="number" min="1" max="50" value={block.rounds} onChange={event => patchBlock(sessionIndex,blockIndex,{rounds:event.target.value})}/></label><label>Descanso após<input type="number" min="0" value={block.restAfterSeconds} onChange={event => patchBlock(sessionIndex,blockIndex,{restAfterSeconds:event.target.value})} placeholder="seg"/></label></>}<button className="iconButton dangerText" onClick={() => removeBlock(sessionIndex,blockIndex)}><Trash2 size={16}/></button></div>
-
-          <div className="trainingItemsEditor">
-            {block.items.map((item,itemIndex) => <div className="trainingItemEditor" key={item.id || itemIndex}>
-              <div className="trainingItemMain"><ExercisePicker item={item} exercises={exercises} onChange={patch => patchItem(sessionIndex,blockIndex,itemIndex,patch)}/><button className="iconButton dangerText" onClick={() => removeItem(sessionIndex,blockIndex,itemIndex)}><X size={16}/></button></div>
-              <div className="trainingPrescriptionGrid"><label>Séries<input type="number" min="1" value={item.sets ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{sets:event.target.value})}/></label><label>Repetições<input value={item.reps} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{reps:event.target.value})} placeholder="10-12"/></label><label>Duração (seg)<input type="number" min="0" value={item.durationSeconds ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{durationSeconds:event.target.value})}/></label><label>Descanso (seg)<input type="number" min="0" value={item.restSeconds ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{restSeconds:event.target.value})}/></label><label>Tempo<input value={item.tempo} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{tempo:event.target.value})} placeholder="3-1-1"/></label><label>Carga<input value={item.loadText} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{loadText:event.target.value})} placeholder="20 kg / moderada"/></label><label>RPE<input type="number" step="0.5" min="0" max="10" value={item.rpe ?? ''} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{rpe:event.target.value})}/></label><label className="wide">Notas<input value={item.notes} onChange={event => patchItem(sessionIndex,blockIndex,itemIndex,{notes:event.target.value})} placeholder="Indicações técnicas ou adaptações"/></label></div>
-            </div>)}
-          </div>
-          <button className="textButton" onClick={() => addItem(sessionIndex,blockIndex)}><Plus size={15}/>Adicionar exercício</button>
-        </div>)}
-        <div className="trainingAddBlocks">{activeBlockTypes.map(type=><button className="secondary" key={type.code} onClick={() => addBlock(sessionIndex,type.code)}>{type.code==='standard'?<Plus size={15}/>:type.code==='circuit'?<CirclePlay size={15}/>:<Layers3 size={15}/>} {type.name}</button>)}</div>
-      </section>)}
-    </div>
-    <button className="secondary trainingAddSession" onClick={addSession}><ListPlus size={17}/>Adicionar treino</button>
-    <div className="trainingStickyActions"><button className="secondary" disabled={busy} onClick={() => submit('draft')}><Save size={17}/>Guardar rascunho</button><button className="primary" disabled={busy} onClick={() => submit('published')}><CheckCircle2 size={17}/>Publicar plano</button></div>
-  </div>;
+function cardioIntensity(item) {
+  const fromLoad = firstNumber(item?.loadText || '');
+  if (fromLoad != null) return fromLoad;
+  const note = String(item?.notes || '');
+  const match = note.match(/carga\s*(?:de\s*)?(\d+(?:[.,]\d+)?)/i);
+  return match ? Number(match[1].replace(',', '.')) : null;
 }
 
-export default function TrainingPlansModule({ context = {}, onNavigate }) {
-  const { data, currentUser, refreshTraining, trainingLoading, trainingError } = useApp();
-  const location = useLocation();
-  const routeNavigate = useNavigate();
-  const planIdFromUrl = useMemo(() => new URLSearchParams(location.search).get('plano') || '', [location.search]);
-  const [canManage, setCanManage] = useState(currentUser.role === 'admin');
-  const [activePlanId, setActivePlanId] = useState(planIdFromUrl);
-  const [editing, setEditing] = useState(null);
-  const [previewMode, setPreviewMode] = useState(false);
-  const [duplicateOpen, setDuplicateOpen] = useState(false);
-  const [duplicateStudentId, setDuplicateStudentId] = useState('');
-  const [completionBusy, setCompletionBusy] = useState(false);
-  const [filterStudent, setFilterStudent] = useState(context.studentId || 'all');
-  const [q, setQ] = useState('');
-  const [error, setError] = useState('');
+function isCardioItem(item) {
+  const group = String(item?.exercise?.group || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return /cardio|aerob/.test(group);
+}
 
-  const ownStudent = data.students.find(student => student.userId === currentUser.id);
-  const visibleStudents = currentUser.role === 'aluno' ? (ownStudent ? [ownStudent] : []) : data.students.filter(student => !student.deletedAt);
-  const isStudentAssignedToCurrentProfessional = student => Boolean(student && (student.trainerIds || []).includes(currentUser.id));
-  const manageableStudents = currentUser.role === 'aluno' || !canManage ? [] : visibleStudents.filter(isStudentAssignedToCurrentProfessional);
-  const canManageStudent = student => currentUser.role !== 'aluno' && canManage && isStudentAssignedToCurrentProfessional(student);
-  const plans = useMemo(() => data.plans.filter(plan => {
-    if (currentUser.role === 'aluno') return plan.studentId === ownStudent?.id && plan.status === 'published';
-    if (filterStudent !== 'all' && plan.studentId !== filterStudent) return false;
-    const query = q.trim().toLowerCase();
-    const studentName = data.students.find(student => student.id === plan.studentId)?.name || '';
-    return !query || plan.title.toLowerCase().includes(query) || studentName.toLowerCase().includes(query);
-  }), [data.plans, data.students, currentUser.role, ownStudent?.id, filterStudent, q]);
+function activityFromItem(item, block, activityIndex, itemIndex = 0) {
+  const cardio = isCardioItem(item);
+  const manual = !item?.exercise;
+  const special = Boolean(block && block.type && block.type !== 'standard');
+  const blockItems = block?.items || [];
+  const lastInBlock = itemIndex === Math.max(0, blockItems.length - 1);
+  const fallbackRounds = special ? Math.max(1, Number(block?.rounds) || 1) : 1;
+  const setCount = manual ? 0 : Math.max(1, Number(item?.sets) || fallbackRounds);
+  const plannedReps = item?.reps || '';
+  const timed = !cardio && !manual && Number(item?.durationSeconds) > 0 && !plannedReps;
+  const defaultReps = timed ? 1 : cardio ? 1 : repsFromText(plannedReps);
+  const suggestedWeights = weightsFromText(item?.loadText, setCount);
+  const restSeconds = special
+    ? (lastInBlock ? Math.max(0, Number(block?.restAfterSeconds) || 0) : 0)
+    : Math.max(0, Number(item?.restSeconds) || 45);
 
-  useEffect(() => { if (currentUser.role !== 'aluno') canManageWorkoutPlans().then(setCanManage); }, [currentUser.id, currentUser.role]);
-  useEffect(() => { if (context.studentId) setFilterStudent(context.studentId); }, [context.studentId]);
-  useEffect(() => { setActivePlanId(planIdFromUrl); setPreviewMode(false); }, [planIdFromUrl]);
-
-  const setPlanRoute = (planId, { replace = false } = {}) => {
-    const params = new URLSearchParams(location.search);
-    if (planId) params.set('plano', planId);
-    else params.delete('plano');
-    const search = params.toString();
-    setActivePlanId(planId || '');
-    routeNavigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace });
+  return {
+    key: item?.id || `activity-${activityIndex + 1}`,
+    activityIndex,
+    workoutItemId: item?.id || '',
+    blockId: block?.id || '',
+    blockType: block?.type || 'standard',
+    blockTitle: block?.title || '',
+    blockRounds: Number(block?.rounds) || 1,
+    exerciseId: item?.exerciseId || item?.exercise?.id || '',
+    type: manual ? 'manual' : cardio ? 'cardio' : timed ? 'timed' : 'exercise',
+    name: item?.exercise?.name || item?.manualName || 'Texto livre',
+    manualName: item?.manualName || '',
+    group: manual ? 'Texto livre' : (item?.exercise?.group || 'Outro'),
+    equipment: item?.exercise?.equipment || '',
+    description: item?.exercise?.description || '',
+    instructions: item?.exercise?.instructions || '',
+    mediaUrl: item?.exercise?.mediaUrl || '',
+    mediaKind: item?.exercise?.mediaKind || '',
+    externalMediaUrl: item?.exercise?.externalMediaUrl || '',
+    notes: item?.notes || '',
+    plannedSets: Number(item?.sets) || (manual ? 0 : fallbackRounds),
+    plannedReps,
+    durationSeconds: Number(item?.durationSeconds) || 0,
+    restSeconds,
+    loadText: item?.loadText || '',
+    tempo: item?.tempo || '',
+    status: 'pending',
+    startedAt: null,
+    completedAt: null,
+    skippedAt: null,
+    sets: Array.from({ length: setCount }, (_, index) => ({
+      index: index + 1,
+      plannedReps: timed ? `${Number(item.durationSeconds)}s` : plannedReps,
+      reps: defaultReps,
+      weightKg: suggestedWeights[index],
+      plannedWeightText: item?.loadText || '',
+      durationSeconds: timed ? Number(item.durationSeconds) : 0,
+      completed: false,
+      completedAt: null,
+    })),
+    cardio: cardio ? {
+      minutes: item?.durationSeconds ? Math.max(1, Math.round(Number(item.durationSeconds) / 60)) : Math.max(1, repsFromText(item?.reps || '1')),
+      intensity: cardioIntensity(item),
+    } : null,
   };
+}
 
-  if (currentUser.role === 'aluno') {
-    return <StudentTrainingExperience
-      student={ownStudent}
-      plans={plans}
-      completions={(data.workoutCompletions || []).filter(item => item.studentId === ownStudent?.id)}
-      onRefreshTraining={refreshTraining}
-    />;
-  }
+export function buildWorkoutRunState(plan, session) {
+  const blocks = (session?.blocks || []).map((block, blockIndex) => ({
+    id: block.id || `block-${blockIndex + 1}`,
+    type: block.type || 'standard',
+    title: block.title || '',
+    rounds: Number(block.rounds) || 1,
+    restAfterSeconds: Number(block.restAfterSeconds) || 0,
+    itemIds: (block.items || []).map(item => item.id).filter(Boolean),
+  }));
 
-  const activePlan = data.plans.find(plan => plan.id === activePlanId);
-  if (editing) return <PlanEditor initialPlan={editing} students={manageableStudents} exercises={data.exercises} blockTypes={data.blockTypes||[]} onCancel={() => setEditing(null)} onSaved={async id => { setEditing(null); await refreshTraining(); setPlanRoute(id, { replace: true }); }}/>;
-  if (activePlan) {
-    const student=data.students.find(item=>item.id===activePlan.studentId);
-    const canManageActivePlan = canManageStudent(student);
-    const responsibleTrainerName = student?.primaryTrainer?.name || 'o professor responsável';
-    const readOnlyReason = currentUser.role !== 'aluno' && !canManageActivePlan
-      ? `Este aluno está associado a ${responsibleTrainerName}. Podes consultar o plano, mas apenas o professor responsável pode criar, editar, arquivar, restaurar, duplicar ou eliminar os seus planos.`
-      : '';
-    const openDuplicate=()=>{if(!canManageActivePlan)return;setDuplicateStudentId(activePlan.studentId);setDuplicateOpen(true)};
-    const confirmDuplicate=()=>{
-      const target=duplicateStudentId||activePlan.studentId;
-      setDuplicateOpen(false);setPreviewMode(false);setPlanRoute('', { replace: true });setEditing(duplicatePlanFor(activePlan,target));
-    };
-    return <>
-      <PlanViewer plan={activePlan} student={student} canManage={canManageActivePlan && !previewMode} readOnlyReason={readOnlyReason} blockTypes={data.blockTypes||[]} previewMode={previewMode} studentView={currentUser.role==='aluno'} completions={(data.workoutCompletions||[]).filter(item=>item.studentId===activePlan.studentId)} completionBusy={completionBusy} onCompleteSession={async session=>{if(!student||currentUser.role!=='aluno')return;setCompletionBusy(true);setError('');try{await recordWorkoutCompletion({studentId:student.id,planId:activePlan.id,sessionId:session.id,completedOn:localToday(),source:'student'});await refreshTraining()}catch(err){setError(err.message||'Não foi possível registar o treino.')}finally{setCompletionBusy(false)}}} onExitPreview={()=>setPreviewMode(false)} onBack={() => {setPreviewMode(false);setPlanRoute('')}} onPreview={()=>setPreviewMode(true)} onDuplicate={openDuplicate} onEdit={() => setEditing(deepCopyPlan(activePlan))} onArchive={async () => { if (!window.confirm('Arquivar este plano? O aluno deixará de o ver como plano ativo. Poderás reativá-lo mais tarde.')) return; try { await archiveWorkoutPlan(activePlan.id); await refreshTraining(); setPlanRoute('', { replace: true }); } catch (err) { setError(err.message); } }} onRestore={async () => { const wasPublished = Boolean(activePlan.publishedAt); const message = wasPublished ? 'Reativar este plano? Voltará a ficar publicado e visível para o aluno.' : 'Restaurar este plano? Voltará ao estado de rascunho.'; if (!window.confirm(message)) return; try { await restoreWorkoutPlan(activePlan.id); await refreshTraining(); } catch (err) { setError(err.message || 'Não foi possível restaurar o plano.'); } }} onDelete={async () => { if (!window.confirm('Eliminar definitivamente este plano de treino? Esta ação não pode ser anulada. Os registos de treinos já concluídos pelo aluno são preservados.')) return; try { await deleteWorkoutPlanPermanently(activePlan.id); await refreshTraining(); setPreviewMode(false); setPlanRoute('', { replace: true }); } catch (err) { setError(err.message||'Não foi possível eliminar o plano.'); } }}/>
-      {duplicateOpen && <div className="overlay" onClick={()=>setDuplicateOpen(false)}><div className="modal duplicatePlanModal" onClick={event=>event.stopPropagation()}><div className="title"><div><span className="eyebrow">DUPLICAR PLANO</span><h2>Aplicar a outro aluno</h2></div><button className="iconButton" onClick={()=>setDuplicateOpen(false)}><X/></button></div><p>É criada uma nova cópia em rascunho. O plano original não é alterado.</p><label className="duplicatePlanStudent">Aluno<select value={duplicateStudentId} onChange={event=>setDuplicateStudentId(event.target.value)}>{manageableStudents.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="modalActions"><button className="secondary" onClick={()=>setDuplicateOpen(false)}>Cancelar</button><button className="primary" onClick={confirmDuplicate}><Copy size={16}/>Criar cópia</button></div></div></div>}
-    </>;
-  }
+  const activities = [];
+  (session?.blocks || []).forEach(block => {
+    (block.items || []).forEach((item, itemIndex) => activities.push(activityFromItem(item, block, activities.length, itemIndex)));
+  });
 
-  if (activePlanId && trainingLoading) return <div className="notice">A carregar o plano de treino…</div>;
-  if (activePlanId && !trainingLoading && !activePlan) {
-    window.setTimeout(() => setPlanRoute('', { replace: true }), 0);
-  }
+  return {
+    version: 1,
+    planTitle: plan?.title || 'Plano de treino',
+    sessionTitle: session?.title || 'Treino',
+    planId: plan?.id || '',
+    sessionId: session?.id || '',
+    blocks,
+    activities,
+    currentIndex: 0,
+    rest: { active: false, startedAt: null, endsAt: null, afterActivityIndex: null },
+    soundEnabled: true,
+    createdAt: new Date().toISOString(),
+  };
+}
 
-  const targetStudent = filterStudent !== 'all' ? data.students.find(student => student.id === filterStudent) : null;
-  const targetStudentManageable = targetStudent ? canManageStudent(targetStudent) : false;
-  const canCreateForCurrentSelection = canManage && (targetStudent ? targetStudentManageable : manageableStudents.length > 0);
-  const defaultNewPlanStudentId = targetStudentManageable ? targetStudent.id : (manageableStudents[0]?.id || '');
-  return <div className="trainingPlansPage">
-    <div className={cx('heading', currentUser.role === 'aluno' && 'studentTrainingHeading')}><div><h1>{currentUser.role === 'aluno' ? 'Meu treino' : targetStudent ? `Planos · ${targetStudent.name}` : 'Planos de treino'}</h1><p>{currentUser.role === 'aluno' ? 'Consulta o plano publicado pelo teu professor.' : targetStudent && !targetStudentManageable ? `Modo só de leitura · ${targetStudent.primaryTrainer?.name || 'outro professor'} é o professor responsável por este aluno.` : 'Cria e publica prescrições individuais com treinos e séries especiais configuráveis.'}</p></div>{canCreateForCurrentSelection && <button className="primary" onClick={() => setEditing(emptyPlan(defaultNewPlanStudentId))}><Plus size={17}/>Novo plano</button>}</div>
-    {currentUser.role !== 'aluno' && targetStudent && !targetStudentManageable && <div className="trainingReadOnlyBanner trainingReadOnlyBannerList"><LockKeyhole size={18}/><div><b>Aluno associado a outro professor</b><span>Podes consultar todos os planos deste aluno, mas não os podes alterar. A gestão fica reservada a {targetStudent.primaryTrainer?.name || 'quem estiver definido como professor responsável'}.</span></div></div>}
-    {(trainingError || error) && <div className="errorBanner">{trainingError || error}</div>}
-    {currentUser.role !== 'aluno' && <div className="filters trainingFilters"><div className="search"><Search size={18}/><input value={q} onChange={event => setQ(event.target.value)} placeholder="Pesquisar plano ou aluno…"/></div><select value={filterStudent} onChange={event => setFilterStudent(event.target.value)}><option value="all">Todos os alunos</option>{visibleStudents.map(student => <option value={student.id} key={student.id}>{student.name}</option>)}</select></div>}
-    {trainingLoading ? <div className="notice">A carregar planos de treino…</div> : plans.length === 0 ? <Card className="pad trainingEmpty"><Dumbbell size={40}/><h2>{currentUser.role === 'aluno' ? 'Ainda não tens um plano publicado' : 'Ainda não existem planos nesta seleção'}</h2><p>{currentUser.role === 'aluno' ? 'Quando o teu professor publicar o plano, aparecerá aqui.' : 'Cria o primeiro plano e guarda-o como rascunho ou publica-o diretamente.'}</p>{canCreateForCurrentSelection && <button className="primary" onClick={() => setEditing(emptyPlan(defaultNewPlanStudentId))}><Plus size={17}/>Criar plano</button>}</Card> : <div className="trainingPlanGrid">{plans.map(plan => { const [label,tone] = planStatus(plan); const student = data.students.find(item => item.id === plan.studentId); const exerciseCount = plan.sessions.reduce((sum,session) => sum + session.blocks.reduce((blockSum,block) => blockSum + block.items.length,0),0); return <button className="card trainingPlanCard" key={plan.id} onClick={() => setPlanRoute(plan.id)}><div className="trainingPlanCardTop"><div className="trainingPlanCardIcon"><Dumbbell/></div><Badge tone={tone}>{label}</Badge></div><h2>{plan.title}</h2>{currentUser.role !== 'aluno' && <span className="trainingStudentName"><UserRound size={14}/>{student?.name || 'Aluno'}</span>}{currentUser.role !== 'aluno' && student && !canManageStudent(student) && <span className="trainingPlanLock"><LockKeyhole size={13}/>Só leitura · {student.primaryTrainer?.name || 'outro professor'}</span>}<p>{plan.goal || plan.description || 'Plano de treino individual.'}</p><div className="trainingPlanStats"><span><Dumbbell size={14}/>{plan.sessions.length} treino(s)</span><span><ListPlus size={14}/>{exerciseCount} exercício(s)</span></div><div className="trainingPlanCardFooter"><small>{plan.startDate ? `Início ${plan.startDate}` : 'Sem data definida'}</small><ChevronRight size={18}/></div></button>})}</div>}
-  </div>;
+// Retired fields are stripped when resuming older runs, preserving all other activity data.
+function withoutRetiredEffort(activity) {
+  const { rpe, prescribedRpe, ...rest } = activity || {};
+  return rest;
+}
+
+export function normaliseRunState(state = {}) {
+  const activities = Array.isArray(state?.activities) ? state.activities.map((activity, activityIndex) => ({
+    ...withoutRetiredEffort(activity),
+    activityIndex,
+    status: ['pending','active','completed','skipped'].includes(activity?.status) ? activity.status : 'pending',
+    sets: Array.isArray(activity?.sets) ? activity.sets.map((set, index) => ({
+      ...set,
+      index: Number(set?.index) || index + 1,
+      reps: Math.max(1, Number(set?.reps) || repsFromText(set?.plannedReps || activity?.plannedReps || '1')),
+      weightKg: set?.weightKg == null || set?.weightKg === '' ? null : asNumber(set.weightKg),
+      completed: set?.completed === true,
+    })) : [],
+  })) : [];
+
+  let currentIndex = Number(state?.currentIndex);
+  if (!Number.isInteger(currentIndex) || currentIndex < 0) currentIndex = 0;
+  if (activities.length) currentIndex = Math.min(currentIndex, activities.length - 1);
+
+  return {
+    version: Number(state?.version) || 1,
+    planTitle: state?.planTitle || 'Plano de treino',
+    sessionTitle: state?.sessionTitle || 'Treino',
+    planId: state?.planId || '',
+    sessionId: state?.sessionId || '',
+    blocks: Array.isArray(state?.blocks) ? state.blocks : [],
+    activities,
+    currentIndex,
+    rest: {
+      active: state?.rest?.active === true,
+      startedAt: state?.rest?.startedAt || null,
+      endsAt: state?.rest?.endsAt || null,
+      afterActivityIndex: state?.rest?.afterActivityIndex == null ? null : Number(state.rest.afterActivityIndex),
+    },
+    soundEnabled: state?.soundEnabled !== false,
+    createdAt: state?.createdAt || new Date().toISOString(),
+  };
+}
+
+export function mapWorkoutRun(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    planId: row.plan_id || '',
+    sessionId: row.session_id || '',
+    status: row.status,
+    mode: row.mode || 'guided',
+    workoutDate: row.workout_date,
+    planTitle: row.plan_title || '',
+    sessionTitle: row.session_title || '',
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+    cancelledAt: row.cancelled_at,
+    currentActivityIndex: Number(row.current_activity_index) || 0,
+    state: normaliseRunState(row.state || {}),
+    summary: row.summary || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function fetchActiveWorkoutRun(studentId) {
+  if (!studentId) return null;
+  const { data, error } = await supabase
+    .from('workout_runs')
+    .select('id,student_id,plan_id,session_id,status,mode,workout_date,plan_title,session_title,started_at,ended_at,cancelled_at,current_activity_index,state,summary,created_at,updated_at')
+    .eq('student_id', studentId)
+    .eq('status', 'active')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return mapWorkoutRun(data);
+}
+
+export async function fetchWorkoutRuns(studentId, { limit = 40 } = {}) {
+  if (!studentId) return [];
+  const { data, error } = await supabase
+    .from('workout_runs')
+    .select('id,student_id,plan_id,session_id,status,mode,workout_date,plan_title,session_title,started_at,ended_at,cancelled_at,current_activity_index,state,summary,created_at,updated_at')
+    .eq('student_id', studentId)
+    .order('started_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data || []).map(mapWorkoutRun);
+}
+
+export async function startWorkoutRun({ studentId, plan, session }) {
+  const initialState = buildWorkoutRunState(plan, session);
+  const { data, error } = await supabase.rpc('start_workout_run', {
+    target_student_id: studentId,
+    target_plan_id: plan?.id,
+    target_session_id: session?.id,
+    target_state: initialState,
+  });
+  if (error) throw error;
+  const active = await fetchActiveWorkoutRun(studentId);
+  if (!active) throw new Error('Não foi possível abrir o treino em curso.');
+  return active;
+}
+
+export async function saveWorkoutRunState(runId, mode, state) {
+  const cleanState = normaliseRunState(state);
+  const { error } = await supabase.rpc('save_workout_run_state', {
+    target_run_id: runId,
+    target_mode: mode || 'guided',
+    target_current_activity_index: cleanState.currentIndex || 0,
+    target_state: cleanState,
+  });
+  if (error) throw error;
+  return cleanState;
+}
+
+export async function cancelWorkoutRun(runId) {
+  const { error } = await supabase.rpc('cancel_workout_run', { target_run_id: runId });
+  if (error) throw error;
+}
+
+export async function completeWorkoutRun(runId, state, summary) {
+  const cleanState = normaliseRunState(state);
+  const { data, error } = await supabase.rpc('complete_workout_run', {
+    target_run_id: runId,
+    target_state: cleanState,
+    target_summary: summary || {},
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchWorkoutSetHistory(studentId, { limit = 1200 } = {}) {
+  if (!studentId) return [];
+  const { data, error } = await supabase
+    .from('workout_run_set_results')
+    .select('id,run_id,student_id,plan_id,session_id,workout_item_id,exercise_id,exercise_name,muscle_group,set_index,reps_completed,weight_kg,volume_kg,completed_on,created_at')
+    .eq('student_id', studentId)
+    .order('completed_on', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchLegacyWorkoutLoads(studentId, { limit = 1200 } = {}) {
+  if (!studentId) return [];
+  const { data, error } = await supabase
+    .from('workout_exercise_loads')
+    .select('id,student_id,plan_id,session_id,workout_item_id,exercise_id,exercise_name,muscle_group,weight_kg,sets_completed,reps_completed,volume_kg,completed_on,created_at')
+    .eq('student_id', studentId)
+    .order('completed_on', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+export function elapsedRunSeconds(run, now = Date.now()) {
+  if (!run?.startedAt) return 0;
+  const start = new Date(run.startedAt).getTime();
+  const end = run.endedAt ? new Date(run.endedAt).getTime() : now;
+  return Math.max(0, Math.floor((end - start) / 1000));
+}
+
+export function workoutRunSummary(state, elapsedSeconds = 0) {
+  const activities = state?.activities || [];
+  const completed = activities.filter(item => item.status === 'completed');
+  const skipped = activities.filter(item => item.status === 'skipped');
+  const pending = activities.filter(item => !['completed','skipped'].includes(item.status));
+  let volumeKg = 0;
+  let completedSets = 0;
+
+  completed.forEach(activity => {
+    (activity.sets || []).forEach(set => {
+      if (!set.completed) return;
+      completedSets += 1;
+      const weight = Number(set.weightKg);
+      const reps = Number(set.reps);
+      if (Number.isFinite(weight) && weight > 0 && Number.isFinite(reps) && reps > 0) volumeKg += weight * reps;
+    });
+  });
+
+  return {
+    durationSeconds: Math.max(0, Math.round(elapsedSeconds || 0)),
+    totalActivities: activities.length,
+    completedActivities: completed.length,
+    skippedActivities: skipped.length,
+    pendingActivities: pending.length,
+    completedSets,
+    completionPercent: activities.length ? Math.round((completed.length / activities.length) * 100) : 0,
+    volumeKg: Math.round(volumeKg * 10) / 10,
+  };
 }

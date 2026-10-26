@@ -179,7 +179,6 @@ function sortNestedPlan(row) {
               restSeconds: item.rest_seconds,
               tempo: item.tempo || '',
               loadText: item.load_text || '',
-              rpe: item.rpe == null ? null : Number(item.rpe),
               notes: item.notes || '',
               sortOrder: item.sort_order,
             })),
@@ -262,7 +261,7 @@ export async function fetchWorkoutPlans() {
         workout_blocks(
           id,block_type,title,rounds,rest_after_seconds,sort_order,
           workout_items(
-            id,exercise_id,custom_exercise_name,sort_order,sets,reps,duration_seconds,rest_seconds,tempo,load_text,rpe,notes,
+            id,exercise_id,custom_exercise_name,sort_order,sets,reps,duration_seconds,rest_seconds,tempo,load_text,notes,
             exercise_library(id,name,description,muscle_group,muscle_group_id,secondary_muscles,equipment,category,difficulty,instructions,media_path,media_kind,external_media_url,is_active,aliases,created_at,updated_at)
           )
         )
@@ -448,7 +447,6 @@ export async function saveWorkoutPlan(plan) {
           restSeconds: asNumber(item.restSeconds),
           tempo: item.tempo || '',
           loadText: item.loadText || '',
-          rpe: asNumber(item.rpe),
           notes: item.notes || '',
         })),
       })),

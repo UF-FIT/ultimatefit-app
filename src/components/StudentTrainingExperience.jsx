@@ -226,33 +226,6 @@ function VideoModal({ activity, onClose }) {
   </div>, document.body);
 }
 
-function RpeModal({ activity, initialValue = 5, onCancel, onSave }) {
-  const [value, setValue] = useState(initialValue || 5);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    if (!activity?.startedAt) return undefined;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [activity?.startedAt]);
-  if (!activity) return null;
-  const descriptor = value <= 2 ? 'MUITO LEVE' : value <= 4 ? 'LEVE' : value <= 6 ? 'MODERADO' : value <= 8 ? 'DIFÍCIL' : 'MUITO DIFÍCIL';
-  const activitySeconds = activity.startedAt ? Math.max(0, Math.floor((now - new Date(activity.startedAt).getTime()) / 1000)) : 0;
-  return createPortal(<div className="ufWorkoutModalBackdrop">
-    <div className="ufWorkoutRpeModal">
-      <div className="ufWorkoutRpeElapsed"><span></span><b>{formatDuration(activitySeconds)}</b></div>
-      <span className="ufWorkoutKicker">ATIVIDADE CONCLUÍDA</span>
-      <h2>Esforço percebido</h2>
-      <p>De 1 a 10, qual foi a tua perceção de esforço nesta atividade?</p>
-      <div className="ufWorkoutRpeValue"><b>{value}</b><span>{descriptor}</span></div>
-      <input type="range" min="1" max="10" step="1" value={value} onChange={event => setValue(Number(event.target.value))}/>
-      <div className="ufWorkoutModalActions">
-        <button type="button" className="secondary" onClick={onCancel}>Cancelar</button>
-        <button type="button" className="primary" onClick={() => onSave(value)}>Guardar</button>
-      </div>
-    </div>
-  </div>, document.body);
-}
-
 function HistoryModal({ activity, rows, onClose }) {
   if (!activity) return null;
   return createPortal(<div className="ufWorkoutModalBackdrop" onClick={onClose}>
@@ -457,7 +430,6 @@ function SummaryScreen({ run, state, elapsed, onBackToRun, onFinish, busy }) {
       <div><small>CONCLUÍDO</small><b>{summary.completionPercent}%</b></div>
       <div><small>ATIVIDADES</small><b>{summary.completedActivities}/{summary.totalActivities}</b></div>
       <div><small>SÉRIES</small><b>{summary.completedSets}</b></div>
-      <div><small>RPE MÉDIO</small><b>{summary.averageRpe ?? '—'}</b></div>
     </div>
     <button type="button" className="ufBigYellowButton" disabled={busy} onClick={()=>onFinish(summary)}>{busy?'A guardar…':'Finalizar treino'}</button>
   </div>;
@@ -554,7 +526,6 @@ function WorkoutRunner({
   const [menuOpen, setMenuOpen] = useState(false);
   const [video, setVideo] = useState(null);
   const [historyActivity, setHistoryActivity] = useState(null);
-  const [rpeRequest, setRpeRequest] = useState(null);
   const [quickSet, setQuickSet] = useState(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -677,15 +648,14 @@ function WorkoutRunner({
     const activity = activities[index];
     if (!activity || activity.status === 'completed') return;
     if (!completeAllSets && (activity.sets || []).length && !(activity.sets || []).every(set => set.completed)) return;
-    setRpeRequest({ index, completeAllSets });
+    finishActivity(index, completeAllSets);
   }
 
-  function finishActivity(index, rpe, completeAllSets = false) {
+  function finishActivity(index, completeAllSets = false) {
     const now = new Date();
     patchState(next => {
       const activity = next.activities[index];
       activity.status = 'completed';
-      activity.rpe = rpe;
       activity.completedAt = now.toISOString();
       if (completeAllSets) {
         (activity.sets || []).forEach(set => {
@@ -714,7 +684,6 @@ function WorkoutRunner({
         next.rest = { active:false, startedAt:null, endsAt:null, afterActivityIndex:null };
       }
     });
-    setRpeRequest(null);
     const after = activities.map((item,i)=>i===index?{...item,status:'completed'}:item);
     if (after.every(item => ['completed','skipped'].includes(item.status))) {
       window.setTimeout(()=>setSummaryOpen(true), 200);
@@ -847,12 +816,6 @@ function WorkoutRunner({
 
     <VideoModal activity={video} onClose={()=>setVideo(null)}/>
     <HistoryModal activity={historyActivity} rows={historyActivity?groupHistoryRows(historySets,legacyLoads,historyActivity):[]} onClose={()=>setHistoryActivity(null)}/>
-    {rpeRequest != null && <RpeModal
-      activity={activities[rpeRequest.index]}
-      initialValue={activities[rpeRequest.index]?.rpe || 5}
-      onCancel={()=>setRpeRequest(null)}
-      onSave={value=>finishActivity(rpeRequest.index,value,rpeRequest.completeAllSets)}
-    />}
     {quickSet && <QuickSetModal
       activity={activities[quickSet.activityIndex]}
       set={activities[quickSet.activityIndex]?.sets?.[quickSet.setIndex]}

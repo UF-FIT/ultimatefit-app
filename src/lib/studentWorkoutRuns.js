@@ -81,8 +81,6 @@ function activityFromItem(item, block, activityIndex, itemIndex = 0) {
     durationSeconds: Number(item?.durationSeconds) || 0,
     restSeconds,
     loadText: item?.loadText || '',
-    rpe: null,
-    prescribedRpe: item?.rpe == null ? null : Number(item.rpe),
     tempo: item?.tempo || '',
     status: 'pending',
     startedAt: null,
@@ -135,12 +133,17 @@ export function buildWorkoutRunState(plan, session) {
   };
 }
 
+// Retired fields are stripped when resuming older runs, preserving all other activity data.
+function withoutRetiredEffort(activity) {
+  const { rpe, prescribedRpe, ...rest } = activity || {};
+  return rest;
+}
+
 export function normaliseRunState(state = {}) {
   const activities = Array.isArray(state?.activities) ? state.activities.map((activity, activityIndex) => ({
-    ...activity,
+    ...withoutRetiredEffort(activity),
     activityIndex,
     status: ['pending','active','completed','skipped'].includes(activity?.status) ? activity.status : 'pending',
-    rpe: activity?.rpe == null ? null : Number(activity.rpe),
     sets: Array.isArray(activity?.sets) ? activity.sets.map((set, index) => ({
       ...set,
       index: Number(set?.index) || index + 1,
@@ -305,14 +308,8 @@ export function workoutRunSummary(state, elapsedSeconds = 0) {
   const pending = activities.filter(item => !['completed','skipped'].includes(item.status));
   let volumeKg = 0;
   let completedSets = 0;
-  let rpeTotal = 0;
-  let rpeCount = 0;
 
   completed.forEach(activity => {
-    if (Number.isFinite(Number(activity.rpe))) {
-      rpeTotal += Number(activity.rpe);
-      rpeCount += 1;
-    }
     (activity.sets || []).forEach(set => {
       if (!set.completed) return;
       completedSets += 1;
@@ -331,6 +328,5 @@ export function workoutRunSummary(state, elapsedSeconds = 0) {
     completedSets,
     completionPercent: activities.length ? Math.round((completed.length / activities.length) * 100) : 0,
     volumeKg: Math.round(volumeKg * 10) / 10,
-    averageRpe: rpeCount ? Math.round((rpeTotal / rpeCount) * 10) / 10 : null,
   };
 }

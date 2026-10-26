@@ -114,11 +114,11 @@ body.ufWorkoutImmersiveOpen{overflow:hidden}
 
 .ufWorkoutModalBackdrop{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(5px)}
 .ufWorkoutModalBackdrop.dark{background:rgba(0,0,0,.82)}
-.ufWorkoutVideoModal,.ufWorkoutRpeModal,.ufWorkoutHistoryModal,.ufWorkoutQuickSetModal,.ufWorkoutRestModal{position:relative;width:min(100%,560px);max-height:min(88vh,820px);overflow:auto;padding:24px;border:1px solid #242529;border-radius:24px;background:#141416;color:#fff}
+.ufWorkoutVideoModal,.ufWorkoutHistoryModal,.ufWorkoutQuickSetModal,.ufWorkoutRestModal{position:relative;width:min(100%,560px);max-height:min(88vh,820px);overflow:auto;padding:24px;border:1px solid #242529;border-radius:24px;background:#141416;color:#fff}
 .ufWorkoutModalClose{position:absolute;right:16px;top:16px;width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center;cursor:pointer}.ufWorkoutModalClose.static{position:static}
-.ufWorkoutVideoModal h2,.ufWorkoutRpeModal h2,.ufWorkoutHistoryModal h2,.ufWorkoutQuickSetModal h2{margin:6px 0 16px}.ufWorkoutVideoMedia{min-height:220px;border-radius:16px;overflow:hidden;background:#09090a}.ufWorkoutVideoModal>p{color:#bbb;font-size:12px;line-height:1.5}
-.ufWorkoutRpeModal{text-align:center}.ufWorkoutRpeElapsed{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;margin:-2px 0 16px}.ufWorkoutRpeElapsed>span{height:6px;border-radius:6px;background:linear-gradient(90deg,#ffd908 34%,#232427 34%)}.ufWorkoutRpeElapsed>b{font-size:13px}.ufWorkoutRpeModal>p{color:#d2d2d4;line-height:1.5}.ufWorkoutRpeValue{width:118px;height:118px;margin:20px auto;display:grid;place-items:center;align-content:center;border-radius:50%;border:8px solid #fff;background:#788474;color:#fff}.ufWorkoutRpeValue b{font-size:38px}.ufWorkoutRpeValue span{font-size:10px;font-weight:900;letter-spacing:.06em}
-.ufWorkoutRpeModal input[type="range"]{width:100%;accent-color:#ffd908}
+.ufWorkoutVideoModal h2,.ufWorkoutHistoryModal h2,.ufWorkoutQuickSetModal h2{margin:6px 0 16px}.ufWorkoutVideoMedia{min-height:220px;border-radius:16px;overflow:hidden;background:#09090a}.ufWorkoutVideoModal>p{color:#bbb;font-size:12px;line-height:1.5}
+
+
 .ufWorkoutModalActions{display:grid;grid-template-columns:1fr 1.25fr;gap:10px;margin-top:22px}.ufWorkoutModalActions button{min-height:48px;border-radius:16px;font:inherit;font-weight:800;cursor:pointer}.ufWorkoutModalActions .secondary{border:1px solid #aaa;background:transparent;color:#fff}.ufWorkoutModalActions .primary{border:0;background:#ffd908;color:#080808}
 .ufWorkoutHistoryHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.ufWorkoutHistoryDays{display:grid;gap:10px}.ufWorkoutHistoryDay{padding:13px;border-radius:13px;background:#0b0b0d}.ufWorkoutHistoryDay>b{display:block;margin-bottom:7px;color:#a7aa9e;font-size:10px}.ufWorkoutHistoryDay>div{display:flex;flex-wrap:wrap;gap:7px}.ufWorkoutHistoryDay span{padding:6px 8px;border-radius:8px;background:#1b1c1f;font-size:10px}.ufWorkoutEmptyHistory{padding:25px;text-align:center;color:#8a8b91}
 .ufWorkoutQuickSetFields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ufWorkoutQuickSetFields label{display:grid;gap:6px;color:#aaa;font-size:10px}.ufWorkoutQuickSetFields input{height:48px;border:1px solid #555b52;border-radius:13px;background:#0b0b0d;color:#fff;padding:0 12px;font:inherit;font-size:15px}
@@ -172,7 +172,7 @@ body.ufWorkoutImmersiveOpen{overflow:hidden}
   .ufSimplifiedSetChips{gap:7px}.ufSimplifiedSetChips button{min-height:43px;padding:0 10px;font-size:10px}
   .ufSimplifiedRestCard{padding:22px 14px;border-radius:18px}
   .ufSimplifiedFooter{padding:10px 14px max(14px,env(safe-area-inset-bottom))}
-  .ufWorkoutModalBackdrop{padding:12px}.ufWorkoutVideoModal,.ufWorkoutRpeModal,.ufWorkoutHistoryModal,.ufWorkoutQuickSetModal,.ufWorkoutRestModal{padding:20px;border-radius:20px}
+  .ufWorkoutModalBackdrop{padding:12px}.ufWorkoutVideoModal,.ufWorkoutHistoryModal,.ufWorkoutQuickSetModal,.ufWorkoutRestModal{padding:20px;border-radius:20px}
   .ufWorkoutRestRing{width:165px;height:165px}.ufWorkoutRestRing b{font-size:34px}
   .ufWorkoutSummaryScreen{padding:16px 14px 100px}.ufWorkoutSummaryGrid{grid-template-columns:repeat(2,1fr)}
 }
