@@ -276,20 +276,23 @@ function RestView({ rest, activity, nextActivity, simplified = false, onSkip }) 
   const remaining = Math.max(0, Math.ceil((new Date(rest.endsAt).getTime() - now) / 1000));
   const total = Math.max(1, Math.round((new Date(rest.endsAt).getTime() - new Date(rest.startedAt || Date.now()).getTime()) / 1000));
   const progress = Math.max(0, Math.min(100, (remaining / total) * 100));
+  const betweenSets = rest.kind === 'set';
+  const nextSet = betweenSets ? activity?.sets?.[rest.nextSetIndex] : null;
 
   if (simplified) return <div className="ufSimplifiedRestCard">
     <button type="button" onClick={onSkip} aria-label="Pular intervalo"><X/></button>
     <b>{formatDuration(remaining)}</b>
     <div className="ufSimplifiedRestTrack"><span style={{ width: `${progress}%` }}/></div>
-    <span>Pausa para a próxima atividade</span>
+    <span>{betweenSets ? `Pausa para a série ${nextSet?.index || (rest.nextSetIndex + 1)}` : 'Pausa para a próxima atividade'}</span>
   </div>;
 
   return createPortal(<div className="ufWorkoutModalBackdrop dark">
     <div className="ufWorkoutRestModal">
-      <h2>Intervalo</h2>
-      <p>Tempo de espera para a próxima atividade</p>
+      <h2>{betweenSets ? 'Descanso entre séries' : 'Intervalo'}</h2>
+      <p>{betweenSets ? 'Recupera antes de começar a próxima série' : 'Tempo de espera para a próxima atividade'}</p>
       <div className="ufWorkoutRestRing" style={{ '--rest-progress': `${progress * 3.6}deg` }}><b>{formatDuration(remaining)}</b></div>
-      {nextActivity && <div className="ufWorkoutNextActivity"><b>Próxima atividade</b><span>{nextActivity.group || 'TREINO'}</span><strong>{nextActivity.name}</strong></div>}
+      {betweenSets ? <div className="ufWorkoutNextActivity"><b>Próxima série · {nextSet?.index || (rest.nextSetIndex + 1)}</b><strong>{activity?.name}</strong></div>
+        : nextActivity && <div className="ufWorkoutNextActivity"><b>Próxima atividade</b><span>{nextActivity.group || 'TREINO'}</span><strong>{nextActivity.name}</strong></div>}
       <button type="button" className="primary full" onClick={onSkip}>Pular</button>
     </div>
   </div>, document.body);
@@ -638,9 +641,30 @@ function WorkoutRunner({
 
   function toggleSet(activityIndex, setIndex) {
     patchState(next => {
-      const set = next.activities[activityIndex].sets[setIndex];
+      const activity = next.activities[activityIndex];
+      const set = activity.sets[setIndex];
+      const now = new Date();
       set.completed = !set.completed;
-      set.completedAt = set.completed ? new Date().toISOString() : null;
+      set.completedAt = set.completed ? now.toISOString() : null;
+      if (!set.completed) {
+        if (next.rest?.kind === 'set' && next.rest.afterActivityIndex === activityIndex && next.rest.afterSetIndex === setIndex) {
+          next.rest = { active:false, startedAt:null, endsAt:null, afterActivityIndex:null };
+        }
+        return;
+      }
+      const following = activity.sets.findIndex((item, index) => index > setIndex && !item.completed);
+      const nextSetIndex = following >= 0 ? following : activity.sets.findIndex(item => !item.completed);
+      if (nextSetIndex >= 0 && activity.restSeconds > 0) {
+        next.rest = {
+          active: true,
+          kind: 'set',
+          startedAt: now.toISOString(),
+          endsAt: new Date(now.getTime() + activity.restSeconds * 1000).toISOString(),
+          afterActivityIndex: activityIndex,
+          afterSetIndex: setIndex,
+          nextSetIndex,
+        };
+      }
     });
   }
 

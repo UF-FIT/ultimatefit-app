@@ -171,6 +171,11 @@ export function normaliseRunState(state = {}) {
       startedAt: state?.rest?.startedAt || null,
       endsAt: state?.rest?.endsAt || null,
       afterActivityIndex: state?.rest?.afterActivityIndex == null ? null : Number(state.rest.afterActivityIndex),
+      ...(state?.rest?.kind === 'set' ? {
+        kind: 'set',
+        afterSetIndex: Number(state.rest.afterSetIndex),
+        nextSetIndex: Number(state.rest.nextSetIndex),
+      } : {}),
     },
     soundEnabled: state?.soundEnabled !== false,
     createdAt: state?.createdAt || new Date().toISOString(),

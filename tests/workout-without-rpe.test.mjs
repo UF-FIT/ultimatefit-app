@@ -14,7 +14,7 @@ function flow(activities) {
   const context = { activities, state, summary: false, Date, patchState: fn => fn(state), setSummaryOpen: value => { context.summary = value; }, window: { setTimeout: fn => fn() } };
   vm.createContext(context);
   // Execute the actual event handlers without rendering or touching production data.
-  vm.runInContext(runner.slice(runner.indexOf('  function requestComplete('), runner.indexOf('  function skipActivity(')), context);
+  vm.runInContext(runner.slice(runner.indexOf('  function toggleSet('), runner.indexOf('  function skipActivity(')), context);
   return context;
 }
 test('guided mode completes directly, retains series values and starts rest/next activity', () => {
@@ -77,4 +77,40 @@ test('new runs do not carry prescribed or reported RPE', () => {
   assert.equal(state.activities[0].sets[0].weightKg, 20);
   assert.ok(!('rpe' in state.activities[0]));
   assert.ok(!('prescribedRpe' in state.activities[0]));
+});
+
+test('checking a set starts the prescribed rest without advancing the exercise', () => {
+  const first = activity({ sets: [{ index:1, reps:12, weightKg:20, completed:false }, { index:2, reps:10, weightKg:25, completed:false }] });
+  const ctx = flow([first]);
+  ctx.toggleSet(0, 0);
+  assert.equal(first.sets[0].completed, true);
+  assert.equal(first.sets[0].weightKg, 20);
+  assert.equal(first.sets[1].completed, false);
+  assert.equal(ctx.state.currentIndex, 0);
+  assert.equal(ctx.state.rest.kind, 'set');
+  assert.equal(ctx.state.rest.nextSetIndex, 1);
+  assert.equal(new Date(ctx.state.rest.endsAt) - new Date(ctx.state.rest.startedAt), 45000);
+  const resumed = module.normaliseRunState(ctx.state);
+  assert.deepEqual(resumed.rest, structuredClone(ctx.state.rest));
+});
+test('unchecking a set cancels its rest instead of starting another timer', () => {
+  const ctx = flow([activity({ sets: [{ completed:false }, { completed:false }] })]);
+  ctx.toggleSet(0, 0);
+  ctx.toggleSet(0, 0);
+  assert.equal(ctx.state.rest.active, false);
+  assert.equal(ctx.state.activities[0].sets[0].completedAt, null);
+});
+test('last set does not duplicate the between-exercise rest', () => {
+  const ctx = flow([activity({ sets: [{ completed:false }] }), activity({ status:'pending' })]);
+  ctx.toggleSet(0, 0);
+  assert.ok(!ctx.state.rest.active);
+  ctx.requestComplete(0, false);
+  assert.equal(ctx.state.rest.active, true);
+  assert.notEqual(ctx.state.rest.kind, 'set');
+  assert.equal(ctx.state.currentIndex, 1);
+});
+test('zero-rest activities do not start a set timer', () => {
+  const ctx = flow([activity({ restSeconds:0, sets: [{ completed:false }, { completed:false }] })]);
+  ctx.toggleSet(0, 0);
+  assert.ok(!ctx.state.rest.active);
 });
