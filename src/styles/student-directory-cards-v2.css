@@ -135,3 +135,12 @@
 .studentDirectoryCard.ultimateStudentsListItem>.secondary.full{display:none!important}
 .studentDirectoryCard.ultimateStudentsListItem .studentSelect{position:static!important;transform:none!important;flex:0 0 24px!important;margin-left:auto!important}
 @media(max-width:600px){.ultimateStudentsHeader{margin-top:0;margin-bottom:18px}.ultimateStudentsHeader h1{font-size:26px}.ultimateStudentsActions{gap:6px}.ultimateStudentsAdd{width:48px;height:48px}.studentDirectoryCard.ultimateStudentsListItem{min-height:80px!important;padding:12px 14px!important}}
+
+
+/* Fix mobile student row width and stable element order */
+.studentDirectoryGrid{width:100%!important;align-items:stretch!important}
+.studentDirectoryCard.ultimateStudentsListItem{box-sizing:border-box!important;width:100%!important;max-width:none!important;align-self:stretch!important;min-width:0!important;justify-content:flex-start!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentPhoto{order:1!important;flex-shrink:0!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity{order:2!important;min-width:0!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity h3{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentSelect{order:3!important;margin-left:auto!important;flex-shrink:0!important}
