@@ -111,3 +111,27 @@
     font-weight:800!important;
   }
 }
+
+
+/* Minimal teacher student directory */
+.ultimateStudentsHeader{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:4px 0 22px}
+.ultimateStudentsHeader h1{margin:0;color:#fff;font-size:clamp(24px,5vw,36px);line-height:1.15;font-weight:750;letter-spacing:.01em;text-transform:none}
+.ultimateStudentsActions{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.ultimateStudentsSearchToggle,.ultimateStudentsAdd{display:flex;align-items:center;justify-content:center;border:0;cursor:pointer;flex-shrink:0}
+.ultimateStudentsSearchToggle{width:44px;height:48px;background:transparent;color:#bdbdc2}
+.ultimateStudentsAdd{width:52px;height:52px;border-radius:14px;background:#ffd908;color:#080808}
+.ultimateStudentsSearch{display:flex;align-items:center;gap:12px;padding:11px 14px;margin:0 0 16px;background:#141416;border:1px solid #343439;border-radius:14px;color:#aaa}
+.ultimateStudentsSearch input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:#fff;font-size:16px}
+.ultimateStudentsSearch button{border:0;background:transparent;color:#aaa;cursor:pointer}
+.studentDirectoryGrid{display:flex!important;flex-direction:column!important;gap:12px!important}
+.studentDirectoryCard.ultimateStudentsListItem{display:flex!important;flex-direction:row!important;align-items:center!important;gap:15px!important;min-height:86px!important;padding:14px 18px!important;border-radius:20px!important;cursor:pointer}
+.studentDirectoryCard.ultimateStudentsListItem .studentPhoto{flex:0 0 58px!important;width:58px!important;height:58px!important;margin:0!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity{display:flex!important;flex:1!important;min-width:0!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity h3{order:2!important;font-size:19px!important;margin:3px 0 0!important;text-align:left!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity p,.studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity small{display:none!important}
+.ultimateStudentsStatus{order:1;display:flex;align-items:center;gap:8px;font-size:13px;color:#aaa}
+.ultimateStudentsStatus i{display:block;width:9px;height:9px;border-radius:50%;background:#ed796d}
+.ultimateStudentsStatus i.active{background:#25c5a6}
+.studentDirectoryCard.ultimateStudentsListItem>.secondary.full{display:none!important}
+.studentDirectoryCard.ultimateStudentsListItem .studentSelect{position:static!important;transform:none!important;flex:0 0 24px!important;margin-left:auto!important}
+@media(max-width:600px){.ultimateStudentsHeader{margin-top:0;margin-bottom:18px}.ultimateStudentsHeader h1{font-size:26px}.ultimateStudentsActions{gap:6px}.ultimateStudentsAdd{width:48px;height:48px}.studentDirectoryCard.ultimateStudentsListItem{min-height:80px!important;padding:12px 14px!important}}
