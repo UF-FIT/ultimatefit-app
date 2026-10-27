@@ -104,10 +104,12 @@ function Shell(){
  useEffect(()=>{
   if(challengeHost||currentUser.role!=='aluno')return;
   const path=(location.pathname||'/').toLowerCase().replace(/\/+$/,'')||'/';
-  if(path==='/'||path==='/dashboard') routeNavigate('/inicio',{replace:true});
+  if(path==='/'||path==='/dashboard'||path.startsWith('/alunos')||path.startsWith('/backoffice')||path.startsWith('/biblioteca')) routeNavigate('/inicio',{replace:true});
  },[challengeHost,currentUser.role,location.pathname,routeNavigate]);
  const pathResolved=routeFromPath(location.pathname,currentUser.role);
- const resolved=challengeHost?(pathResolved.page==='challenges'?pathResolved:{page:'challenges',context:{}}):pathResolved;
+ const studentRestrictedPages=new Set(['students','trainers','exercises','settings']);
+ const studentBlocked=currentUser.role==='aluno'&&studentRestrictedPages.has(pathResolved.page);
+ const resolved=challengeHost?(pathResolved.page==='challenges'?pathResolved:{page:'challenges',context:{}}):(studentBlocked?{page:'dashboard',context:{}}:pathResolved);
  const page=resolved.page;
  const pageContext=location.state?.pageContext||resolved.context||{};
  const navigate=(key,context={})=>{
@@ -127,6 +129,8 @@ function Shell(){
 }
 
 function PageRouter({page,context,onNavigate}){
+ const {currentUser}=useApp();
+ if(currentUser.role==='aluno'&&['students','trainers','exercises','settings'].includes(page)) return <Dashboard onNavigate={onNavigate}/>;
  const map={dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
