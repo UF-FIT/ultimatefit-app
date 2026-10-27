@@ -270,6 +270,7 @@ export async function completeWorkoutRun(runId, state, summary) {
     target_summary: summary || {},
   });
   if (error) throw error;
+  if (typeof data !== 'string' || !data) throw new Error('O servidor não confirmou o registo do treino.');
   return data;
 }
 

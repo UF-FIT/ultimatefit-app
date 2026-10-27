@@ -415,17 +415,18 @@ function PlanDetail({ plan, selectedSessionId, activeRun, completions = [], onBa
   </div>;
 }
 
-function SummaryScreen({ run, state, elapsed, onBackToRun, onFinish, busy }) {
+function SummaryScreen({ run, state, elapsed, onBackToRun, onFinish, busy, error }) {
   const summary = workoutRunSummary(state, elapsed);
   return <div className="ufWorkoutSummaryScreen">
-    <button type="button" className="ufRoundBack dark" onClick={onBackToRun}><ArrowLeft/></button>
+    <button type="button" className="ufRoundBack dark" disabled={busy} onClick={onBackToRun}><ArrowLeft/></button>
     <div className="ufWorkoutSummaryMedal"><CheckCircle2/></div>
-    <h1>Treino completo!</h1>
+    <h1>{busy ? 'A guardar o treino…' : 'Resumo do treino'}</h1>
+    <p>A conclusão só fica registada depois de guardar com sucesso.</p>
     <p>{run?.planTitle || state.planTitle}</p>
     <div className="ufWorkoutSummaryInsight">
       <span>RESUMO DO TREINO</span>
       <strong>{summary.completionPercent}% concluído em {formatDuration(summary.durationSeconds)}</strong>
-      <p>{summary.volumeKg > 0 ? `${formatKg(summary.volumeKg)} kg de volume registado.` : 'Treino registado sem volume de carga calculável.'}</p>
+      <p>{summary.volumeKg > 0 ? `${formatKg(summary.volumeKg)} kg de volume a guardar.` : 'Sem volume de carga calculável.'}</p>
     </div>
     <div className="ufWorkoutSummaryGrid">
       <div><small>DURAÇÃO</small><b>{formatDuration(summary.durationSeconds)}</b></div>
@@ -434,7 +435,8 @@ function SummaryScreen({ run, state, elapsed, onBackToRun, onFinish, busy }) {
       <div><small>ATIVIDADES</small><b>{summary.completedActivities}/{summary.totalActivities}</b></div>
       <div><small>SÉRIES</small><b>{summary.completedSets}</b></div>
     </div>
-    <button type="button" className="ufBigYellowButton" disabled={busy} onClick={()=>onFinish(summary)}>{busy?'A guardar…':'Finalizar treino'}</button>
+    {error && <div className="errorBanner" role="alert">{error}</div>}
+    <button type="button" className="ufBigYellowButton" disabled={busy} onClick={()=>onFinish(summary)}>{busy?'A guardar…':error?'Tentar guardar novamente':'Concluir e guardar treino'}</button>
   </div>;
 }
 
@@ -531,6 +533,9 @@ function WorkoutRunner({
   const [historyActivity, setHistoryActivity] = useState(null);
   const [quickSet, setQuickSet] = useState(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [completionError, setCompletionError] = useState('');
+  const finalising = useRef(false);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(()=>elapsedRunSeconds(run));
   const saveTimer = useRef(null);
@@ -565,7 +570,10 @@ function WorkoutRunner({
     if (!run?.id) return undefined;
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      saveWorkoutRunState(run.id, mode, state).catch(error => console.warn('Não foi possível sincronizar o treino em curso.', error));
+      if (finalising.current) return;
+      saveWorkoutRunState(run.id, mode, state)
+        .then(() => { if (!finalising.current) setSaveError(''); })
+        .catch(() => { if (!finalising.current) setSaveError('Não foi possível sincronizar o progresso. Mantém este ecrã aberto e verifica a ligação.'); });
     }, 500);
     return () => window.clearTimeout(saveTimer.current);
   }, [run?.id, mode, state]);
@@ -573,8 +581,9 @@ function WorkoutRunner({
   useEffect(() => {
     if (!run?.id) return undefined;
     const flush = () => {
+      if (finalising.current) return;
       window.clearTimeout(saveTimer.current);
-      saveWorkoutRunState(run.id, mode, state).catch(() => {});
+      saveWorkoutRunState(run.id, mode, state).catch(() => setSaveError('Não foi possível sincronizar o progresso. Verifica a ligação antes de sair.'));
     };
     const visibility = () => { if (document.hidden) flush(); };
     window.addEventListener('pagehide', flush);
@@ -626,6 +635,7 @@ function WorkoutRunner({
   const canCompleteCurrent = Boolean(current) && currentSetsComplete;
 
   function patchState(mutator) {
+    if (finalising.current) return;
     setState(currentState => {
       const next = cloneValue(currentState);
       mutator(next);
@@ -747,24 +757,32 @@ function WorkoutRunner({
   }
 
   async function exitToHome() {
+    if (finalising.current) return;
     window.clearTimeout(saveTimer.current);
     try {
       if (run?.id) await saveWorkoutRunState(run.id, mode, state);
-    } catch (error) {
-      console.warn('Não foi possível sincronizar o treino antes de sair.', error);
-    } finally {
       onExitToHome();
+    } catch (error) {
+      setSaveError('Não foi possível guardar o progresso. Verifica a ligação e tenta sair novamente.');
     }
   }
 
   async function finalise(summary) {
+    if (finalising.current) return;
+    finalising.current = true;
+    window.clearTimeout(saveTimer.current);
+    setSummaryOpen(true);
+    setCompletionError('');
     setBusy(true);
     try {
       await completeWorkoutRun(run.id, state, summary);
-      onRunCompleted(summary);
     } catch (error) {
-      window.alert(error.message || 'Não foi possível concluir o treino.');
-    } finally { setBusy(false); }
+      setCompletionError(`Não foi possível confirmar a conclusão. O progresso continua neste ecrã. Verifica a ligação e tenta novamente. ${error.message || ''}`);
+      finalising.current = false;
+      setBusy(false);
+      return;
+    }
+    await onRunCompleted(summary);
   }
 
   const menu = <div className="ufWorkoutMoreMenu">
@@ -776,7 +794,7 @@ function WorkoutRunner({
     <button type="button" className="ufWorkoutCircleButton" onClick={exitToHome}><ArrowLeft/></button>
     <div className="ufWorkoutTopRight">
       <button type="button" className="ufWorkoutCircleButton sound" onClick={()=>patchState(next=>{next.soundEnabled=!next.soundEnabled;})}>{state.soundEnabled?<Volume2/>:<VolumeX/>}</button>
-      <button type="button" className="ufWorkoutEndButton" onClick={()=>setSummaryOpen(true)}><Check/>Encerrar</button>
+      <button type="button" className="ufWorkoutEndButton" disabled={busy} onClick={()=>finalise(workoutRunSummary(state, elapsed))}><Check/>Concluir treino</button>
       <div className="ufWorkoutMenuWrap">
         <button type="button" className="ufWorkoutCircleButton" onClick={()=>setMenuOpen(value=>!value)}><MoreVertical/></button>
         {menuOpen && menu}
@@ -786,6 +804,7 @@ function WorkoutRunner({
 
   const runner = <div className={cx('ufWorkoutRunner', mode==='simplified' && 'simplified')}>
     {topControls}
+    {saveError && <div className="errorBanner" role="alert">{saveError}</div>}
     {mode === 'guided' ? <>
       <GuidedActivity
         activity={current}
@@ -846,7 +865,7 @@ function WorkoutRunner({
       onClose={()=>setQuickSet(null)}
       onSave={patch=>{patchSet(quickSet.activityIndex,quickSet.setIndex,patch);setQuickSet(null);}}
     />}
-    {summaryOpen && <SummaryScreen run={run} state={state} elapsed={elapsed} busy={busy} onBackToRun={()=>setSummaryOpen(false)} onFinish={finalise}/>}
+    {summaryOpen && <SummaryScreen run={run} state={state} elapsed={elapsed} busy={busy} error={completionError} onBackToRun={()=>setSummaryOpen(false)} onFinish={finalise}/>}
   </div>;
 
   return createPortal(runner, document.body);
@@ -899,9 +918,9 @@ export default function StudentTrainingExperience({ student, plans = [], complet
     let cancelled = false;
     Promise.all([
       fetchActiveWorkoutRun(studentId),
-      fetchWorkoutSetHistory(studentId).catch(()=>[]),
-      fetchLegacyWorkoutLoads(studentId).catch(()=>[]),
-      fetchWorkoutRuns(studentId, { limit: 120 }).catch(()=>[]),
+      fetchWorkoutSetHistory(studentId),
+      fetchLegacyWorkoutLoads(studentId),
+      fetchWorkoutRuns(studentId, { limit: 120 }),
     ]).then(([run, sets, legacy, runs]) => {
       if (cancelled) return;
       setActiveRun(run);
@@ -917,9 +936,9 @@ export default function StudentTrainingExperience({ student, plans = [], complet
   async function reloadRunData() {
     const [run, sets, legacy, runs] = await Promise.all([
       fetchActiveWorkoutRun(studentId),
-      fetchWorkoutSetHistory(studentId).catch(()=>[]),
-      fetchLegacyWorkoutLoads(studentId).catch(()=>[]),
-      fetchWorkoutRuns(studentId, { limit: 120 }).catch(()=>[]),
+      fetchWorkoutSetHistory(studentId),
+      fetchLegacyWorkoutLoads(studentId),
+      fetchWorkoutRuns(studentId, { limit: 120 }),
     ]);
     setActiveRun(run);
     setHistorySets(sets);
@@ -958,8 +977,14 @@ export default function StudentTrainingExperience({ student, plans = [], complet
     setView('home');
     setActiveRun(null);
     window.dispatchEvent(new Event('uf:exercise-load-saved'));
-    await onRefreshTraining?.();
-    await reloadRunData();
+    setSelectedDate(activeRun.workoutDate);
+    try {
+      const refreshed = await onRefreshTraining?.();
+      if (refreshed?.error) throw refreshed.error;
+      await reloadRunData();
+    } catch (err) {
+      setError('O treino foi guardado, mas não foi possível atualizar o calendário. Atualiza a página para consultar o registo.');
+    }
   }
 
   const dayCompletion = completions.find(item=>item.completedOn===selectedDate);

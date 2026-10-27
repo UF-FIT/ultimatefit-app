@@ -102,7 +102,7 @@ export function AppProvider({children}){
   if(!profile){setData(d=>({...d,exercises:[],muscleGroups:[],blockTypes:[],plans:[],workoutCompletions:[]}));setTrainingLoading(false);return {exercises:[],muscleGroups:[],blockTypes:[],plans:[],workoutCompletions:[]}}
   setTrainingLoading(true);setTrainingError('');
   try{const [exercises,muscleGroups,blockTypes,plans,workoutCompletions]=await Promise.all([fetchExercises(),fetchMuscleGroups(),fetchWorkoutBlockTypes(),fetchWorkoutPlans(),fetchWorkoutCompletions()]);setData(d=>({...d,exercises,muscleGroups,blockTypes,plans,workoutCompletions}));return {exercises,muscleGroups,blockTypes,plans,workoutCompletions};}
-  catch(error){setTrainingError(error.message||'Não foi possível carregar os planos e a biblioteca de exercícios.');return {exercises:[],muscleGroups:[],blockTypes:[],plans:[],workoutCompletions:[]};}
+  catch(error){setTrainingError(error.message||'Não foi possível carregar os planos e a biblioteca de exercícios.');return {error,exercises:[],muscleGroups:[],blockTypes:[],plans:[],workoutCompletions:[]};}
   finally{setTrainingLoading(false)}
  }
  async function refreshCommunity(){
