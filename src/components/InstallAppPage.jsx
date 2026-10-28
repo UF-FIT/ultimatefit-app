@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {CheckCircle2,Download,ExternalLink,PlusSquare,Share2,Smartphone} from 'lucide-react';
+import {CheckCircle2,Download,ExternalLink} from 'lucide-react';
 import BrandLogo from './BrandLogo';
 
 function detectPlatform(){
@@ -56,31 +56,34 @@ export default function InstallAppPage(){
 
   return <main className="installAppPage">
     <section className="installAppCard">
-      <div className="installBrand"><BrandLogo/><span>APP</span></div>
-      <div className="installIcon"><Smartphone/></div>
-      <span className="installEyebrow">ULTIMATE FIT NO TEU TELEMÓVEL</span>
-      <h1>Instala a ULTIMATE FIT</h1>
-      <p className="installLead">Acesso rápido ao teu treino, avaliações, atividades e desafios diretamente a partir do ecrã principal.</p>
+      <div className="installBrand"><BrandLogo/></div>
+      <h1>Instalar a app</h1>
+      <p className="installLead">O teu treino à distância de um toque.</p>
 
-      {installed?<div className="installSuccess"><CheckCircle2/><div><b>A ULTIMATE FIT já está instalada</b><span>Podes abrir a app a partir do teu ecrã principal.</span></div></div>:
+      {installed?<div className="installSuccess" role="status"><CheckCircle2/><div><b>App instalada</b><span>Abre-a no ecrã principal.</span></div></div>:
       platform==='ios'?<div className="installInstructions iosInstructions">
-        <h2>Instalar no iPhone</h2>
-        <div className="installStep"><span>1</span><Share2/><div><b>Carrega em Partilhar</b><small>Usa o botão de partilha do navegador.</small></div></div>
-        <div className="installStep"><span>2</span><PlusSquare/><div><b>Adicionar ao ecrã principal</b><small>Escolhe esta opção no menu.</small></div></div>
-        <div className="installStep"><span>3</span><CheckCircle2/><div><b>Carrega em Adicionar</b><small>O ícone ULTIMATE FIT ficará no teu iPhone.</small></div></div>
+        <h2>No iPhone ou iPad</h2>
+        <ol className="installSteps">
+          <li>Toca em <b>Partilhar</b> no navegador.</li>
+          <li>Escolhe <b>Adicionar ao ecrã principal</b>.</li>
+          <li>Confirma em <b>Adicionar</b>.</li>
+        </ol>
       </div>:
       <div className="installInstructions">
-        {installPrompt&&<button className="installPrimary" onClick={install} disabled={installing}><Download/>{installing?'A abrir instalador…':'Instalar ULTIMATE FIT'}</button>}
+        {installPrompt&&<button className="installPrimary" onClick={install} disabled={installing}><Download/>{installing?'A abrir…':'Instalar app'}</button>}
         {!installPrompt&&<>
-          <h2>Instalar a aplicação</h2>
-          <div className="installStep"><span>1</span><Download/><div><b>Abre o menu do navegador</b><small>No Chrome procura “Instalar app” ou “Adicionar ao ecrã principal”.</small></div></div>
-          <div className="installStep"><span>2</span><CheckCircle2/><div><b>Confirma a instalação</b><small>A ULTIMATE FIT passa a aparecer como uma app.</small></div></div>
+          <h2>{platform==='android'?'No Android':'No navegador'}</h2>
+          <ol className="installSteps">
+            <li>Abre o <b>menu do navegador</b>.</li>
+            <li>Escolhe <b>Instalar app</b> ou <b>Adicionar ao ecrã principal</b>.</li>
+            <li>Confirma a instalação.</li>
+          </ol>
         </>}
       </div>}
 
-      {message&&<div className="installMessage">{message}</div>}
-      <a className="installOpenApp" href="/inicio"><ExternalLink/>Abrir ULTIMATE FIT</a>
-      <p className="installFootnote">Não precisas de descarregar nada da App Store ou Google Play.</p>
+      {message&&<div className="installMessage" role="status">{message}</div>}
+      <a className="installOpenApp" href="/inicio"><ExternalLink/>Abrir app</a>
+      <p className="installFootnote">Sem App Store ou Google Play.</p>
     </section>
   </main>;
 }
