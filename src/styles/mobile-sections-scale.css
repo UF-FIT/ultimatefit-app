@@ -33,6 +33,17 @@
   .appShell .content .trainingViewer .trainingPlanHero { padding:14px!important; }
   .appShell .content .trainingViewer .trainingPlanHero h1 { font-size:26px!important; line-height:1.15!important; }
   .appShell .content .trainingViewer .trainingSessionTitle h2 { font-size:20px!important; }
+  /* Keep the accordion control in the layout, beside the workout icon.
+     Absolute positioning used to put both controls in the same space. */
+  .appShell .content .trainingViewer .trainingSessionView > .trainingSessionTitle.ufAccordionHeader { gap:8px; padding-right:12px!important; }
+  .appShell .content .trainingViewer .trainingSessionTitle > div { flex:1; min-width:0; }
+  .appShell .content .trainingViewer .trainingSessionTitle > svg { flex:0 0 20px; width:20px!important; height:20px!important; }
+  .appShell .content .trainingViewer .trainingSessionTitle > .ufAccordionChevron {
+    position:static!important; flex:0 0 28px; width:28px!important; height:28px!important;
+    align-self:center; transform:none; margin:0;
+  }
+  .appShell .content .trainingViewer .trainingSessionTitle[aria-expanded="true"] > .ufAccordionChevron { transform:rotate(90deg); }
+  .appShell .content .trainingViewer .trainingSessionTitle .ufSessionTags { flex-wrap:wrap!important; overflow:visible!important; }
   .appShell .content .trainingTitleInput { font-size:22px; }
   .appShell .content .librarySectionTitle h2 { font-size:20px; }
   .appShell .content .ufStudentTrainingTitle h1 { font-size:26px; }
