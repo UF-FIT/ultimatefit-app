@@ -1,0 +1,82 @@
+/* Mobile visual scale, aligned with the reference without scaling the viewport.
+   Keep form inputs and touch targets independent from the smaller visual elements. */
+@media (max-width: 760px) {
+  .topbar { height:calc(68px + env(safe-area-inset-top)); }
+  .content { padding-top:18px; padding-bottom:calc(98px + env(safe-area-inset-bottom)) !important; }
+  .content > .heading { gap:12px; margin-bottom:20px; }
+  .content > .heading h1 { font-size:30px; line-height:1.15; }
+  .content > .heading p { margin:6px 0 0; font-size:14px; line-height:1.45; }
+
+  .ultimateStudentsHeader { gap:10px; margin-bottom:16px; }
+  .ultimateStudentsHeader h1 { font-size:22px; font-weight:600; letter-spacing:0; }
+  .ultimateStudentsActions { gap:4px; }
+  .ultimateStudentsAdd { width:44px; height:44px; border-radius:12px; }
+  .ultimateStudentsSearchToggle { width:44px; height:44px; }
+  .ultimateStudentsActions svg { width:22px; height:22px; }
+  .studentDirectoryGrid { gap:8px !important; }
+  .studentDirectoryCard.ultimateStudentsListItem {
+    min-height:72px !important; padding:12px 14px !important;
+    gap:10px !important; border-radius:18px !important;
+  }
+  .studentDirectoryCard.ultimateStudentsListItem .studentPhoto {
+    width:40px !important; height:40px !important; flex-basis:40px !important;
+    border-radius:11px; font-size:18px;
+  }
+  .studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity h3 {
+    font-size:15px !important; font-weight:600; line-height:1.3;
+    padding:0; margin-top:3px !important;
+  }
+  .ultimateStudentsStatus { gap:6px; font-size:12px; line-height:1.2; }
+  .ultimateStudentsStatus i { width:8px; height:8px; }
+  .studentDirectoryCard.ultimateStudentsListItem .studentSelect {
+    width:44px; height:44px; flex:0 0 44px !important;
+    display:grid; place-items:center;
+  }
+  .studentDirectoryCard.ultimateStudentsListItem .studentSelect span {
+    width:21px; height:21px; border-radius:6px;
+  }
+
+  .content > .grid.four { gap:10px; }
+  .content > .grid.four .kpi { padding:12px; gap:9px; }
+  .content > .grid.four .kpi .iconBox { width:34px; height:34px; flex-basis:34px; }
+  .content > .grid.four .kpi .iconBox svg { width:22px; height:22px; }
+  .content > .grid.four .kpi strong { font-size:26px; line-height:1.1; font-weight:650; }
+  .content > .grid.four .kpi small { font-size:11px; }
+
+  #uf-dashboard-attention-root { margin-top:14px; }
+  .uf-dashboard-attention-grid { gap:12px; }
+  .uf-attention-card { padding:14px; }
+  .uf-attention-head { gap:10px; }
+  .uf-attention-head h2 { font-size:16px; line-height:1.3; font-weight:600; }
+  .uf-attention-head small { font-size:9px; font-weight:700; margin-bottom:5px; }
+  .uf-attention-head > span { width:30px; height:30px; flex:0 0 30px; }
+  .uf-attention-summaries { margin:12px 0; }
+  .uf-attention-summary { font-size:12px; }
+  .uf-attention-card > button { min-height:44px; font-size:13px; font-weight:600; }
+  .uf-birthday-list { margin-top:12px; }
+  .uf-birthday-row { grid-template-columns:32px minmax(0,1fr) auto; gap:8px; }
+  .uf-birthday-row .uf-attention-avatar { width:32px; height:32px; }
+  .uf-birthday-row b { font-size:12px; font-weight:600; }
+  .dashboardRecentStudents { padding:16px; }
+  .dashboardRecentStudents h2 { font-size:20px; font-weight:600; }
+  .dashboardRecentStudents .grow b { font-size:13px; font-weight:600; }
+  .dashboardRecentStudents .grow small { font-size:11px; }
+  .dashboardRecentStudents .avatar.small { width:32px; height:32px; flex:0 0 32px; }
+
+  nav.bottomNav {
+    height:calc(70px + env(safe-area-inset-bottom));
+    min-height:calc(70px + env(safe-area-inset-bottom)) !important;
+    padding:6px 0 calc(6px + env(safe-area-inset-bottom)) !important;
+    align-items:stretch !important;
+  }
+  nav.bottomNav button {
+    min-height:58px !important; padding:5px 2px !important; gap:4px !important;
+    font-size:11px !important; line-height:1.1 !important; font-weight:500 !important;
+    align-content:center;
+  }
+  nav.bottomNav button svg { width:22px !important; height:22px !important; stroke-width:1.8 !important; }
+  nav.bottomNav button small { font-size:11px !important; line-height:1.1 !important; }
+  .mobileMoreMenuIcon { width:26px; height:26px; border-width:1.5px; }
+  .mobileNavOverflowPanel { bottom:calc(80px + env(safe-area-inset-bottom)); }
+  .appCopyrightFooter { font-size:10px; margin-bottom:calc(78px + env(safe-area-inset-bottom)); }
+}
