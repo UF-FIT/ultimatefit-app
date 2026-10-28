@@ -1,3 +1,5 @@
+import { prepareAnalysis } from './trainingPresentationEnhancer';
+
 let scheduled = false;
 
 function isPlanDetail() {
@@ -73,6 +75,12 @@ function buildShell(id, headerClass, eyebrow, title, volume = false) {
 
   section.appendChild(header);
   addChevron(header);
+  const loading = document.createElement('p');
+  loading.className = 'ufan';
+  loading.setAttribute('role', 'status');
+  loading.textContent = 'A carregar análise…';
+  section.appendChild(loading);
+  prepareAnalysis(section, header, volume ? 'volume' : 'load');
   return section;
 }
 

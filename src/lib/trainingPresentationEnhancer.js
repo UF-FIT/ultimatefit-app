@@ -110,9 +110,11 @@ function applyAnalysisState(section, header, key) {
   header.setAttribute('aria-expanded', String(open));
 }
 
-function prepareAnalysis(section, header, key) {
+export function prepareAnalysis(section, header, key) {
   if (!section || !header) return;
+  ensureStyles();
   header.classList.add('ufAccordionHeader');
+  header.setAttribute('role', 'button');
   header.tabIndex = 0;
   if (!header.querySelector('.ufAccordionChevron')) header.insertAdjacentHTML('beforeend','<span class="ufAccordionChevron">›</span>');
   if (header.dataset.ufAccordionBound !== '1') {
@@ -198,8 +200,8 @@ function enhance() {
 }
 
 function schedule() {
-  clearTimeout(timer);
-  timer = setTimeout(enhance, 80);
+  if (timer) return;
+  timer = setTimeout(() => { timer = null; enhance(); }, 80);
 }
 
 export function startTrainingPresentationEnhancer() {

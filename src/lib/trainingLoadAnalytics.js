@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { fetchWorkoutPlans } from './training';
+import { prepareAnalysis } from './trainingPresentationEnhancer';
 
 const ID='uf-load-analytics';
 let mode='muscle',offset=0,busy=false,timer;
@@ -25,6 +26,8 @@ function weeks(w){
 function wix(v,ws){const d=dt(v);return ws.findIndex(w=>d>=w.a&&d<=new Date(w.b.getFullYear(),w.b.getMonth(),w.b.getDate(),23,59,59))}
 async function target(){
   if(location.pathname==='/alunos') return '';
+  const viewer = document.querySelector('.trainingViewer');
+  if(viewer?.dataset.studentId) return viewer.dataset.studentId;
   const p=new URLSearchParams(location.search);
   if(p.get('aluno'))return p.get('aluno');
   if(location.pathname==='/inicio'){
@@ -32,12 +35,13 @@ async function target(){
     const {data}=await supabase.from('student_profiles').select('id').eq('profile_id',user.id).maybeSingle();
     return data?.id||'';
   }
-  if(p.get('plano')){try{return (await fetchWorkoutPlans()).find(x=>x.id===p.get('plano'))?.studentId||''}catch{return''}}
+  if(p.get('plano')) return (await fetchWorkoutPlans()).find(x=>x.id===p.get('plano'))?.studentId||'';
   return'';
 }
 async function fetchRows(id){
   const {data,error}=await supabase.from('workout_exercise_loads').select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on').eq('student_id',id).order('completed_on');
-  return error?[]:(data||[]);
+  if(error) throw error;
+  return data||[];
 }
 function aggregate(data,ws,w){
   const m=new Map();
@@ -75,26 +79,45 @@ function render(data){
 function anchor(){return document.getElementById('uf-training-volume-analysis')||document.querySelector('.trainingActivityCalendar')||document.querySelector('.profileHub')||document.querySelector('.trainingPlanHero')}
 function bind(){
   const r=document.getElementById(ID);if(!r)return;
+  prepareAnalysis(r,r.querySelector(':scope > .ufah'),'load');
+  r.querySelector('[data-retry]')?.addEventListener('click',()=>update(true));
   r.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(mode===b.dataset.m)return;mode=b.dataset.m;update(true)});
   r.querySelector('[data-prev]')?.addEventListener('click',()=>{offset--;update(true)});
   r.querySelector('[data-next]')?.addEventListener('click',()=>{if(offset<0){offset++;update(true)}});
 }
 async function update(force=false){
   if(busy)return;busy=true;
+  const route=location.pathname+location.search;
   try{
     css();
+    if(!force&&document.getElementById(ID)?.dataset.ufFailedRoute===route)return;
     const id=await target(),a=anchor();
-    if(!id||!a){document.getElementById(ID)?.remove();return}
+    if(route!==location.pathname+location.search)return;
+    if(!id||!a){
+      if(document.querySelector('.trainingViewer'))throw new Error('Aluno indisponível');
+      document.getElementById(ID)?.remove();return;
+    }
     const data=await fetchRows(id),sig=signature(data,id),existing=document.getElementById(ID);
+    if(route!==location.pathname+location.search||!a.isConnected)return;
     if(!force&&existing?.dataset.ufSignature===sig){syncPlanReady();return;}
     existing?.remove();
     a.insertAdjacentHTML('afterend',render(data));
     const root=document.getElementById(ID);if(root)root.dataset.ufSignature=sig;
     bind();
     window.setTimeout(syncPlanReady,120);
+  }catch{
+    if(route!==location.pathname+location.search)return;
+    const a=anchor();if(!a)return;
+    document.getElementById(ID)?.remove();
+    a.insertAdjacentHTML('afterend',render([]));
+    const root=document.getElementById(ID);
+    root.dataset.ufFailedRoute=route;
+    root.querySelectorAll(':scope > :not(.ufah)').forEach(node=>node.remove());
+    root.insertAdjacentHTML('beforeend','<div class="ufan" role="status">Não foi possível carregar o volume realizado. <button type="button" class="secondary" data-retry>Tentar novamente</button></div>');
+    bind();
   }finally{busy=false}
 }
-function schedule(){clearTimeout(timer);timer=setTimeout(()=>update(false),350)}
+function schedule(){if(timer)return;timer=setTimeout(()=>{timer=null;update(false)},350)}
 export function startTrainingLoadAnalytics(){
   if(window.__ufLoadAnalytics)return;
   window.__ufLoadAnalytics=true;

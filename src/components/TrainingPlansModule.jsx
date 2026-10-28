@@ -125,7 +125,7 @@ function PlanViewer({ plan, student, canManage, readOnlyReason = '', blockTypes 
   const [label, tone] = planStatus(plan);
   const typeByCode = Object.fromEntries(blockTypes.map(type => [type.code, type]));
   const todayCompletion = completions.find(item => item.completedOn === localToday());
-  return <div className={cx('trainingViewer', previewMode && 'studentPreviewMode')}>
+  return <div className={cx('trainingViewer', previewMode && 'studentPreviewMode')} data-student-id={plan.studentId || student?.id || ''}>
     {previewMode ? <div className="studentPreviewBanner"><div><Eye size={18}/><span><b>Pré-visualização · visão do aluno</b><small>Estás a ver este plano sem os controlos de edição do professor.</small></span></div><button className="secondary" onClick={onExitPreview}>Voltar à visão do professor</button></div> : <button className="backButton" onClick={onBack}><ArrowLeft size={17}/>Voltar aos planos</button>}
     <section className="trainingPlanHero card pad">
       <div>
