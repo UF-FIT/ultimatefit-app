@@ -1,0 +1,117 @@
+/* Shared mobile rhythm for the remaining screens. Keep inputs at 16px to avoid
+   iOS focus zoom; reduce visual chrome instead of scaling the whole interface. */
+@media (max-width:760px) {
+  .appShell .content { font-size:13px; }
+  .appShell .content .heading { gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .appShell .content .heading h1 { font-size:26px; line-height:1.15; }
+  .appShell .content .heading p { font-size:13px; margin:6px 0 0; line-height:1.45; }
+  .appShell .content .grid { gap:12px; }
+  .appShell .content .section { margin-top:16px; }
+  .appShell .content .pad { padding:16px; }
+  .appShell .content .card.pad > h2,.appShell .content .panelTitle h2 { font-size:18px; line-height:1.25; }
+  .appShell .content .card.pad > h3 { font-size:15px; line-height:1.3; }
+  .appShell .content :is(.primary,.secondary) { min-height:44px; padding:10px 12px; font-size:13px; font-weight:600; }
+  .appShell .content .formGrid { gap:12px; }
+  .appShell .content :is(.formGrid,.filters) :is(input:not([type=checkbox]):not([type=radio]),select,textarea),
+  .appShell .overlay :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size:16px; }
+  .appShell .overlay { padding:14px; }
+  .appShell .modal { padding:16px; }
+  .appShell .modal > .title h2 { font-size:20px; line-height:1.25; }
+  .appShell .modal > .title .iconButton { min-width:44px; min-height:44px; }
+  .appShell .content .metric { padding:14px; }
+  .appShell .content .metric strong { font-size:24px; }
+  .appShell .content .emptyState { min-height:180px; padding:20px 16px; }
+  .appShell .content .emptyState h2 { font-size:18px; }
+
+  /* Plans, editor, exercise library and student workout screens. */
+  .trainingPlansPage.uf-training-plans-redesign > .heading { min-height:0!important; display:flex!important; align-items:flex-start; }
+  .trainingPlansPage.uf-training-plans-redesign > .heading > div:first-child { flex:1 1 180px; }
+  .trainingPlansPage.uf-training-plans-redesign > .heading > div:first-child > h1 { font-size:26px!important; padding-right:0!important; line-height:1.15!important; }
+  .trainingPlansPage.uf-training-plans-redesign > .heading > div:first-child > p { margin-top:6px!important; }
+  .trainingPlansPage.uf-training-plans-redesign > .heading > .primary { position:static!important; height:auto!important; min-height:44px!important; }
+  .appShell .content .trainingPlanCard h2 { font-size:17px!important; }
+  .appShell .content .trainingViewer .trainingPlanHero { padding:14px!important; }
+  .appShell .content .trainingViewer .trainingPlanHero h1 { font-size:26px!important; line-height:1.15!important; }
+  .appShell .content .trainingViewer .trainingSessionTitle h2 { font-size:20px!important; }
+  .appShell .content .trainingTitleInput { font-size:22px; }
+  .appShell .content .librarySectionTitle h2 { font-size:20px; }
+  .appShell .content .ufStudentTrainingTitle h1 { font-size:26px; }
+  .appShell .content .ufStudentPlanHero { padding:18px 16px; }
+  .appShell .content .ufStudentPlanHero h1 { font-size:22px; line-height:1.2; }
+  .appShell .content .ufTrainingCurrentCard { padding:16px; }
+  .appShell .content .ufTrainingCurrentCard h2 { font-size:18px; }
+  .appShell .content .ufTrainingNoPlan { min-height:170px; padding:20px 16px; }
+  .appShell .content .ufPlanExerciseCard { padding:14px; }
+  .ufGuidedActivityCard { padding:16px; }
+  .ufGuidedActivityCard h2 { font-size:19px; line-height:1.25; }
+  .ufSimplifiedActivityCard { padding:16px; min-height:120px; }
+  .ufWorkoutSummaryScreen h1 { font-size:26px; line-height:1.2; }
+  .ufWorkoutSummaryInsight { padding:16px; }
+  .ufWorkoutVideoModal,.ufWorkoutHistoryModal,.ufWorkoutQuickSetModal,.ufWorkoutRestModal { padding:16px; }
+  .appShell .content .ufProgressPageHeader h1 { font-size:24px; }
+  .ufProgressBreakdownHeader { padding:16px; }
+  .ufProgressBreakdownRows { padding:14px 16px; }
+
+  /* Assessments and their forms: preserve all measurements and instructions. */
+  .appShell .content :is(.assessmentStudentIdentity,.assessmentFormHeader,.assessmentDetailHero) h1 { font-size:26px; line-height:1.15; }
+  .appShell .content :is(.assessmentFormHeader,.assessmentDetailHero,.assessmentModuleSelector,.assessmentFormSection) { padding:16px; }
+  .appShell .content .assessmentReadSection h2 { font-size:22px; }
+  .appShell .content .assessmentStudentHome .assessmentMetricCards > div { min-height:68px!important; }
+  .appShell .content .assessmentStudentHome .assessmentMetricCards > div > b { font-size:22px!important; }
+  .appShell .content .assessmentStudentHome .assessmentDateMetricCard > b { font-size:18px!important; }
+  .appShell .content :is(.assessmentAutoResultCard > b,.assessmentAutoRiskResult > div > b) { font-size:24px; }
+
+  /* Student and professional profiles. */
+  .appShell .content .studentProfilePage .studentProfileHero.profileHeroV2 { grid-template-columns:72px minmax(0,1fr); grid-template-rows:auto auto; padding:14px; gap:12px; }
+  .appShell .content .studentProfilePage .studentProfileHero .studentPhoto.large { width:72px; height:72px; min-width:72px; border-radius:14px; }
+  .appShell .content .studentProfilePage .studentProfileHero .profileIdentity .eyebrow { position:static; width:auto; text-align:left; margin-bottom:4px; }
+  .appShell .content .studentProfilePage .studentProfileHero .profileIdentity h1 { font-size:26px; line-height:1.1; overflow-wrap:anywhere; }
+  .appShell .content .studentProfilePage .studentProfileHero .profileIdentity > p { font-size:12px; }
+  .appShell .content .studentProfilePage .profileQuickActions button { min-height:60px; }
+  .appShell .content .studentProfilePage .profileQuickActions button svg { width:38px; height:38px; flex-basis:38px; padding:9px; border-radius:11px; }
+  .appShell .content .studentSelfProfilePage .studentSelfHero.profileHeroV2 { grid-template-columns:64px minmax(0,1fr)!important; padding:14px!important; gap:12px!important; }
+  .appShell .content .studentSelfProfilePage .studentSelfHero.profileHeroV2 > .studentPhoto.large { width:64px!important; height:64px!important; }
+  .appShell .content .studentSelfProfilePage .studentSelfHero.profileHeroV2 h1 { font-size:26px!important; line-height:1.1!important; overflow-wrap:anywhere; }
+  .appShell .content .studentSelfProfilePage .studentSelfHero.profileHeroV2 .selfActions button { min-height:44px!important; }
+  .appShell .content .studentSelfProfilePage > .profileOverviewGrid { gap:12px!important; }
+  .appShell .content .studentSelfProfilePage > .trainerProfileCard + .profileOverviewGrid { margin-top:12px!important; }
+  .appShell .content .profileHubHeader h2 { font-size:20px; }
+  .appShell .content .profileModules button { padding:14px; }
+  .appShell .content .profileChart { padding:16px; }
+  .appShell .content .studentFormPageCard { padding:16px; }
+  .appShell .content .professionalHero { padding:16px; gap:14px; grid-template-columns:64px minmax(0,1fr); text-align:left; justify-items:start; }
+  .appShell .content .professionalAvatar { width:64px; height:64px; font-size:24px; }
+  .appShell .content .professionalHeroText h2 { font-size:28px; line-height:1.15; }
+
+  /* Nutrition, community and administration. */
+  .appShell .content .nutritionHeroV2 h1 { font-size:26px; line-height:1.15; }
+  .appShell .content .nutritionPrimaryAction { min-height:44px; font-size:13px; font-weight:600; }
+  .appShell .content .nutritionCurrentTop { grid-template-columns:44px minmax(0,1fr); padding:14px; }
+  .appShell .content .nutritionCurrentIcon { width:44px; height:44px; }
+  .appShell .content .nutritionCurrentIcon svg { width:24px; height:24px; }
+  .appShell .content .nutritionCurrentCopy h2 { font-size:17px; }
+  .nutritionModal .nutritionModalTitle h2 { font-size:20px!important; }
+  .appShell .content :is(.challengeSelectHero,.challengeHero) { padding:18px 16px; }
+  .appShell .content .challengeSelectHero h2,.appShell .content .challengeHero h1 { font-size:30px; line-height:1.1; }
+  .appShell .content .challengeChoiceCard { min-height:200px; padding:16px; }
+  .appShell .content .challengeChoiceCard h2 { font-size:20px; }
+  .appShell .content .challengeStats > div { padding:14px; }
+  .appShell .content .challengeStats strong { font-size:24px; }
+  .appShell .content .activityCardBody { padding:16px; }
+  .appShell .content .activityCardBody h2 { font-size:19px; }
+  .appShell .content .activityPosterPlaceholder { height:120px; aspect-ratio:auto; }
+  .noticePopup { padding:22px 18px; }
+  .noticePopup h2 { font-size:26px; line-height:1.15; }
+  .appShell .content .backofficeEmbedded > .heading h1 { font-size:24px; }
+
+  /* Public access and onboarding use the same compact type scale. */
+  .loginPanel { padding:22px 18px; }
+  .loginCard { gap:16px; }
+  .loginCard h2 { font-size:30px; }
+  .passwordCard { padding:20px; }
+  .passwordCard h1 { font-size:30px; }
+  .parqGateCard,.parqGateCard.compact { padding:18px; }
+  .parqHeader h1 { font-size:28px; line-height:1.15; }
+  .parqQuestions { padding:16px 0; }
+  .parqDeclaration { padding:16px; }
+}

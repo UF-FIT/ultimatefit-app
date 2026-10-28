@@ -35,6 +35,7 @@ import './styles/assessment-student-avatar-consistency.css';
 import './styles/email-communications.css';
 import './styles/backoffice-email-communications.css';
 import './styles/mobile-visual-scale.css';
+import './styles/mobile-sections-scale.css';
 import './lib/studentDirectoryCardEnhancer';
 import { startDashboardAttentionEnhancer } from './lib/dashboardAttentionEnhancer';
 import { startTrainingVolumeEnhancer } from './lib/trainingVolumeEnhancer';
