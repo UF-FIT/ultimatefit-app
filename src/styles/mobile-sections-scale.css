@@ -126,3 +126,37 @@
   .parqQuestions { padding:16px 0; }
   .parqDeclaration { padding:16px; }
 }
+
+/* Assessment editor: keep labels, native date fields and actions inside the page. */
+.assessmentFormHeader > div,
+.assessmentHeaderFields,
+.assessmentField { min-width:0; }
+.assessmentFormHeader > div:first-child > .eyebrow { display:block; }
+.assessmentHeaderFields input[type=date] {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+@media(max-width:760px) {
+  .assessmentFormHeader,
+  .assessmentHeaderFields,
+  .assessmentFormGrid { grid-template-columns:minmax(0,1fr); }
+  .assessmentFormHeader .backButton { margin-bottom:12px; }
+  .assessmentHeaderFields input[type=date] {
+    -webkit-appearance:none;
+    appearance:none;
+    min-height:44px;
+  }
+  .assessmentHeaderFields input[type=date]::-webkit-date-and-time-value {
+    text-align:left;
+    min-width:0;
+  }
+  /* Keep the full action group in the document, clear of the fixed navigation. */
+  .assessmentForm .assessmentFormActions {
+    position:static;
+    grid-template-columns:minmax(0,1fr);
+    margin-bottom:16px;
+  }
+  .assessmentFormActions > button { min-width:0; white-space:normal; }
+}
