@@ -101,7 +101,7 @@
 }
 
 .studentPasswordModal {
-  width: min(92vw, 520px);
+  width: min(100%, 520px);
 }
 
 .studentPasswordForm {
