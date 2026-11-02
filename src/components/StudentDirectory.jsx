@@ -34,7 +34,7 @@ function StudentCreatedDialog({ message, onClose }) {
     return () => { if (dialog.open) dialog.close(); };
   }, []);
   return <dialog ref={dialogRef} className="modal" aria-labelledby="student-created-title"
-    onCancel={onClose} onClose={onClose}
+    onCancel={onClose}
     style={{ width:'min(420px, calc(100% - 32px))', maxHeight:'85dvh', margin:'auto', color:'#fff', textAlign:'center', boxShadow:'0 24px 80px #000b' }}>
     <CheckCircle2 size={38} aria-hidden="true" style={{ color:'#ffd908', marginBottom:12 }}/>
     <h2 id="student-created-title" style={{ fontSize:22, lineHeight:1.25 }}>Aluno criado com sucesso</h2>
@@ -391,10 +391,16 @@ export default function StudentDirectory({ onNavigate }) {
   }
 
   async function saved(message) {
-    if (!formStudent) setCreatedMessage(message || 'O aluno já está disponível na tua lista.');
+    const created = !formStudent;
+    if (created) setCreatedMessage(message || 'O aluno já está disponível na tua lista.');
     setShowForm(false);setFormStudent(null);setNotice(message);setError('');
-    try { await refreshStudents(); }
-    catch { setError('O aluno foi guardado, mas não foi possível atualizar a lista. Recarrega a página.'); }
+    if (created) return; // Refresh unmounts this screen; wait for confirmation dismissal.
+    await refreshStudents();
+  }
+
+  async function closeCreatedDialog() {
+    setCreatedMessage(null);
+    await refreshStudents();
   }
 
   if (showForm) return <div className="studentFormPage">
@@ -405,7 +411,7 @@ export default function StudentDirectory({ onNavigate }) {
   if (activeStudent) return <StudentProfile student={activeStudent} currentUser={currentUser} trainers={trainers} assessments={data.assessments.filter(item => item.studentId === activeStudent.id)} onBack={()=>setStudentRoute('')} onEdit={()=>{setFormStudent(activeStudent);setShowForm(true)}} onRefresh={refreshStudents} onNavigate={onNavigate}/>;
 
   return <>
-    {createdMessage !== null && <StudentCreatedDialog message={createdMessage} onClose={()=>setCreatedMessage(null)}/>}
+    {createdMessage !== null && <StudentCreatedDialog message={createdMessage} onClose={closeCreatedDialog}/>}
     <div className="ultimateStudentsHeader"><h1>Os meus alunos</h1><div className="ultimateStudentsActions"><button type="button" className="ultimateStudentsSearchToggle" aria-label="Pesquisar aluno" title="Pesquisar aluno" aria-expanded={searchOpen} onClick={()=>setSearchOpen(open=>!open)}><Search size={24}/></button><button type="button" className="ultimateStudentsAdd" aria-label="Adicionar aluno" title="Adicionar aluno" onClick={()=>{setFormStudent(null);setShowForm(true)}}><Plus size={25}/></button></div></div>
     {notice && <div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     {(error || studentsError) && <div className="errorBanner"><AlertTriangle size={18}/>{error || studentsError}</div>}
