@@ -352,7 +352,7 @@ export default function StudentDirectory({ onNavigate }) {
     const matchesTracking = tracking === 'all' || student.trackingType === tracking;
     const matchesTrainer = trainer === 'all' || student.trainerProfileIds.includes(trainer);
     return matchesQuery && matchesStatus && matchesTracking && matchesTrainer;
-  }), [data.students, q, status, tracking, trainer]);
+  }).sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'pt-PT', { sensitivity: 'base' }) || String(a.studentCode).localeCompare(String(b.studentCode), 'pt-PT', { numeric: true })), [data.students, q, status, tracking, trainer]);
 
   function toggleSelected(id) {
     setSelected(current => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next; });
