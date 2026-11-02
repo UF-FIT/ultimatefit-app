@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity, AlertTriangle, Apple, Archive, ArrowLeft, CalendarDays, Camera,
@@ -26,6 +26,22 @@ function Modal({ title, close, children, wide = false }) {
   return <div className="overlay"><div className={`modal ${wide ? 'modalWide' : ''}`}><div className="title"><h2>{title}</h2><button className="iconButton" onClick={close}><X /></button></div>{children}</div></div>;
 }
 
+function StudentCreatedDialog({ message, onClose }) {
+  const dialogRef = useRef(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog.showModal();
+    return () => { if (dialog.open) dialog.close(); };
+  }, []);
+  return <dialog ref={dialogRef} className="modal" aria-labelledby="student-created-title"
+    onCancel={onClose} onClose={onClose}
+    style={{ width:'min(420px, calc(100% - 32px))', maxHeight:'85dvh', margin:'auto', color:'#fff', textAlign:'center', boxShadow:'0 24px 80px #000b' }}>
+    <CheckCircle2 size={38} aria-hidden="true" style={{ color:'#ffd908', marginBottom:12 }}/>
+    <h2 id="student-created-title" style={{ fontSize:22, lineHeight:1.25 }}>Aluno criado com sucesso</h2>
+    {message && <p style={{ fontSize:14, overflowWrap:'anywhere' }}>{message}</p>}
+    <button type="button" className="primary full" autoFocus onClick={onClose} style={{ marginTop:12, minHeight:44 }}>OK</button>
+  </dialog>;
+}
 function Field({ label, className = '', children }) {
   return <label className={className}>{label}{children}</label>;
 }
@@ -328,6 +344,7 @@ export default function StudentDirectory({ onNavigate }) {
   const [activeStudentId, setActiveStudentId] = useState(studentIdFromUrl);
   const [formStudent, setFormStudent] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [createdMessage, setCreatedMessage] = useState(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const activeStudent = data.students.find(item => item.id === activeStudentId);
@@ -374,8 +391,10 @@ export default function StudentDirectory({ onNavigate }) {
   }
 
   async function saved(message) {
+    if (!formStudent) setCreatedMessage(message || 'O aluno já está disponível na tua lista.');
     setShowForm(false);setFormStudent(null);setNotice(message);setError('');
-    await refreshStudents();
+    try { await refreshStudents(); }
+    catch { setError('O aluno foi guardado, mas não foi possível atualizar a lista. Recarrega a página.'); }
   }
 
   if (showForm) return <div className="studentFormPage">
@@ -386,6 +405,7 @@ export default function StudentDirectory({ onNavigate }) {
   if (activeStudent) return <StudentProfile student={activeStudent} currentUser={currentUser} trainers={trainers} assessments={data.assessments.filter(item => item.studentId === activeStudent.id)} onBack={()=>setStudentRoute('')} onEdit={()=>{setFormStudent(activeStudent);setShowForm(true)}} onRefresh={refreshStudents} onNavigate={onNavigate}/>;
 
   return <>
+    {createdMessage !== null && <StudentCreatedDialog message={createdMessage} onClose={()=>setCreatedMessage(null)}/>}
     <div className="ultimateStudentsHeader"><h1>Os meus alunos</h1><div className="ultimateStudentsActions"><button type="button" className="ultimateStudentsSearchToggle" aria-label="Pesquisar aluno" title="Pesquisar aluno" aria-expanded={searchOpen} onClick={()=>setSearchOpen(open=>!open)}><Search size={24}/></button><button type="button" className="ultimateStudentsAdd" aria-label="Adicionar aluno" title="Adicionar aluno" onClick={()=>{setFormStudent(null);setShowForm(true)}}><Plus size={25}/></button></div></div>
     {notice && <div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     {(error || studentsError) && <div className="errorBanner"><AlertTriangle size={18}/>{error || studentsError}</div>}
