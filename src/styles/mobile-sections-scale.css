@@ -160,3 +160,31 @@
   }
   .assessmentFormActions > button { min-width:0; white-space:normal; }
 }
+/* Native date controls must fit the same grid column as neighbouring fields. */
+.studentForm .formSection,
+.studentForm .formGrid,
+.studentForm .formGrid > label { min-width:0; }
+.studentForm input[type=date] {
+  box-sizing:border-box;
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  -webkit-appearance:none;
+  appearance:none;
+  min-height:44px;
+}
+.studentForm input[type=date]::-webkit-date-and-time-value {
+  text-align:left;
+  min-width:0;
+}
+@media(max-width:760px) {
+  .studentForm .formGrid { grid-template-columns:minmax(0,1fr); }
+  .studentForm input[type=date] { font-size:16px; }
+}
+@media(max-width:760px) {
+  .studentFormPageCard .studentForm { grid-template-columns:minmax(0,1fr); }
+  .studentForm .formGrid :is(input,select,textarea) { min-width:0; max-width:100%; }
+  .studentForm .modalActions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); }
+  .studentForm .modalActions button { min-width:0; white-space:normal; }
+}
