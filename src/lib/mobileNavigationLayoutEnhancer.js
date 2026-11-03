@@ -198,9 +198,57 @@ function rebuildMobileNavigation() {
   syncActiveState(bottomNav, sourceButtons);
 }
 
+function startKeyboardNavigationGuard() {
+  if (document.getElementById('uf-keyboard-navigation-style')) return;
+  const style = document.createElement('style');
+  style.id = 'uf-keyboard-navigation-style';
+  style.textContent = '@media(max-width:760px){html.uf-keyboard-editing .bottomNav,html.uf-keyboard-editing .mobileNavOverflowPanel{display:none!important}}';
+  document.head.appendChild(style);
+  const viewport = window.visualViewport;
+  let restingHeight = viewport?.height || window.innerHeight;
+  let keyboardSeen = false;
+  let focusPending = false;
+  const isEditing = () => {
+    const el = document.activeElement;
+    return el instanceof HTMLElement && el.matches('textarea:not([readonly]):not([disabled]),input:not([readonly]):not([disabled]):not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=reset]):not([type=file]):not([type=range]):not([type=color]):not([type=hidden]),[contenteditable="true"]');
+  };
+  const update = () => {
+    const editing = isEditing();
+    const height = viewport?.height || window.innerHeight;
+    const contracted = restingHeight - height > 120;
+    if (contracted && editing) keyboardSeen = true;
+    if (!editing) focusPending = false;
+    if (keyboardSeen && !contracted) {
+      keyboardSeen = false;
+      focusPending = false;
+    }
+    const hidden = window.innerWidth <= 760 && ((contracted && keyboardSeen) || (editing && focusPending));
+    document.documentElement.classList.toggle('uf-keyboard-editing', hidden);
+    if (hidden) {
+      document.querySelector('.mobileNavOverflowPanel.open')?.classList.remove('open');
+      document.querySelector('.mobileMoreMenuButton')?.setAttribute('aria-expanded', 'false');
+    }
+    if (!editing && !keyboardSeen) restingHeight = height;
+  };
+  document.addEventListener('focusin', () => {
+    focusPending = isEditing();
+    update();
+  });
+  document.addEventListener('focusout', () => requestAnimationFrame(update));
+  viewport?.addEventListener('resize', update);
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', () => {
+    restingHeight = viewport?.height || window.innerHeight;
+    keyboardSeen = false;
+    update();
+  });
+  window.addEventListener('pageshow', update);
+  update();
+}
 export function startMobileNavigationLayoutEnhancer() {
   if (typeof window === 'undefined') return;
 
+  startKeyboardNavigationGuard();
   const run = () => requestAnimationFrame(rebuildMobileNavigation);
   run();
   window.addEventListener('resize', run);
