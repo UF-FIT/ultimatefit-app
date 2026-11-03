@@ -138,7 +138,7 @@ function rebuildMobileNavigation() {
     return;
   }
 
-  const preferredPrimary = ['alunos', 'avaliações', 'planos de treino', 'nutrição'];
+  const preferredPrimary = ['alunos', 'desafios', 'planos de treino', 'nutrição'];
   const primarySources = preferredPrimary
     .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
     .filter(Boolean)
