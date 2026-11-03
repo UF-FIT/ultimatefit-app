@@ -57,7 +57,7 @@ async function mapStudents() {}
 export async function fetchStudents() {
   const { data: studentRows, error: studentError } = await supabase
     .from('student_profiles')
-    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,emergency_contact_phone,start_date,status,notes,main_goal,postal_code,city,tracking_type,archived_at,deleted_at,created_at')
+    .select('id,profile_id,student_number,nif,birth_date,sex,occupation,address,emergency_contact_name,emergency_contact_phone,start_date,status,notes,main_goal,postal_code,city,tracking_type,assessment_preference,assessment_preference_note,archived_at,deleted_at,created_at')
     .is('deleted_at', null)
     .order('student_number', { ascending: true });
   if (studentError) throw studentError;
@@ -185,6 +185,8 @@ export async function fetchStudents() {
       status: row.status,
       active: Boolean(profile.is_active && row.status === 'active' && !profile.deleted_at && !row.deleted_at),
       trackingType: row.tracking_type || '',
+      assessmentPreference: row.assessment_preference || 'planned',
+      assessmentPreferenceNote: row.assessment_preference_note || '',
       notes: row.notes || '',
       mainGoal: row.main_goal || '',
       archivedAt: row.archived_at,
