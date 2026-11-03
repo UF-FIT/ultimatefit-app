@@ -9,6 +9,7 @@ import {
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../contexts/AppContext';
 import ParqStatusCard from './ParqStatusCard';
+import { supabase } from '../lib/supabase';
 import TrainingActivityCalendar from './TrainingActivityCalendar';
 import ProfessorWorkoutAnalytics from './ProfessorWorkoutAnalytics';
 import {
@@ -286,6 +287,50 @@ function AssessmentSnapshot({ assessments = [], onOpen }) {
   return <section className="card pad assessmentSnapshot"><div className="panelTitle"><div><span className="eyebrow">ÚLTIMA AVALIAÇÃO · {formatDate(latest.date)}</span><h2>Resumo físico</h2><p>Leitura rápida da avaliação mais recente.</p></div><Activity size={24}/></div><div className="snapshotMetrics"><div><small>Peso</small><b>{latest.weight ?? '—'}{latest.weight != null ? ' kg' : ''}</b></div><div><small>Massa gorda</small><b>{latest.fat ?? '—'}{latest.fat != null ? ' %' : ''}</b></div><div><small>Massa muscular</small><b>{latest.muscle ?? '—'}{latest.muscle != null ? ' kg' : ''}</b></div><div><small>Cintura</small><b>{latest.waist ?? '—'}{latest.waist != null ? ' cm' : ''}</b></div></div><button className="secondary" onClick={onOpen}>Ver histórico e evolução <ChevronRight size={16}/></button></section>;
 }
 
+function AssessmentPreferencePanel({ student, currentUser }) {
+  const { update } = useApp();
+  const initial = student.assessmentPreference || 'planned';
+  const [preference, setPreference] = useState(initial);
+  const [note, setNote] = useState(student.assessmentPreferenceNote || '');
+  const [saved, setSaved] = useState({ preference:initial, note:student.assessmentPreferenceNote || '' });
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [error, setError] = useState('');
+  const editable = currentUser.role === 'admin' || (currentUser.role === 'professor' && (student.trainerIds || []).includes(currentUser.id));
+  const dirty = preference !== saved.preference || note.trim() !== saved.note;
+  async function save(event) {
+    event.preventDefault();
+    if (busy || !editable) return;
+    setBusy(true); setFeedback(''); setError('');
+    try {
+      const {error: failure} = await supabase.rpc('set_student_assessment_preference', {
+        p_student_id:student.id, p_preference:preference, p_note:note.trim()
+      });
+      if (failure) throw failure;
+      update('students', rows=>rows.map(row=>row.id===student.id ? {...row,assessmentPreference:preference,assessmentPreferenceNote:note.trim()} : row));
+      setSaved({preference,note:note.trim()});
+      setFeedback('Preferência de avaliação guardada.');
+    } catch (err) { setError(err.message || 'Não foi possível guardar. Tenta novamente.'); }
+    finally { setBusy(false); }
+  }
+  return <section className="card pad assessmentPreferencePanel">
+    <span className="eyebrow">ACOMPANHAMENTO</span>
+    <h2>Avaliação física</h2>
+    <form onSubmit={save} className="formGrid" style={{gridTemplateColumns:'minmax(0,1fr)',marginTop:14}}>
+      <label>Preferência de avaliação<select aria-label="Preferência de avaliação" value={preference} onChange={e=>{setPreference(e.target.value);setFeedback('');}} disabled={!editable || busy}>
+        <option value="planned">Prevista</option>
+        <option value="declined">Não pretende realizar</option>
+        <option value="not_applicable">Não aplicável</option>
+      </select></label>
+      <p style={{margin:0,fontSize:13}}>{preference === 'planned' ? 'O aluno pode ser incluído nos avisos de avaliações pendentes.' : 'Este aluno não será incluído nos avisos de avaliações pendentes.'}</p>
+      <label>Observação opcional<textarea aria-label="Observação da preferência" value={note} onChange={e=>{setNote(e.target.value);setFeedback('');}} maxLength={1000} rows={2} disabled={!editable || busy}/></label>
+      {feedback && <div className="successBanner" role="status">{feedback}</div>}
+      {error && <div className="errorBanner" role="alert">{error}</div>}
+      {editable && <button className="primary" type="submit" disabled={busy || !dirty}>{busy ? 'A guardar…' : 'Guardar preferência'}</button>}
+    </form>
+    <p style={{fontSize:12,marginBottom:0}}>O histórico é preservado e podes criar uma avaliação a qualquer momento.</p>
+  </section>;
+}
 function StudentProfile({ student, currentUser, trainers, assessments, onBack, onEdit, onRefresh, onNavigate }) {
   const { data, refreshTraining } = useApp();
   const [busy, setBusy] = useState('');
@@ -316,6 +361,7 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
     {message && <div className="successBanner"><CheckCircle2 size={18}/>{message}</div>}{error && <div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
     <section className="studentProfileHero profileHeroV2"><StudentPhoto student={student} large/><div className="profileIdentity"><span className="eyebrow">{student.studentCode}</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {formatDate(student.birth)}</p><div className="profileChips"><span>{trackingLabels[student.trackingType] || 'Acompanhamento por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span></div></div><div className="profileQuickActions"><button onClick={onEdit}><Edit3 size={19}/><span>Editar perfil</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone, buildStudentAccessMessage(student)))} disabled={!canWhatsappStudent}><Send size={19}/><span>Enviar app</span></button><button onClick={() => onNavigate?.('assessments',{studentId:student.id})}><Activity size={19}/><span>Avaliação física</span></button><button onClick={()=>setShowTrainingLog(true)}><CheckCircle2 size={19}/><span>Registar treino</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone))} disabled={!canWhatsappStudent}><MessageCircle size={19}/><span>WhatsApp</span></button></div></section>
 
+    <AssessmentPreferencePanel key={student.id} student={student} currentUser={currentUser}/>
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate}/>
     <TrainingActivityCalendar completions={studentCompletions}/>
     <ProfessorWorkoutAnalytics studentId={student.id}/>
@@ -435,6 +481,7 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     <section className="studentSelfHero profileHeroV2"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {trackingLabels[student.trackingType] || 'Acompanhamento ULTIMATE FIT'}</p><div className="profileChips"><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span></div></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={exportLatestAssessment} disabled={!latestAssessment}><FileText/><span>Exportar avaliação em PDF</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
     <TrainingActivityCalendar completions={(data.workoutCompletions||[]).filter(item=>item.studentId===student.id)}/>
+    <AssessmentPreferencePanel key={student.id} student={student} currentUser={currentUser}/>
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate} studentView/>
     <AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/>
     <div className="grid two profileOverviewGrid"><AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/><StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/></div>
