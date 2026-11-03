@@ -22,6 +22,7 @@ import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CalendarDays,CheckCircle
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
 const PaymentsModule=lazy(()=>import('./components/PaymentsModule'));
+const AgendaModule=lazy(()=>import('./components/AgendaModule'));
 
 const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['exercises','Biblioteca',BookOpen],['settings','Backoffice',Settings]];
 const trainerNav=adminNav.filter(x=>x[0]!=='settings');
@@ -48,6 +49,7 @@ const pagePaths={
  profile:{aluno:'/perfil',default:'/perfil'},
  students:{default:'/alunos'},
  payments:{default:'/pagamentos'},
+ agenda:{default:'/agenda'},
  assessments:{default:'/avaliacoes'},
  plans:{aluno:'/treino',default:'/planos'},
  nutrition:{default:'/nutricao'},
@@ -75,6 +77,7 @@ function routeFromPath(pathname,role){
  }
  if(path==='/inicio'||path==='/dashboard'||path==='/') return {page:'dashboard',context:{}};
  if(path.startsWith('/perfil')) return {page:'profile',context:{}};
+ if(path.startsWith('/agenda')) return {page:'agenda',context:{}};
  if(path.startsWith('/pagamentos')) return {page:'payments',context:{}};
  if(path.startsWith('/alunos')) return {page:'students',context:{}};
  if(path==='/avaliacoes'&&role!=='aluno') return {page:'students',context:{}};
@@ -125,7 +128,7 @@ function Shell(){
   routeNavigate(pathForPage(key,currentUser.role,nextContext),{state:{pageContext:nextContext}});
  };
  const baseNav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
- const nav=paymentAccess==='manage'||paymentAccess==='read'?[...baseNav,['payments','Pagamentos',FileText]]:baseNav;
+ const nav=paymentAccess==='manage'||paymentAccess==='read'?[...baseNav,['agenda','Agenda',CalendarDays],['payments','Pagamentos',FileText]]:baseNav;
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={(page===key||(page==='assessments'&&key==='students'))?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
   <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>navigate('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
@@ -140,7 +143,7 @@ function Shell(){
 function PageRouter({page,context,onNavigate}){
  const {currentUser}=useApp();
  if(currentUser.role==='aluno'&&['students','trainers','exercises','settings'].includes(page)) return <Dashboard onNavigate={onNavigate}/>;
- const map={payments:<Suspense fallback={<p>A carregar pagamentos…</p>}><PaymentsModule/></Suspense>,dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
+ const map={agenda:<Suspense fallback={<p>A carregar agenda…</p>}><AgendaModule/></Suspense>,payments:<Suspense fallback={<p>A carregar pagamentos…</p>}><PaymentsModule/></Suspense>,dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}
