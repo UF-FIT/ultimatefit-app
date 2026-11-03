@@ -54,7 +54,7 @@ function Heading({ title, sub, action }) { return <div className="heading"><div>
 function Status({ status }) { return <span className={`assessmentStatus ${status}`}>{assessmentStatusLabel(status)}</span>; }
 function Empty({ children }) { return <div className="assessmentEmpty"><Activity size={32}/><p>{children}</p></div>; }
 function Field({ label, children, wide = false }) { return <label className={wide?'assessmentField wide':'assessmentField'}><span>{label}</span>{children}</label>; }
-function NumberField({ name, label, unit, value, onValueChange, hint }) { return <Field label={label}><div className="unitInput"><input name={name} type="number" step="0.01" min="0" defaultValue={value ?? ''} onChange={event=>onValueChange?.(event.target.value)}/>{unit&&<small>{unit}</small>}</div>{hint&&<span className="assessmentCategoryLive">{hint}</span>}</Field>; }
+function NumberField({ name, label, unit, value, onValueChange, hint }) { return <Field label={label}><div className="unitInput"><input name={name} type="number" inputMode="decimal" step="0.01" min="0" defaultValue={value ?? ''} onChange={event=>onValueChange?.(event.target.value)}/>{unit&&<small>{unit}</small>}</div>{hint&&<span className="assessmentCategoryLive">{hint}</span>}</Field>; }
 function YesNo({ name, label, value }) { return <Field label={label}><select name={name} defaultValue={boolValue(value)}><option value="">—</option><option value="false">Não</option><option value="true">Sim</option></select></Field>; }
 function TextArea({ name, label, value, rows = 3 }) { return <Field label={label} wide><textarea name={name} defaultValue={value || ''} rows={rows}/></Field>; }
 
@@ -127,7 +127,8 @@ function AnamnesisSection({ values = {} }) {
 }
 function PerimetrySection({ values = {} }) { return <section className="assessmentFormSection"><div className="assessmentSectionTitle"><Ruler/><div><h2>Perimetria</h2><p>Registo em centímetros.</p></div></div><div className="assessmentNumbersGrid">{perimetryFields.map(([key,label,unit])=><NumberField key={key} name={`perimetry.${key}`} label={label} unit={unit} value={values[key]}/>)}</div><TextArea name="perimetry.notes" label="Observações" value={values.notes}/></section>; }
 function SkinfoldsSection({ values = {} }) { const total=skinfoldSum(values); return <section className="assessmentFormSection"><div className="assessmentSectionTitle"><Activity/><div><h2>Dobras cutâneas</h2><p>Registo em milímetros.</p></div></div><div className="assessmentNumbersGrid">{skinfoldFields.map(([key,label])=><NumberField key={key} name={`skinfolds.${key}`} label={label} unit="mm" value={values[key]}/>)}</div><div className="assessmentCalculated"><span>Σ DC atual</span><b>{total == null ? '—' : `${total.toFixed(1)} mm`}</b></div><TextArea name="skinfolds.notes" label="Observações" value={values.notes}/></section>; }
-function BioSection({ values = {}, student, assessmentDate }) {
+const emptyBioValues = Object.freeze({});
+function BioSection({ values = emptyBioValues, student, assessmentDate }) {
   const [draft,setDraft]=useState(values || {});
   useEffect(()=>setDraft(values || {}),[values]);
   const age=ageAtAssessment(student?.birth,assessmentDate);
