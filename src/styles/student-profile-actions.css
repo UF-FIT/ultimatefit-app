@@ -17,20 +17,20 @@
   }
 
   .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) {
-    grid-template-columns: 160px minmax(0, 1fr) !important;
+    grid-template-columns: 64px minmax(0, 1fr) !important;
     grid-template-areas: "photo identity" !important;
     align-items: stretch !important;
-    min-height: 196px !important;
+    min-height: 0 !important;
     padding: 18px !important;
     gap: 18px !important;
   }
 
   .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) > .studentPhoto.large {
     grid-area: photo !important;
-    width: 160px !important;
-    height: 160px !important;
-    min-width: 160px !important;
-    min-height: 160px !important;
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px !important;
+    min-height: 64px !important;
     align-self: center !important;
     border-radius: 18px !important;
     overflow: hidden !important;
@@ -46,7 +46,7 @@
   .studentSelfProfilePage .studentSelfHero:has(.selfActions[data-student-route-actions="dashboard"]) > div:not(.studentPhoto):not(.selfActions) {
     grid-area: identity !important;
     min-width: 0 !important;
-    height: 160px !important;
+    height: auto !important;
     align-self: center !important;
     display: flex !important;
     flex-direction: column !important;
