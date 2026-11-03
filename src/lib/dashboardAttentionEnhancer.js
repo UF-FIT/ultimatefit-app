@@ -58,6 +58,7 @@ async function loadAttentionData(profile){
  const now=new Date();
  const alerts=[];
  for(const student of visible){
+  if (['declined','not_applicable'].includes(student.assessmentPreference)) continue;
   const rows=relevantAssessments.filter(a=>a.studentId===student.id).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const latest=rows[0];
   if(!latest){
