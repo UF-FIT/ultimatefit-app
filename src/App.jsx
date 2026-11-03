@@ -20,7 +20,7 @@ import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermi
 import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CalendarDays,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
-const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['assessments','Avaliações',ClipboardList],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['exercises','Biblioteca',BookOpen],['settings','Backoffice',Settings]];
+const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['exercises','Biblioteca',BookOpen],['settings','Backoffice',Settings]];
 const trainerNav=adminNav.filter(x=>x[0]!=='settings');
 const studentNav=[['dashboard','Início',Home],['plans','Treino',Dumbbell],['nutrition','Nutrição',Apple],['assessments','Avaliações',ClipboardList],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['profile','Perfil',User]];
 
@@ -72,6 +72,7 @@ function routeFromPath(pathname,role){
  if(path==='/inicio'||path==='/dashboard'||path==='/') return {page:'dashboard',context:{}};
  if(path.startsWith('/perfil')) return {page:'profile',context:{}};
  if(path.startsWith('/alunos')) return {page:'students',context:{}};
+ if(path==='/avaliacoes'&&role!=='aluno') return {page:'students',context:{}};
  if(path.startsWith('/avaliacoes')) return {page:'assessments',context:{}};
  if(path.startsWith('/treino')||path.startsWith('/planos')) return {page:'plans',context:{}};
  if(path.startsWith('/nutricao')) return {page:'nutrition',context:{}};
@@ -118,12 +119,12 @@ function Shell(){
  };
  const nav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
  return <div className="appShell">
-  <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
+  <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={(page===key||(page==='assessments'&&key==='students'))?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
   <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>navigate('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
   <div className="content"><PageRouter page={page} context={pageContext} onNavigate={navigate}/></div>
   <footer className="appCopyrightFooter">© {new Date().getFullYear()} Ultimate Fit. Todos os direitos reservados.</footer>
   {currentUser.role==='aluno'&&<StudentNoticePopup/>}
-  <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={page===key?'active':''} onClick={()=>navigate(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
+  <nav className="bottomNav">{nav.slice(0,5).map(([key,label,Icon])=><button key={key} className={(page===key||(page==='assessments'&&key==='students'))?'active':''} onClick={()=>navigate(key)}><Icon size={20}/><small>{label}</small></button>)}</nav>
   </main>
  </div>
 }
