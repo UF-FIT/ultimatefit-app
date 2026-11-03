@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity, AlertTriangle, Archive, ArrowLeft, BarChart3, Camera, CheckCircle2,
-  ChevronRight, ClipboardList, Edit3, Eye, FileText, HeartPulse, Images, LockKeyhole, Plus,
-  Ruler, Save, Scale, Search, ShieldCheck, Trash2, UserRound,
+  ClipboardList, Edit3, Eye, FileText, HeartPulse, Images, LockKeyhole, Plus,
+  Ruler, Save, Scale, ShieldCheck, Trash2, UserRound,
 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../contexts/AppContext';
@@ -50,7 +50,6 @@ function StudentAvatar({ student, size = 'normal' }) {
   const initials = student?.name?.split(' ').map(x=>x[0]).slice(0,2).join('') || 'AL';
   return <div className={`assessmentStudentAvatar ${size}`}>{student?.thumbUrl || student?.photoUrl ? <img src={student.thumbUrl || student.photoUrl} alt={student.name}/> : initials}</div>;
 }
-function Heading({ title, sub, action }) { return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>; }
 function Status({ status }) { return <span className={`assessmentStatus ${status}`}>{assessmentStatusLabel(status)}</span>; }
 function Empty({ children }) { return <div className="assessmentEmpty"><Activity size={32}/><p>{children}</p></div>; }
 function Field({ label, children, wide = false }) { return <label className={wide?'assessmentField wide':'assessmentField'}><span>{label}</span>{children}</label>; }
@@ -239,7 +238,7 @@ function AssessmentDetail({ assessment, student, previousAssessment, onBack, can
 
 function StudentAssessmentHome({ student, assessments, canManage, readOnlyReason = '', isStudentView = false, onNew, onView, onEdit, onArchive, onDeleteAssessment, onBackToStudents }) {
   const published=assessments.filter(a=>a.status==='published'); const latest=published.at(-1); const latestMetrics=assessmentMetrics(latest);
-  return <div className="assessmentStudentHome"><div className="assessmentStudentTop">{!isStudentView&&<button className="backButton" onClick={onBackToStudents}><ArrowLeft size={18}/>Escolher outro aluno</button>}<div className="assessmentStudentIdentity"><StudentAvatar student={student}/><div><span className="eyebrow">AVALIAÇÃO FÍSICA</span><h1>{student.name}</h1><p>{assessments.length} avaliação(ões) acessível(eis)</p></div></div>{canManage&&<button className="primary" onClick={onNew}><Plus size={17}/>Nova avaliação</button>}</div>{readOnlyReason&&<div className="assessmentReadOnlyBanner assessmentReadOnlyBannerList"><LockKeyhole size={18}/><div><b>Aluno associado a outro professor</b><span>{readOnlyReason}</span></div></div>}
+  return <div className="assessmentStudentHome"><div className="assessmentStudentTop">{!isStudentView&&<button className="backButton" onClick={onBackToStudents}><ArrowLeft size={18}/>Voltar aos alunos</button>}<div className="assessmentStudentIdentity"><StudentAvatar student={student}/><div><span className="eyebrow">AVALIAÇÃO FÍSICA</span><h1>{student.name}</h1><p>{assessments.length} avaliação(ões) acessível(eis)</p></div></div>{canManage&&<button className="primary" onClick={onNew}><Plus size={17}/>Nova avaliação</button>}</div>{readOnlyReason&&<div className="assessmentReadOnlyBanner assessmentReadOnlyBannerList"><LockKeyhole size={18}/><div><b>Aluno associado a outro professor</b><span>{readOnlyReason}</span></div></div>}
     <div className="assessmentMetricCards"><div><small>Última avaliação</small><b>{latest?fmt(latest.date):'—'}</b></div><div><small>Peso</small><b>{latestMetrics.weight??'—'} {latestMetrics.weight!=null?'kg':''}</b></div><div><small>Massa gorda</small><b>{latestMetrics.fat??'—'} {latestMetrics.fat!=null?'%':''}</b></div><div><small>Massa muscular</small><b>{latestMetrics.muscle??'—'} {latestMetrics.muscle!=null?'kg':''}</b></div><div><small>Cintura</small><b>{latestMetrics.waist??'—'} {latestMetrics.waist!=null?'cm':''}</b></div></div>
     <MetricChart assessments={assessments}/>
     <section className="assessmentHistory"><div className="assessmentSectionTitle"><ClipboardList/><div><h2>Histórico</h2><p>As avaliações publicadas ficam disponíveis ao aluno; rascunhos são privados da equipa.</p></div></div>{assessments.length?<div className="assessmentHistoryList">{[...assessments].reverse().map(item=><article className="assessmentHistoryCard" key={item.id}><div className="assessmentHistoryDate"><b>{fmt(item.date)}</b><Status status={item.status}/></div><div className="assessmentBadges">{assessmentModuleLabels(item).map(label=><span key={label}>{label}</span>)}</div><div className="assessmentHistoryMetrics"><span>Peso <b>{item.weight??'—'}{item.weight!=null?' kg':''}</b></span><span>MG <b>{item.fat??'—'}{item.fat!=null?'%':''}</b></span><span>Cintura <b>{item.waist??'—'}{item.waist!=null?' cm':''}</b></span></div><div className="assessmentHistoryActions"><button className="secondary" onClick={()=>onView(item)}><Eye size={16}/>Ver</button>{canManage&&<><button className="secondary" onClick={()=>onEdit(item)}><Edit3 size={16}/>Editar</button><button className="iconDanger" title="Eliminar avaliação definitivamente" onClick={()=>onDeleteAssessment(item)}><Trash2 size={16}/></button></>}</div></article>)}</div>:<Empty>Ainda não existem avaliações para este aluno.</Empty>}</section>
@@ -254,7 +253,6 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   const [mode,setMode]=useState('home');
   const [editing,setEditing]=useState(null);
   const [viewing,setViewing]=useState(null);
-  const [query,setQuery]=useState('');
   const [notice,setNotice]=useState('');
   const [error,setError]=useState('');
   const [manageResolved,setManageResolved]=useState(isStudent);
@@ -273,12 +271,6 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   useEffect(()=>{if(isStudent&&ownStudent?.id)setSelectedStudentId(ownStudent.id)},[isStudent,ownStudent?.id]);
   const selectedStudent=data.students.find(item=>item.id===selectedStudentId);
   const assessments=useMemo(()=>data.assessments.filter(item=>item.studentId===selectedStudentId).sort((a,b)=>a.date.localeCompare(b.date)),[data.assessments,selectedStudentId]);
-  const list=useMemo(()=>data.students.filter(student=>student.name.toLowerCase().includes(query.toLowerCase().trim())),[data.students,query]);
-  const studentOwnedByCurrentProfessional = student => Boolean(student && (
-    student.primaryTrainer?.profileId
-      ? student.primaryTrainer.profileId === currentUser.id
-      : (student.trainerIds || []).includes(currentUser.id)
-  ));
 
   useEffect(()=>{
     let cancelled=false;
@@ -328,7 +320,7 @@ export default function AssessmentsModule({ context = {}, onNavigate }) {
   if(mode==='form'&&selectedStudent&&canManage) return <AssessmentForm student={selectedStudent} assessment={editing} assessments={assessments} onCancel={()=>{setMode('home');setEditing(null)}} onSaved={saved}/>;
   if(viewing&&selectedStudent){const previousAssessment=[...assessments].filter(a=>a.id!==viewing.id&&a.status==='published'&&(a.date<viewing.date||(a.date===viewing.date&&String(a.createdAt||'')<String(viewing.createdAt||'')))).at(-1)||null;return <AssessmentDetail assessment={viewing} previousAssessment={previousAssessment} student={selectedStudent} canManage={canManage} readOnlyReason={readOnlyReason} onBack={()=>{setViewing(null);onNavigate?.('assessments',{studentId:selectedStudent.id})}} onEdit={()=>{if(!canManage)return;setEditing(viewing);setViewing(null);setMode('form')}} onArchive={()=>archive(viewing)} onDelete={()=>removeAssessment(viewing)} onExport={()=>exportPdf(viewing)}/>;}
 
-  if(selectedStudent) return <>{notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}{error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}<StudentAssessmentHome student={selectedStudent} assessments={assessments} canManage={canManage} readOnlyReason={readOnlyReason} isStudentView={isStudent} onNew={()=>{if(!canManage)return;setEditing(null);setMode('form')}} onView={item=>{setViewing(item);onNavigate?.('assessments',{studentId:selectedStudent.id,assessmentId:item.id})}} onEdit={item=>{if(!canManage)return;setEditing(item);setMode('form')}} onArchive={archive} onDeleteAssessment={removeAssessment} onBackToStudents={()=>isStudent?onNavigate?.('dashboard'):(setSelectedStudentId(''),onNavigate?.('assessments'))}/></>;
+  if(selectedStudent) return <>{notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}{error&&<div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}<StudentAssessmentHome student={selectedStudent} assessments={assessments} canManage={canManage} readOnlyReason={readOnlyReason} isStudentView={isStudent} onNew={()=>{if(!canManage)return;setEditing(null);setMode('form')}} onView={item=>{setViewing(item);onNavigate?.('assessments',{studentId:selectedStudent.id,assessmentId:item.id})}} onEdit={item=>{if(!canManage)return;setEditing(item);setMode('form')}} onArchive={archive} onDeleteAssessment={removeAssessment} onBackToStudents={()=>onNavigate?.('students')}/></>;
 
-  return <><Heading title="Avaliações físicas" sub="Anamnese, perimetria, dobras cutâneas, TANITA, postura, evolução fotográfica e gráficos comparativos."/><div className="assessmentStudentPicker"><div className="search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar aluno…"/></div>{list.length?<div className="assessmentStudentPickerGrid">{list.map(student=>{const rows=data.assessments.filter(a=>a.studentId===student.id);const last=rows.filter(a=>a.status==='published').at(-1);const owned=studentOwnedByCurrentProfessional(student);return <button key={student.id} onClick={()=>{setSelectedStudentId(student.id);onNavigate?.('assessments',{studentId:student.id})}}><StudentAvatar student={student}/><div><b>{student.name}</b><span>{rows.length} avaliação(ões) · última {last?fmt(last.date):'—'}</span>{currentUser.role==='admin'&&!owned&&<span className="assessmentStudentLock"><LockKeyhole size={12}/>Só leitura · {student.primaryTrainer?.name || 'outro professor'}</span>}</div><ChevronRight/></button>})}</div>:<Empty>Não existem alunos disponíveis.</Empty>}</div></>;
+  return null;
 }
