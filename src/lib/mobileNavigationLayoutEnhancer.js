@@ -99,6 +99,7 @@ function rebuildMobileNavigation() {
 
   const labels = available.map((button) => normalizeLabel(button.textContent));
   const isProfessional = labels.includes('alunos');
+  if (isProfessional && dashboardButton) available.unshift(dashboardButton);
 
   const profileShortcut = document.querySelector('.profileShortcut');
   if (profileShortcut && profileButton) {
@@ -139,7 +140,7 @@ function rebuildMobileNavigation() {
   }
 
   const preferredPrimary = isProfessional
-    ? ['alunos', 'desafios', 'planos de treino', 'nutrição']
+    ? ['dashboard', 'alunos', 'planos de treino', 'nutrição']
     : ['treino', 'avaliações', 'nutrição', 'desafios'];
   const primarySources = preferredPrimary
     .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
