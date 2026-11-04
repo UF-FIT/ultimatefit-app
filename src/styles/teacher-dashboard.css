@@ -1,0 +1,54 @@
+.teacherDashboard{max-width:1100px;margin:0 auto;display:grid;gap:22px;padding-bottom:24px;min-width:0;color:#f4f4f5}
+.teacherDashboard *{box-sizing:border-box}
+.teacherDashboard .tdGreeting h1{font-family:inherit;font-size:30px;line-height:1.2;text-transform:none;margin:8px 0 10px;letter-spacing:-.6px}
+.tdGreeting>div>small{color:#ffdc00;font-size:10px;letter-spacing:1.7px;font-weight:800}
+.tdGreeting p{color:#97979e;margin:0;font-size:15px}
+.tdMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.teacherDashboard button{font-family:inherit;cursor:pointer}
+.teacherDashboard .tdMetric{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:10px;background:#121315;border:1px solid #2d2e32;border-radius:19px;padding:20px;min-width:0;color:inherit}
+.tdMetric>span{display:flex;gap:7px;align-items:center;color:#b7b7bd;font-size:13px;line-height:1.4}
+.tdMetric>span svg{flex-shrink:0;color:#e1c500}
+.tdMetric strong{font-size:30px;line-height:1.2;letter-spacing:-1px;overflow-wrap:anywhere}
+.tdMetric small{color:#898990;font-size:12px;line-height:1.5}
+.tdPanel{background:#111214;border:1px solid #2b2c30;border-radius:20px;overflow:hidden;min-width:0}
+.tdPanel>header{padding:22px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.teacherDashboard .tdPanel h2{font-family:inherit;text-transform:none;font-size:19px;margin:0;letter-spacing:-.3px}
+.tdPanel>header p{font-size:13px;line-height:1.5;margin:7px 0 0;color:#93939b}
+.tdPanel>header button,.tdAttendance button,.tdEmpty button{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:transparent;border:1px solid #3c3d42;border-radius:10px;color:#e8e8eb;padding:10px 12px;font-size:12px;font-weight:650}
+.tdPanel>header button{flex-shrink:0}
+.tdSession{display:grid;grid-template-columns:76px minmax(0,1fr);gap:16px;padding:20px 22px;border-top:1px solid #292a2e}
+.tdTime strong{font-size:19px}
+.tdTime small{display:block;color:#8e8e97;font-size:12px;line-height:1.35;margin-top:5px}
+.tdSessionBody{border-left:3px solid #f2d000;padding-left:16px;min-width:0}
+.tdPerson{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.tdPerson b{font-size:14px;flex:1;min-width:80px;overflow-wrap:anywhere}
+.tdAvatar{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#655711;color:#ffe768;font-weight:750;font-size:11px;overflow:hidden;flex-shrink:0}
+.tdAvatar img{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;object-fit:cover}
+.tdAttendance{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.tdAttendee+.tdAttendee{margin-top:14px;padding-top:14px;border-top:1px solid #292a2e}
+.tdStatus{display:inline-block;border-radius:20px;background:#252830;color:#b9c0cb;padding:5px 9px;font-size:10px;margin:5px 0}
+.tdStatus.present{color:#60d7ab;background:#173129}.tdStatus.absent{color:#ffa297;background:#362324}
+.tdLocation{color:#92929a;font-size:12px;margin:10px 0 0;overflow-wrap:anywhere}
+.teacherDashboard .tdUpcoming{width:100%;display:grid;grid-template-columns:76px minmax(0,1fr) 16px;gap:16px;text-align:left;background:none;border:0;border-top:1px solid #292a2e;color:inherit;border-radius:0;padding:18px 22px}
+.tdUpcoming b{font-size:13px}.tdUpcoming small{display:block;color:#9999a2;font-size:12px;margin-top:6px}
+.tdUpcoming span{min-width:0;overflow-wrap:anywhere}
+.tdChart{display:flex;align-items:stretch;gap:12px;padding:20px 22px 25px;height:225px}
+.tdBarColumn{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;gap:9px}
+.tdBarColumn strong{font-size:11px;overflow-wrap:anywhere;color:#9999a3}
+.tdBarTrack{flex:1;min-height:0;border-bottom:1px solid #3c3d40;display:flex;align-items:flex-end;justify-content:center;background:repeating-linear-gradient(to top,transparent 0,transparent 49%,#25262a 50%,transparent 51%)}
+.tdBarTrack span{width:64%;max-width:55px;background:#6d621c;border-radius:5px 5px 0 0;min-height:2px}
+.tdBarColumn.current .tdBarTrack span{background:#ffdc00}.tdBarColumn.current strong{color:#ffdc00}
+.tdBarColumn small{font-size:11px;color:#9999a1}
+.tdAlert{display:flex;align-items:center;gap:13px;padding:18px 22px;border-top:1px solid #292a2e}
+.tdSymbol{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#262a30;color:#9da6b5;flex-shrink:0}
+.tdSymbol.amber{background:#342f14;color:#e5cb48}.tdSymbol.red{background:#352223;color:#e98c83}.tdSymbol.green{background:#17322c;color:#5acaa3}
+.teacherDashboard .tdAlertCopy{flex:1;min-width:0;text-align:left;border:0;background:none;color:inherit;padding:0;white-space:normal;line-height:1.5}
+.tdAlertCopy b{font-size:14px;overflow-wrap:anywhere}.tdAlertCopy small{display:block;color:#93939c;font-size:12px;margin-top:4px}
+.tdContact{border:1px solid #3b3d43;border-radius:10px;width:35px;height:37px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#c3c3cb}
+.tdEmpty{padding:0 22px 22px;color:#92929b;font-size:14px;line-height:1.6;margin:0}.tdEmpty button{margin-top:12px;display:flex}
+.tdError,.tdNotice{padding:14px;border-radius:12px;background:#312323;color:#ffb8ab;font-size:13px}.tdNotice{background:#1a3028;color:#85d9b6}.tdError button{margin-left:12px}
+.teacherDashboard .tdAdd{position:fixed;right:26px;bottom:30px;z-index:35;width:56px;height:56px;border:0;border-radius:18px;background:#ffdc00;color:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px #0007}
+.teacherDashboard button:focus-visible,.tdContact:focus-visible{outline:2px solid #ffdc00;outline-offset:3px}
+@media(max-width:760px){.teacherDashboard{gap:20px}.tdMetrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teacherDashboard .tdMetric{padding:17px 14px;min-height:135px}.tdMetric strong{font-size:28px}.tdMetric>span{font-size:12px}.tdMetric>span svg{display:none}.teacherDashboard .tdGreeting h1{font-size:26px}.tdPanel>header{padding:20px 16px}.tdPanel>header button{font-size:11px;padding:9px}.tdSession{padding:18px 16px;grid-template-columns:58px minmax(0,1fr);gap:12px}.tdSessionBody{padding-left:12px}.tdUpcoming{padding:18px 16px!important}.tdAlert{padding:17px 16px;gap:10px}.tdAlertCopy b{font-size:13px}.tdEmpty{padding:0 16px 20px}.tdChart{padding:15px 16px 22px;gap:7px}.teacherDashboard .tdAdd{right:20px;bottom:calc(100px + env(safe-area-inset-bottom,0px))}.teacherDashboard{padding-bottom:45px}html.uf-keyboard-editing .tdAdd{display:none}}
+@media(max-width:350px){.tdSymbol{width:28px;height:28px}.tdContact{width:30px}.tdAttendance button{font-size:11px;padding:9px 7px}.tdMetric strong{font-size:25px}.tdPanel>header{gap:6px}.teacherDashboard .tdPanel h2{font-size:17px}}
+

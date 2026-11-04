@@ -13,7 +13,7 @@ function FormDialog({title,onClose,onSave,children,button='Guardar'}){
  return <Dialog title={title} onClose={()=>!busy&&onClose()}><form onSubmit={submit}><div className="ufPaymentFields">{children}</div>{error&&<p role="alert" className="ufPaymentError">{error}</p>}<footer><button type="button" disabled={busy} onClick={onClose}>Cancelar</button><button className="primary" disabled={busy}>{busy?'A guardar…':button}</button></footer></form></Dialog>;
 }
 function PackSelect({packs,studentId,value,onChange}){return <select aria-label="Pack associado" value={value||''} onChange={e=>onChange(e.target.value)}><option value="">Sem pack · mensalidade / sessão avulsa</option>{packs.filter(p=>p.student_id===studentId).map(p=><option key={p.id} value={p.id}>{p.title} · {p.total-p.used} de {p.total} disponíveis</option>)}</select>;}
-function SessionForm({session,attendance,students,packs,date,onClose,onSaved}){
+export function SessionForm({session,attendance,students,packs,date,onClose,onSaved}){
  const [form,setForm]=useState(()=>session?{...session,starts_local:localDateTime(session.starts_at),participants:attendance.filter(a=>a.session_id===session.id).map(a=>({student_id:a.student_id,pack_id:a.pack_id||''}))}:{request_id:crypto.randomUUID(),kind:'individual',starts_local:date+'T09:00',duration:60,location:'',participants:[]});
  const [query,setQuery]=useState('');const set=(key,value)=>setForm(f=>({...f,[key]:value}));
  function toggle(id){setForm(f=>{const available=packs.filter(p=>p.student_id===id&&p.total>p.used);const packId=f.kind!=='assessment'&&available.length===1?available[0].id:'';return {...f,participants:f.participants.some(p=>p.student_id===id)?f.participants.filter(p=>p.student_id!==id):[...(f.kind==='group'?f.participants:[]),{student_id:id,pack_id:packId}]};});}
@@ -29,8 +29,8 @@ function SessionForm({session,attendance,students,packs,date,onClose,onSaved}){
   <p>Marcar uma sessão não desconta do pack. Horários em Portugal.</p>
  </FormDialog>;
 }
-function AttendanceForm({row,name,packs,onClose,onSaved}){
- const [status,setStatus]=useState(row.status),[pack,setPack]=useState(row.pack_id||''),[decision,setDecision]=useState(['absent','cancelled'].includes(row.status)?String(row.deduct):'');
+export function AttendanceForm({row,name,packs,onClose,onSaved,initialStatus}){
+ const [status,setStatus]=useState(initialStatus||row.status),[pack,setPack]=useState(row.pack_id||''),[decision,setDecision]=useState(!initialStatus&&['absent','cancelled'].includes(row.status)?String(row.deduct):'');
  async function save(){if(['absent','cancelled'].includes(status)&&!decision)throw Error('Escolhe se descontas ou não do pack.');await agendaRpc('pt_mark_attendance',{p_session:row.session_id,p_student:row.student_id,p_status:status,p_deduct:decision===''?null:decision==='true',p_pack:pack||null,p_version:row.version});onSaved('Presença e saldo do pack atualizados.');}
  return <FormDialog title={name} onClose={onClose} onSave={save}><label>Presença<select aria-label="Estado da presença" value={status} onChange={e=>{setStatus(e.target.value);setDecision('');}}>{Object.entries(attendanceLabels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
  <label>Pack<PackSelect packs={packs} studentId={row.student_id} value={pack} onChange={setPack}/></label>

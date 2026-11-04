@@ -100,6 +100,7 @@ function pendingHtml(data){
 function backofficeScopeHtml(data){return `<section class="uf-backoffice-scope"><div><small>VISUALIZAÇÃO DE ALUNOS</small><h2>Ver todos os alunos do estúdio</h2><p>${data.scope==='all'?`Ativo · as áreas de gestão mostram todos os ${data.allCount} alunos ativos do estúdio.`:`Desativado · as áreas de gestão mostram apenas os ${data.assignedCount} alunos atribuídos a ti.`}</p><em>Afeta Alunos, Avaliações, Planos, Nutrição e alertas. Não altera permissões de criação/edição.</em></div><button class="uf-scope-toggle ${data.scope==='all'?'on':''}" data-uf-toggle-scope aria-label="Alternar âmbito"><i></i></button></section>`;}
 function hideLegacyDashboardScope(){document.querySelectorAll('[data-dashboard-student-scope]').forEach(el=>{el.style.display='none';});}
 async function renderDashboard(profile){
+ if(document.querySelector('.teacherDashboard')){revealDashboard();return;}
  const content=document.querySelector('.content');if(!content)return;
  maskDashboard();
  hideLegacyDashboardScope();
@@ -134,6 +135,7 @@ async function run(){
  const path=currentPath();
  try{
   cleanModes(path);hideLegacyDashboardScope();
+  if(isDashboardPath(path)&&document.querySelector('.teacherDashboard')){document.getElementById('uf-dashboard-attention-root')?.remove();revealDashboard();return;}
   const profile=await currentProfile();
   if(!profile||!isProfessionalRole(profile.role)){revealDashboard();return;}
   if(isDashboardPath(path))maskDashboard();
