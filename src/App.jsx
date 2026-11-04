@@ -107,9 +107,11 @@ function pathForPage(key,role,context={}){
 function Shell(){
  const {currentUser}=useApp();
  const [paymentAccess,setPaymentAccess]=useState('none');
- useEffect(()=>{let active=true;setPaymentAccess('none');paymentRpc('payment_access').then(value=>{if(active)setPaymentAccess(value);}).catch(()=>{});return()=>{active=false;};},[currentUser.id]);
+ const [agendaAccess,setAgendaAccess]=useState('none');
+
  const {signOut}=useAuth();
  const location=useLocation();
+ useEffect(()=>{let active=true;const refresh=()=>{if(document.visibilityState==='hidden')return;Promise.all([paymentRpc('payment_access'),paymentRpc('student_module_access',{p_module:'agenda'})]).then(([payments,agenda])=>{if(active){setPaymentAccess(payments);setAgendaAccess(agenda);}}).catch(()=>{if(active){setPaymentAccess('none');setAgendaAccess('none');}});};setPaymentAccess('none');setAgendaAccess('none');refresh();window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[currentUser.id,location.pathname]);
  const routeNavigate=useNavigate();
  const challengeHost=typeof window!=='undefined'&&window.location.hostname.toLowerCase().startsWith('desafios.');
  useEffect(()=>{
@@ -128,7 +130,7 @@ function Shell(){
   routeNavigate(pathForPage(key,currentUser.role,nextContext),{state:{pageContext:nextContext}});
  };
  const baseNav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
- const nav=paymentAccess==='manage'||paymentAccess==='read'?[...baseNav,['agenda','Agenda',CalendarDays],['payments','Pagamentos',FileText]]:baseNav;
+ const nav=[...baseNav,...(['manage','read'].includes(agendaAccess)?[['agenda','Agenda',CalendarDays]]:[]),...(['manage','read'].includes(paymentAccess)?[['payments','Pagamentos',FileText]]:[])];
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={(page===key||(page==='assessments'&&key==='students'))?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
   <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>navigate('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>

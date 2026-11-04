@@ -9,6 +9,7 @@ import {
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../contexts/AppContext';
 import ParqStatusCard from './ParqStatusCard';
+import StudentModuleAccess from './StudentModuleAccess';
 import { supabase } from '../lib/supabase';
 import TrainingActivityCalendar from './TrainingActivityCalendar';
 import ProfessorWorkoutAnalytics from './ProfessorWorkoutAnalytics';
@@ -361,6 +362,7 @@ function StudentProfile({ student, currentUser, trainers, assessments, onBack, o
     {message && <div className="successBanner"><CheckCircle2 size={18}/>{message}</div>}{error && <div className="errorBanner"><AlertTriangle size={18}/>{error}</div>}
     <section className="studentProfileHero profileHeroV2"><StudentPhoto student={student} large/><div className="profileIdentity"><span className="eyebrow">{student.studentCode}</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {formatDate(student.birth)}</p><div className="profileChips"><span>{trackingLabels[student.trackingType] || 'Acompanhamento por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span></div></div><div className="profileQuickActions"><button onClick={onEdit}><Edit3 size={19}/><span>Editar perfil</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone, buildStudentAccessMessage(student)))} disabled={!canWhatsappStudent}><Send size={19}/><span>Enviar app</span></button><button onClick={() => onNavigate?.('assessments',{studentId:student.id})}><Activity size={19}/><span>Avaliação física</span></button><button onClick={()=>setShowTrainingLog(true)}><CheckCircle2 size={19}/><span>Registar treino</span></button><button onClick={() => openWhatsApp(whatsappUrl(student.phone))} disabled={!canWhatsappStudent}><MessageCircle size={19}/><span>WhatsApp</span></button></div></section>
 
+    <StudentModuleAccess key={`access-${student.id}`} student={student} currentUser={currentUser}/>
     <AssessmentPreferencePanel key={student.id} student={student} currentUser={currentUser}/>
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate}/>
     <TrainingActivityCalendar completions={studentCompletions}/>

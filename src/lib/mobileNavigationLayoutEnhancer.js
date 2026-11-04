@@ -115,7 +115,7 @@ function rebuildMobileNavigation() {
     }
   }
 
-  if (!isProfessional) {
+  if (!isProfessional && available.length <= 5) {
     document.querySelector('.mobileNavOverflowPanel')?.remove();
     const studentPrimaryOrder = ['treino', 'avaliações', 'nutrição', 'desafios', 'atividades'];
     const studentSources = studentPrimaryOrder
@@ -138,7 +138,9 @@ function rebuildMobileNavigation() {
     return;
   }
 
-  const preferredPrimary = ['alunos', 'desafios', 'planos de treino', 'nutrição'];
+  const preferredPrimary = isProfessional
+    ? ['alunos', 'desafios', 'planos de treino', 'nutrição']
+    : ['treino', 'avaliações', 'nutrição', 'desafios'];
   const primarySources = preferredPrimary
     .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
     .filter(Boolean)
