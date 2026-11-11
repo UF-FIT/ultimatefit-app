@@ -39,9 +39,16 @@ async function target(){
   return'';
 }
 async function fetchRows(id){
-  const {data,error}=await supabase.from('workout_exercise_loads').select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on').eq('student_id',id).order('completed_on');
-  if(error) throw error;
-  return data||[];
+  const [legacy,completedSets]=await Promise.all([
+    supabase.from('workout_exercise_loads').select('workout_item_id,exercise_name,muscle_group,weight_kg,volume_kg,completed_on').eq('student_id',id).order('completed_on'),
+    supabase.from('workout_run_set_results').select('workout_item_id,exercise_name,muscle_group,weight_kg,volume_kg,completed_on').eq('student_id',id).order('completed_on'),
+  ]);
+  if(legacy.error) throw legacy.error;
+  if(completedSets.error) throw completedSets.error;
+  const runs=completedSets.data||[];
+  const runKeys=new Set(runs.map(row=>`${row.completed_on}:${row.workout_item_id}`));
+  const history=(legacy.data||[]).filter(row=>!runKeys.has(`${row.completed_on}:${row.workout_item_id}`));
+  return [...history,...runs].sort((a,b)=>String(a.completed_on).localeCompare(String(b.completed_on)));
 }
 function aggregate(data,ws,w){
   const m=new Map();
