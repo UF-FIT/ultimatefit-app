@@ -135,16 +135,10 @@ export default function StudentTrainingProgressPage({studentId,onBack}) {
 
   useEffect(()=>{
     let cancelled=false; setLoading(true); setError('');
-    Promise.all([
-      supabase.from('workout_exercise_loads').select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on,created_at').eq('student_id',studentId).order('completed_on',{ascending:true}).order('created_at',{ascending:true}),
-      supabase.from('workout_run_set_results').select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on,created_at,run_id,workout_item_id,set_index').eq('student_id',studentId).order('completed_on',{ascending:true}).order('created_at',{ascending:true}),
-    ]).then(([legacyResult,runResult])=>{
+    supabase.from('workout_run_set_results').select('exercise_name,muscle_group,weight_kg,volume_kg,completed_on,created_at,run_id,completion_id,workout_item_id,set_index').eq('student_id',studentId).order('completed_on',{ascending:true}).order('created_at',{ascending:true}).then(result=>{
       if(cancelled)return;
-      const err=legacyResult.error||runResult.error;
-      if(err){setError(err.message||'Não foi possível carregar o teu progresso.');setRecords([]);return;}
-      const legacy=(legacyResult.data||[]).map(row=>({...row,source_kind:'legacy'}));
-      const run=(runResult.data||[]).map(row=>({...row,source_kind:'run_set'}));
-      setRecords([...legacy,...run].sort((a,b)=>String(a.completed_on).localeCompare(String(b.completed_on))||String(a.created_at||'').localeCompare(String(b.created_at||''))));
+      if(result.error){setError(result.error.message||'Não foi possível carregar o teu progresso.');setRecords([]);return;}
+      setRecords(result.data||[]);
     }).finally(()=>{if(!cancelled)setLoading(false);});
     return ()=>{cancelled=true;};
   },[studentId]);

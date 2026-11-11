@@ -26,7 +26,7 @@ function ensureStyle(){
 }
 
 async function currentStudentId(){const {data:{user}}=await supabase.auth.getUser();if(!user)return '';const {data}=await supabase.from('student_profiles').select('id').eq('profile_id',user.id).maybeSingle();return data?.id||'';}
-async function fetchLoads(studentId){const {data,error}=await supabase.from('workout_exercise_loads').select('workout_item_id,exercise_id,weight_kg,completed_on,created_at').eq('student_id',studentId).order('completed_on',{ascending:false}).order('created_at',{ascending:false});if(error){console.warn('Histórico de carga indisponível',error);return [];}return data||[];}
+async function fetchLoads(studentId){const {data,error}=await supabase.from('workout_run_set_results').select('workout_item_id,exercise_id,weight_kg,completed_on,created_at').eq('student_id',studentId).order('completed_on',{ascending:false}).order('created_at',{ascending:false});if(error){console.warn('Histórico de carga indisponível',error);return [];}return data||[];}
 function previousFor(loads,exerciseId){const today=todayIso();return loads.find(r=>r.exercise_id===exerciseId&&r.completed_on<today)||null;}
 function todayFor(loads,itemId){return loads.find(r=>r.workout_item_id===itemId&&r.completed_on===todayIso())||null;}
 function planItems(plan){return (plan.sessions||[]).flatMap(session=>(session.blocks||[]).flatMap(block=>(block.items||[]).map(item=>({item,session}))));}

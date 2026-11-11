@@ -49,7 +49,7 @@ async function currentStudentId() {
 
 async function fetchTodayRows(studentId) {
   const { data } = await supabase
-    .from('workout_exercise_loads')
+    .from('workout_run_set_results')
     .select('workout_item_id,weight_kg')
     .eq('student_id', studentId)
     .eq('completed_on', todayIso());
