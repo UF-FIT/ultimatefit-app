@@ -198,72 +198,244 @@ function summaryChanges(current, previous) {
   return items.length?items:['Não existem métricas comuns suficientes para uma comparação automática.'];
 }
 
+function printableNumber(value, digits = 1) {
+  const valueNumber = n(value);
+  return valueNumber === null ? '—' : valueNumber.toLocaleString('pt-PT', { maximumFractionDigits: digits });
+}
+function printableDifference(current, previous, unit = '', digits = 1) {
+  const a = n(current); const b = n(previous);
+  if (a === null || b === null) return '—';
+  const difference = a - b;
+  if (Math.abs(difference) < 10 ** (-digits) / 2) return '=';
+  const formatted = difference.toLocaleString('pt-PT', { maximumFractionDigits: digits, signDisplay: 'always' });
+  return `${formatted}${unit ? ` ${unit}` : ''}`;
+}
+function comparisonColor(key, current, previous) {
+  const a = n(current); const b = n(previous);
+  if (a === null || b === null || a === b) return MID;
+  const lowerIsBetter = ['weight_kg','bmi','body_fat_pct','visceral_fat_rating','metabolic_age','waist_cm','abdominal_cm','hip_cm','arm_left_relaxed_cm','arm_right_relaxed_cm'].includes(key);
+  const higherIsBetter = ['muscle_mass_kg','water_pct','basal_metabolic_rate_kcal','thigh_left_cm','thigh_right_cm','calf_left_cm','calf_right_cm'].includes(key);
+  if (lowerIsBetter) return a < b ? [35, 133, 82] : [217, 83, 79];
+  if (higherIsBetter) return a > b ? [35, 133, 82] : [217, 83, 79];
+  return MID;
+}
+function drawComparisonBand(doc, y, title, rightText = '') {
+  doc.setFillColor(...BLACK); doc.rect(6, y, 198, 7.5, 'F');
+  if (typeof document !== 'undefined') {
+    addBebasText(doc, title, 9, y + 0.3, { px: 20, color: '#ffffff', maxWidth: 145 });
+  } else {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...WHITE);
+    doc.text(pdfText(title), 9, y + 5.2);
+  }
+  if (rightText) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.4); doc.setTextColor(...WHITE);
+    doc.text(pdfText(rightText), 201, y + 4.8, { align: 'right' });
+  }
+}
+function drawPairBars(doc, { x, baseline, width, height, previous, current, max, unit }) {
+  const values = [n(previous), n(current)];
+  const colors = [[164, 164, 164], YELLOW];
+  const barW = Math.min(6, width * 0.27);
+  const gap = 1.2;
+  const startX = x + (width - barW * 2 - gap) / 2;
+  values.forEach((value, index) => {
+    if (value === null) return;
+    const barH = Math.max(0.8, Math.min(height, value / (max || value || 1) * height));
+    const barX = startX + index * (barW + gap);
+    doc.setFillColor(...colors[index]); doc.rect(barX, baseline - barH, barW, barH, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.1); doc.setTextColor(...BLACK);
+    doc.text(pdfText(printableNumber(value)), barX + barW / 2, baseline - barH - 1.2, { align: 'center' });
+  });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(4.9); doc.setTextColor(...MID);
+  doc.text(pdfText(unit), x + width / 2, baseline + 4, { align: 'center' });
+}
+function buildComparisonConclusion(current, previous, metrics, beforeMetrics) {
+  const firstName = String(current?.name || 'O aluno').trim().split(/\s+/)[0];
+  if (!previous) return `${firstName}: esta é a primeira avaliação disponível. Os valores ficam como referência para acompanhar as próximas medições.`;
+  const parts = [];
+  const weightDelta = n(metrics.weight) === null || n(beforeMetrics.weight) === null ? null : n(metrics.weight) - n(beforeMetrics.weight);
+  const fatDelta = n(metrics.fat) === null || n(beforeMetrics.fat) === null ? null : n(metrics.fat) - n(beforeMetrics.fat);
+  const waistDelta = n(metrics.waist) === null || n(beforeMetrics.waist) === null ? null : n(metrics.waist) - n(beforeMetrics.waist);
+  const abdominalDelta = n(metrics.abdominal) === null || n(beforeMetrics.abdominal) === null ? null : n(metrics.abdominal) - n(beforeMetrics.abdominal);
+  if (weightDelta !== null) parts.push(Math.abs(weightDelta) < 1 ? 'peso praticamente estável' : `peso ${weightDelta < 0 ? 'desceu' : 'subiu'} ${printableNumber(Math.abs(weightDelta))} kg`);
+  if (fatDelta !== null && Math.abs(fatDelta) >= 0.05) parts.push(`massa gorda ${fatDelta < 0 ? 'desceu' : 'subiu'} ${printableNumber(Math.abs(fatDelta))} p.p.`);
+  if (waistDelta !== null && Math.abs(waistDelta) >= 0.05) parts.push(`cintura ${waistDelta < 0 ? 'reduziu' : 'aumentou'} ${printableNumber(Math.abs(waistDelta))} cm`);
+  if (abdominalDelta !== null && Math.abs(abdominalDelta) >= 0.05) parts.push(`abdómen ${abdominalDelta < 0 ? 'reduziu' : 'aumentou'} ${printableNumber(Math.abs(abdominalDelta))} cm`);
+  return parts.length ? `${firstName}: ${parts.slice(0, 3).join('; ')}. Comparação descritiva das medições registadas.` : `${firstName}: não existem métricas comuns suficientes para descrever a evolução. Compara os valores acima em condições de medição semelhantes.`;
+}
+
 export async function buildAssessmentPdf(student, assessment, previousAssessment = null) {
   await ensureBebas();
-  const doc=new jsPDF({unit:'mm',format:'a4',compress:true}); const currentMetrics=assessmentMetrics(assessment); const previousMetrics=previousAssessment?assessmentMetrics(previousAssessment):{};
-  const assessor=assessment.assessor || student?.trainers?.find?.(item=>item.profileId===assessment.assessorProfileId) || student?.primaryTrainer || null;
-  const [logoData, assessorPhoto] = await Promise.all([fetchImagePng('/brand/ultimatefit-logo.webp'),fetchSquareJpeg(assessor?.photoUrl||assessor?.thumbUrl)]);
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  const currentBio = getModule(assessment, 'bioimpedance') || {};
+  const previousBio = getModule(previousAssessment, 'bioimpedance') || {};
+  const currentPerimetry = getModule(assessment, 'perimetry') || {};
+  const previousPerimetry = getModule(previousAssessment, 'perimetry') || {};
+  const metrics = assessmentMetrics(assessment);
+  const beforeMetrics = previousAssessment ? assessmentMetrics(previousAssessment) : {};
+  const hasPrevious = Boolean(previousAssessment);
+  const decimal = value => printableNumber(value, 1);
+  const compositionRows = [
+    ['Peso (kg)', 'weight_kg', currentBio.weight_kg, previousBio.weight_kg, 'kg'],
+    ['IMC', 'bmi', effectiveBmi(currentBio) ?? currentBio.bmi, effectiveBmi(previousBio) ?? previousBio.bmi, ''],
+    ['Massa gorda (%)', 'body_fat_pct', currentBio.body_fat_pct, previousBio.body_fat_pct, '%'],
+    ['Massa muscular / magra (kg)', 'muscle_mass_kg', currentBio.muscle_mass_kg, previousBio.muscle_mass_kg, 'kg'],
+    ['Gordura visceral', 'visceral_fat_rating', currentBio.visceral_fat_rating, previousBio.visceral_fat_rating, ''],
+    ['Água corporal (%)', 'water_pct', currentBio.water_pct, previousBio.water_pct, '%'],
+    ['Metabolismo basal (kcal)', 'basal_metabolic_rate_kcal', currentBio.basal_metabolic_rate_kcal, previousBio.basal_metabolic_rate_kcal, 'kcal'],
+    ['Idade metabólica', 'metabolic_age', currentBio.metabolic_age, previousBio.metabolic_age, 'anos'],
+    ['Massa óssea (kg)', 'bone_mass_kg', currentBio.bone_mass_kg, previousBio.bone_mass_kg, 'kg'],
+  ];
+  const perimetry = [
+    ['Cintura', 'waist_cm'], ['Abdómen', 'abdominal_cm'], ['Anca', 'hip_cm'],
+    ['Braço E', 'arm_left_relaxed_cm'], ['Braço D', 'arm_right_relaxed_cm'],
+    ['Coxa E', 'thigh_left_cm'], ['Coxa D', 'thigh_right_cm'],
+    ['Gémeo E', 'calf_left_cm'], ['Gémeo D', 'calf_right_cm'],
+  ];
 
-  // CAPA
-  doc.setFillColor(...YELLOW);doc.rect(0,0,210,205,'F');doc.setFillColor(...BLACK);doc.triangle(0,205,210,165,210,297,'F');doc.rect(0,205,210,92,'F');
-  doc.setFillColor(...BLACK);doc.roundedRect(14,14,78,23,2,2,'F'); addLogo(doc,logoData,20,21,58);
-  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...BLACK);doc.text(pdfText('RELATÓRIO DE ACOMPANHAMENTO PERSONALIZADO'),196,25,{align:'right'});
-  addBebasText(doc,'AVALIAÇÃO',14,78,{px:72,color:'#0a0a0a',maxWidth:115}); addBebasText(doc,'FÍSICA',14,102,{px:72,color:'#0a0a0a',maxWidth:90});
-  doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(...BLACK);doc.text(pdfText('Avaliação | Prescrição | Controlo'),14,124);
-  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(pdfText(student?.name||'Aluno'),14,144);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.text(pdfText(`${formatDate(assessment.date)}${previousAssessment?` | comparação com ${formatDate(previousAssessment.date)}`:' | avaliação de referência'}`),14,152);
-  if(assessorPhoto){try{doc.addImage(assessorPhoto,'JPEG',151,185,38,38)}catch{}}
-  doc.setTextColor(...WHITE);addBebasText(doc,assessor?.name||'Equipa ULTIMATE FIT',146,228,{px:28,color:'#ffffff',maxWidth:90,align:'center'});doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(210);doc.text(pdfText(assessor?.professionalTitle||'Personal Trainer'),146,241,{align:'center'});
-  const contacts=[cleanPhone(assessor?.phone),assessor?.email].filter(Boolean).join(' | ');if(contacts){doc.setFontSize(7.7);doc.text(pdfText(contacts),146,247,{align:'center',maxWidth:90});}
-  doc.setFontSize(10);doc.setTextColor(...WHITE);doc.text('ultimatefit.pt',14,278);doc.setTextColor(170);doc.setFontSize(8);doc.text(pdfText('ULTIMATE FIT | Estúdio privado de treino personalizado'),14,285);
+  // Cabeçalho: identificação do aluno e das duas avaliações comparadas.
+  doc.setFillColor(...WHITE); doc.rect(0, 0, 210, 297, 'F');
+  const studentName = pdfText(String(student?.name || 'Aluno').toLocaleUpperCase('pt-PT'));
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(25); doc.setTextColor(...BLACK);
+  while (doc.getTextWidth(studentName) > 132 && doc.getFontSize() > 13) doc.setFontSize(doc.getFontSize() - 0.5);
+  doc.text(studentName, 7, 15);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...MID);
+  doc.text(pdfText('C O M P A R A T I V O   D E   A V A L I A Ç Õ E S   F Í S I C A S'), 8, 25);
+  doc.setDrawColor(...BLACK); doc.setLineWidth(0.35); doc.line(145, 7, 145, 25);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...BLACK);
+  doc.text(pdfText('AVALIAÇÃO ANTERIOR'), 151, 11);
+  doc.setFontSize(8.5); doc.text(pdfText(hasPrevious ? formatDate(previousAssessment.date) : 'Sem avaliação anterior'), 151, 17);
+  doc.setFontSize(6.5); doc.text(pdfText('AVALIAÇÃO ATUAL'), 151, 22);
+  doc.setFontSize(8.5); doc.text(pdfText(formatDate(assessment?.date)), 151, 27);
 
-  // RESUMO
-  doc.addPage();contentHeader(doc,'Resumo e evolução',logoData);pageTitle(doc,'A tua avaliação em resumo',previousAssessment?`Comparação automática com a avaliação de ${formatDate(previousAssessment.date)}.`:'Primeira avaliação disponível - servirá como referência para a evolução futura.');
-  let y=53; doc.setFillColor(250,250,250);doc.roundedRect(14,y,182,34,2,2,'F');
-  infoBlock(doc,19,y+8,'Aluno',student?.name,70);infoBlock(doc,19,y+19,'Idade',student?.age!=null?`${student.age} anos`:'-',70);infoBlock(doc,19,y+26,'Objetivo',student?.mainGoal||'-',70);
-  infoBlock(doc,110,y+8,'Data da avaliação',formatDate(assessment.date),70);infoBlock(doc,110,y+19,'Professor responsável',assessor?.name||'ULTIMATE FIT',70);infoBlock(doc,110,y+26,'Contacto',cleanPhone(assessor?.phone)||assessor?.email||'ultimatefit.pt',70);
-  y=94;const cw=42.5,g=4;comparisonCard(doc,14,y,cw,31,'Peso',currentMetrics.weight,previousMetrics.weight,'kg');comparisonCard(doc,14+cw+g,y,cw,31,'Massa gorda',currentMetrics.fat,previousMetrics.fat,'%');comparisonCard(doc,14+(cw+g)*2,y,cw,31,'Massa muscular',currentMetrics.muscle,previousMetrics.muscle,'kg');comparisonCard(doc,14+(cw+g)*3,y,cw,31,'Cintura',currentMetrics.waist,previousMetrics.waist,'cm');
-  y=132;metricCard(doc,14,y,57,27,'IMC',currentMetrics.bmi==null?'-':String(currentMetrics.bmi),{classification:bmiCategory(currentMetrics.bmi)||'Sem classificação'});comparisonCard(doc,76,y,57,27,'Gordura visceral',currentMetrics.visceral,previousMetrics.visceral,'');comparisonCard(doc,138,y,58,27,'Soma das dobras',currentMetrics.skinfoldSum==null?null:Number(currentMetrics.skinfoldSum.toFixed(1)),previousMetrics.skinfoldSum==null?null:Number(previousMetrics.skinfoldSum.toFixed?.(1)??previousMetrics.skinfoldSum),'mm');
-  y=171;y=sectionTitle(doc,'Evolução desde a avaliação anterior',y);doc.setFillColor(250,250,250);doc.roundedRect(14,y,182,48,2,2,'F');let by=y+9;const changes=summaryChanges(assessment,previousAssessment);
-  changes.slice(0,5).forEach(item=>{
-    doc.setFillColor(...YELLOW);doc.circle(20,by-1.3,1.3,'F');doc.setFont('helvetica','bold');doc.setFontSize(8.2);doc.setTextColor(...BLACK);
-    if(typeof item==='string'){doc.text(pdfText(item),25,by,{maxWidth:165});by+=8;return;}
-    doc.text(pdfText(item.label),25,by);doc.setFont('helvetica','normal');doc.setTextColor(55);doc.text(pdfText(`de ${item.previous} para ${item.current}`),57,by);doc.setFont('helvetica','bold');doc.setTextColor(...BLACK);doc.text(pdfText(`Variação ${item.change}`),145,by,{maxWidth:46});by+=9;
+  // Composição corporal e resumo rápido.
+  drawComparisonBand(doc, 32, 'COMPOSIÇÃO CORPORAL');
+  const tableX = 7; const tableY = 41; const tableW = 136; const rowH = 7.45;
+  const columns = [58, 24, 25, 29];
+  doc.setFillColor(238, 238, 238); doc.rect(tableX, tableY, tableW, 8, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(5.9); doc.setTextColor(...MID);
+  const headings = ['INDICADOR', hasPrevious ? 'ANTERIOR' : 'ANTERIOR', 'ATUAL', 'DIFERENÇA'];
+  let headerX = tableX;
+  headings.forEach((heading, index) => {
+    const align = index === 0 ? 'left' : 'right';
+    doc.text(pdfText(heading), align === 'left' ? headerX + 2 : headerX + columns[index] - 2, tableY + 5.3, { align });
+    headerX += columns[index];
   });
-  y=234;y=sectionTitle(doc,'Módulos incluídos neste relatório',y);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MID);doc.text(pdfText(assessmentModuleLabels(assessment).join(' | ')||'Avaliação geral'),14,y,{maxWidth:182});
-  doc.setFont('helvetica','italic');doc.setFontSize(7.3);doc.setTextColor(115);doc.text(pdfText('As comparações são descritivas e destinam-se ao acompanhamento da evolução. A interpretação clínica deve ser feita por profissional de saúde quando aplicável.'),14,271,{maxWidth:182});
+  compositionRows.forEach((row, index) => {
+    const y = tableY + 8 + index * rowH;
+    doc.setFillColor(...(index % 2 ? [250, 250, 250] : [242, 242, 242])); doc.rect(tableX, y, tableW, rowH, 'F');
+    doc.setFont('helvetica', index === 0 ? 'bold' : 'normal'); doc.setFontSize(6.2); doc.setTextColor(...BLACK);
+    doc.text(pdfText(row[0]), tableX + 2, y + 5.1, { maxWidth: columns[0] - 4 });
+    const values = [row[3], row[2]];
+    let x = tableX + columns[0];
+    values.forEach((value, valueIndex) => {
+      doc.setFont('helvetica', valueIndex === 1 ? 'bold' : 'normal'); doc.setTextColor(...(valueIndex === 1 ? BLACK : MID));
+      const valueText = n(value) === null ? '—' : `${decimal(value)}${row[4] ? ` ${row[4]}` : ''}`;
+      doc.text(pdfText(valueText), x + columns[valueIndex + 1] - 2, y + 5.1, { align: 'right' });
+      x += columns[valueIndex + 1];
+    });
+    const diff = printableDifference(row[2], row[3], row[4] === '%' ? 'p.p.' : row[4], 1);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8); doc.setTextColor(...comparisonColor(row[1], row[2], row[3]));
+    doc.text(pdfText(hasPrevious ? diff : '—'), tableX + tableW - 2, y + 5.1, { align: 'right' });
+  });
 
-  // BIOIMPEDÂNCIA
-  if(getModule(assessment,'bioimpedance')){
-    doc.addPage();contentHeader(doc,'Bioimpedância TANITA',logoData);pageTitle(doc,'Composição corporal','Valores atuais, referência anterior e diferença entre avaliações.');
-    const bioEnd=table(doc,{title:'Bioimpedância - TANITA',rows:bioRows,current:getModule(assessment,'bioimpedance'),previous:getModule(previousAssessment,'bioimpedance'),startY:52,logoData,student,assessmentDate:assessment.date});
-    let bioRefEnd=bioEnd;
-    if(bioEnd<226) bioRefEnd=drawBioimpedanceReferences(doc,bioEnd+2);
-    if(bioRefEnd<205) drawBodyFatReferenceTable(doc,bioRefEnd+3); else { doc.addPage();contentHeader(doc,'Referência de composição corporal',logoData);pageTitle(doc,'Percentual de gordura','Tabela de referência por sexo e idade.');drawBodyFatReferenceTable(doc,52); }
-  }
-  // PERIMETRIA
-  if(getModule(assessment,'perimetry')){
-    doc.addPage();contentHeader(doc,'Perimetria',logoData);pageTitle(doc,'Perimetria corporal','Acompanhamento das principais medidas corporais.');
-    table(doc,{title:'Medidas corporais',rows:perimetryRows,current:getModule(assessment,'perimetry'),previous:getModule(previousAssessment,'perimetry'),startY:52,logoData});
-  }
-  // DOBRAS
-  if(getModule(assessment,'skinfolds')){
-    doc.addPage();contentHeader(doc,'Dobras cutâneas',logoData);pageTitle(doc,'Dobras cutâneas','Registo em milímetros e evolução face à avaliação anterior.');
-    let end=table(doc,{title:'Pregas cutâneas',rows:skinfoldRows,current:getModule(assessment,'skinfolds'),previous:getModule(previousAssessment,'skinfolds'),startY:52,logoData});
-    const currentSum=skinfoldSum(getModule(assessment,'skinfolds')), previousSum=skinfoldSum(getModule(previousAssessment,'skinfolds')); end=sectionTitle(doc,'Somatório',end+3);comparisonCard(doc,14,end,70,31,'Soma das dobras',currentSum==null?null:Number(currentSum.toFixed(1)),previousSum==null?null:Number(previousSum.toFixed(1)),'mm');
-  }
-  // CONTEXTO
-  if(getModule(assessment,'anamnesis')||getModule(assessment,'posture')||assessment.notes){
-    doc.addPage();contentHeader(doc,'Contexto da avaliação',logoData);pageTitle(doc,'Contexto e observações','Informação complementar registada durante a avaliação.');y=53;
-    const anam=getModule(assessment,'anamnesis'); if(anam){const autoRisk=automaticRiskSummary(anam);y=sectionTitle(doc,'Anamnese',y);doc.setFillColor(...LIGHT);doc.roundedRect(14,y,182,43,2,2,'F');infoBlock(doc,19,y+8,'Nível de atividade',activityLevelLabel(anam.physical_activity_level),76);infoBlock(doc,105,y+8,'Estratificação automática',riskResultLabel(autoRisk.result||anam.risk_result),80);doc.setFont('helvetica','normal');doc.setFontSize(6.7);doc.setTextColor(90);doc.text(doc.splitTextToSize(pdfText(activityLevelDescription(anam.physical_activity_level)||'-'),76).slice(0,2),19,y+15);infoBlock(doc,19,y+29,'Fumador',anam.smoker===true?'Sim':anam.smoker===false?'Não':'-',70);infoBlock(doc,105,y+29,'Dor muscular',anam.muscle_pain===true?'Sim':anam.muscle_pain===false?'Não':'-',80);y+=49;y=sectionTitle(doc,'Referências da triagem',y);doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(85);let refs=doc.splitTextToSize(pdfText(`${assessmentReferences.activity} ${assessmentReferences.risk} Resultado informativo: não substitui avaliação, diagnóstico ou autorização médica.`),182);doc.text(refs,14,y);y+=refs.length*3.3+5;}
-    const posture=getModule(assessment,'posture'); if(posture){const text=[['Anterior',posture.anterior_notes],['Posterior',posture.posterior_notes],['Perfil direito',posture.lateral_right_notes],['Perfil esquerdo',posture.lateral_left_notes]].filter(([,v])=>v).map(([l,v])=>`${l}: ${v}`).join('\n');if(text)y=narrative(doc,'Análise postural',text,y);}
-    if(assessment.notes)y=narrative(doc,'Observações do professor',assessment.notes,y);
-    y=sectionTitle(doc,'Contacto ULTIMATE FIT',Math.min(y+5,250));doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(55);doc.text(pdfText(`Professor: ${assessor?.name||'Equipa ULTIMATE FIT'} | ${cleanPhone(assessor?.phone)||assessor?.email||'ultimatefit.pt'}`),14,y,{maxWidth:182});doc.text('Website: ultimatefit.pt',14,y+6);
-  }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.8); doc.setTextColor(...BLACK); doc.text('EM RESUMO', 149, 40);
+  const summaryItems = [
+    ['PESO', metrics.weight, beforeMetrics.weight, 'kg', 'kg', 'weight_kg'],
+    ['MASSA GORDA', metrics.fat, beforeMetrics.fat, 'p.p.', '%', 'body_fat_pct'],
+    ['ÁGUA CORPORAL', currentBio.water_pct, previousBio.water_pct, 'p.p.', '%', 'water_pct'],
+    ['METABOLISMO BASAL', currentBio.basal_metabolic_rate_kcal, previousBio.basal_metabolic_rate_kcal, 'kcal', 'kcal', 'basal_metabolic_rate_kcal'],
+  ];
+  summaryItems.forEach(([label, current, previous, unit, currentUnit, key], index) => {
+    const y = 47 + index * 17.5;
+    doc.setDrawColor(90, 90, 90); doc.setLineWidth(0.3); doc.circle(153, y + 3, 3.4, 'S');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.4); doc.setTextColor(...BLACK);
+    doc.text(pdfText(key === 'weight_kg' ? 'kg' : key === 'water_pct' ? 'H2O' : key === 'basal_metabolic_rate_kcal' ? 'kcal' : '%'), 153, y + 4.7, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(...MID); doc.text(pdfText(label), 159, y + 1.5);
+    const difference = hasPrevious ? printableDifference(current, previous, unit, key === 'basal_metabolic_rate_kcal' ? 0 : 1) : '—';
+    const numDifference = n(current) === null || n(previous) === null ? null : n(current) - n(previous);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5); doc.setTextColor(...comparisonColor(key, current, previous));
+    doc.text(pdfText(difference), 159, y + 7);
+    if (numDifference !== null) {
+      const note = key === 'weight_kg' && Math.abs(numDifference) < 1 ? '(praticamente estável)' : `${decimal(current)}${currentUnit ? ` ${currentUnit}` : ''} atual`;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(5.3); doc.setTextColor(...MID); doc.text(pdfText(note), 159, y + 11.5, { maxWidth: 43 });
+    }
+  });
 
-  const total=doc.internal.getNumberOfPages();for(let page=2;page<=total;page++){doc.setPage(page);footer(doc,page,total);}
-  return { name:fileName(student,assessment), doc };
+  // Gráfico de perímetros com valores anteriores e atuais.
+  const legend = `${hasPrevious ? 'Cinza: anterior' : 'Sem avaliação anterior'}   Amarelo: atual`;
+  drawComparisonBand(doc, 119, 'PERIMETRIA CORPORAL', legend);
+  const chartTop = 132; const baseline = 174; const chartHeight = baseline - chartTop;
+  const chartLeft = 20; const chartRight = 202; const chartWidth = chartRight - chartLeft;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(5.2); doc.setTextColor(...MID);
+  [0, 30, 60, 90, 120].forEach(value => {
+    const y = baseline - (value / 120) * chartHeight;
+    doc.setDrawColor(228, 228, 228); doc.setLineWidth(0.15); doc.line(chartLeft, y, chartRight, y);
+    doc.text(String(value), 17, y + 1.7, { align: 'right' });
+  });
+  doc.setFontSize(5.3); doc.text('cm', 8, chartTop + 2);
+  const groupW = chartWidth / perimetry.length;
+  perimetry.forEach(([label, key], index) => {
+    const center = chartLeft + groupW * (index + 0.5);
+    const values = [n(previousPerimetry[key]), n(currentPerimetry[key])];
+    const colors = [[164, 164, 164], YELLOW]; const barW = 5.6; const gap = 1.2;
+    values.forEach((value, valueIndex) => {
+      if (value === null) return;
+      const height = Math.max(0.6, Math.min(chartHeight, value / 120 * chartHeight));
+      const x = center - (barW + gap / 2) + valueIndex * (barW + gap);
+      doc.setFillColor(...colors[valueIndex]); doc.rect(x, baseline - height, barW, height, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(4.7); doc.setTextColor(...BLACK);
+      doc.text(pdfText(decimal(value)), x + barW / 2, baseline - height - 1, { align: 'center' });
+    });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(4.8); doc.setTextColor(...BLACK);
+    doc.text(pdfText(label.toLocaleUpperCase('pt-PT')), center, baseline + 4, { align: 'center' });
+    const difference = hasPrevious ? printableDifference(currentPerimetry[key], previousPerimetry[key], 'cm', 1) : '—';
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.2); doc.setTextColor(...comparisonColor(key, currentPerimetry[key], previousPerimetry[key]));
+    doc.text(pdfText(difference), center, baseline + 10, { align: 'center' });
+  });
+
+  // Evolução resumida e conclusão no mesmo A4.
+  drawComparisonBand(doc, 190, 'EVOLUÇÃO DA COMPOSIÇÃO CORPORAL');
+  const charts = [
+    ['PESO (kg)', 'weight_kg', currentBio.weight_kg, previousBio.weight_kg],
+    ['MASSA GORDA (%)', 'body_fat_pct', currentBio.body_fat_pct, previousBio.body_fat_pct],
+    ['ÁGUA CORPORAL (%)', 'water_pct', currentBio.water_pct, previousBio.water_pct],
+    ['GORDURA VISCERAL', 'visceral_fat_rating', currentBio.visceral_fat_rating, previousBio.visceral_fat_rating],
+  ];
+  const panelY = 201; const panelH = 49; const graphX = 7; const graphW = 132;
+  doc.setFillColor(250, 250, 250); doc.rect(graphX, panelY, graphW, panelH, 'F');
+  const eachW = graphW / charts.length;
+  charts.forEach(([label, key, current, previous], index) => {
+    const x = graphX + index * eachW;
+    if (index) { doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.2); doc.line(x, panelY + 3, x, panelY + panelH - 3); }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.3); doc.setTextColor(...BLACK);
+    doc.text(pdfText(label), x + eachW / 2, panelY + 6, { align: 'center', maxWidth: eachW - 2 });
+    const maximum = Math.max(n(current) || 0, n(previous) || 0) * 1.18 || 1;
+    drawPairBars(doc, { x: x + 2, baseline: panelY + 39, width: eachW - 4, height: 24, previous, current, max: maximum, unit: '' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(4.6); doc.setTextColor(...MID);
+    doc.text(pdfText(hasPrevious ? `${formatDate(previousAssessment.date).slice(0, 5)}` : '—'), x + eachW * 0.34, panelY + 46, { align: 'center' });
+    doc.text(pdfText(formatDate(assessment.date).slice(0, 5)), x + eachW * 0.68, panelY + 46, { align: 'center' });
+  });
+  doc.setFillColor(...LIGHT); doc.rect(143, panelY, 61, panelH, 'F');
+  addBebasText(doc, 'CONCLUSÃO', 147, panelY + 2, { px: 17, color: '#0a0a0a', maxWidth: 53 });
+  const conclusion = buildComparisonConclusion(student, previousAssessment, metrics, beforeMetrics);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.1); doc.setTextColor(65);
+  doc.text(doc.splitTextToSize(pdfText(conclusion), 53).slice(0, 10), 147, panelY + 13);
+
+  // Orientação curta inspirada no exemplo enviado.
+  doc.setFillColor(...YELLOW); doc.rect(6, 256, 198, 34, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...BLACK);
+  doc.text(pdfText('PRÓXIMOS PASSOS'), 10, 269);
+  doc.setDrawColor(...BLACK); doc.setLineWidth(0.35); doc.line(63, 261, 63, 285);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...BLACK);
+  const nextSteps = hasPrevious
+    ? 'Manter o acompanhamento do treino e repetir a avaliação em condições semelhantes para acompanhar a tendência das medidas.'
+    : 'Usar estes valores como referência e repetir a avaliação em condições semelhantes para acompanhar a evolução.';
+  doc.text(doc.splitTextToSize(pdfText(nextSteps), 132).slice(0, 3), 69, 268);
+  return { name: fileName(student, assessment), doc };
 }
 
 export async function downloadAssessmentPdf(student, assessment, previousAssessment = null) {
   const {doc,name}=await buildAssessmentPdf(student,assessment,previousAssessment);doc.save(name);
 }
+
