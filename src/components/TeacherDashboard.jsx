@@ -31,7 +31,10 @@ export default function TeacherDashboard({onNavigate}){
  const metric=value=>loading?'…':error?'—':value;
  const unavailable='Disponível na fase de testes';
  return <main className="teacherDashboard">
-  <header className="tdGreeting"><div><small>O TEU DIA NA ULTIMATE FIT</small><h1>{greeting}, {(currentUser.name||'Professor').split(' ')[0]}</h1><p>{new Date(day+'T12:00:00Z').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'})}</p></div></header>
+  <header className="tdGreeting">
+   <div><small>O TEU DIA NA ULTIMATE FIT</small><h1>{greeting}, {(currentUser.name||'Professor').split(' ')[0]}</h1><p>{new Date(day+'T12:00:00Z').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'})}</p></div>
+   <div className="tdHeaderActions"><button type="button" className="tdHeaderSecondary" onClick={()=>setDialog({type:'session'})}><CalendarDays size={17}/>Nova sessão</button><button type="button" className="tdHeaderPrimary" onClick={()=>open('students')}><Users size={17}/>Novo aluno</button></div>
+  </header>
   {error&&<div className="tdError" role="alert">{error}<button onClick={()=>setRevision(n=>n+1)}>Tentar novamente</button></div>}
   {notice&&<p className="tdNotice" role="status">{notice}</p>}
   <div className="tdMetrics">
@@ -40,6 +43,7 @@ export default function TeacherDashboard({onNavigate}){
    <Metric icon={Wallet} label="Recebido este mês" value={metric(model.enabled?money(summary.received):'—')} detail={model.enabled?money(summary.outstanding)+' por receber este mês':unavailable} onClick={()=>open('payments')}/>
    <Metric icon={Users} label="Alunos ativos" value={active.length} detail="Alunos acompanhados por ti" onClick={()=>open('students')}/>
   </div>
+  <div className="tdDashboardGrid"><div className="tdPrimaryColumn">
   {loading?<p role="status" className="tdEmpty">A carregar agenda e pagamentos…</p>:!error&&<>
   <Panel title="Hoje" action={model.enabled&&<button onClick={()=>open('agenda')}>Abrir agenda <ChevronRight size={16}/></button>}>
    {!model.enabled?<p className="tdEmpty">A agenda está em testes e ainda não está disponível para esta conta.</p>:!summary.today.length?<div className="tdEmpty">Sem sessões marcadas para hoje.<button onClick={()=>setDialog({type:'session'})}>+ Marcar sessão</button></div>:summary.today.map(session=><article className="tdSession" key={session.id}><div className="tdTime"><strong>{localDateTime(session.starts_at).slice(11)}</strong><small>{sessionKinds[session.kind]}</small></div><div className="tdSessionBody">{(summary.members.get(session.id)||[]).map(row=>{const student=studentById.get(row.student_id);return <div className="tdAttendee" key={row.student_id}><div className="tdPerson"><Avatar student={student}/><b>{student?.name||'Aluno'}</b>{row.status!=='booked'&&<span className={'tdStatus '+row.status}>{attendanceLabels[row.status]}</span>}</div>{new Date(session.starts_at)<=new Date()?<div className="tdAttendance">{row.status==='booked'?<><button onClick={()=>setDialog({type:'attendance',row,initialStatus:'present'})}><Check size={16}/>Presente</button><button onClick={()=>setDialog({type:'attendance',row,initialStatus:'absent'})}><X size={16}/>Faltou</button></>:<button onClick={()=>setDialog({type:'attendance',row})}>Corrigir presença</button>}</div>:row.status==='booked'&&<span className="tdStatus">Marcada</span>}</div>;})}{session.location&&<p className="tdLocation">{session.location}</p>}</div></article>)}
@@ -51,12 +55,14 @@ export default function TeacherDashboard({onNavigate}){
    {model.enabled?<div className="tdChart" role="img" aria-label={summary.months.map(m=>m.label+': '+money(m.value)).join('; ')}>{summary.months.map((m,i)=><div className={'tdBarColumn '+(i===5?'current':'')} key={m.key}><strong>{money(m.value)}</strong><div className="tdBarTrack"><span style={{height:(m.value/Math.max(1,...summary.months.map(x=>x.value))*100)+'%'}}/></div><small>{m.label}</small></div>)}</div>:<p className="tdEmpty">Os pagamentos estão em testes e ainda não estão disponíveis para esta conta.</p>}
   </Panel>
   </>}
+  </div><div className="tdSecondaryColumn">
   <Panel title="Precisa de ti" sub="Pagamentos, packs e acompanhamento dos teus alunos">
    {highlights.alerts.length?highlights.alerts.map(item=><article className="tdAlert" key={item.id}><span className={'tdSymbol '+item.tone}><AlertCircle size={20}/></span><button className="tdAlertCopy" onClick={()=>open(item.page,item.student)}><b>{item.title}{item.amount!=null?' · '+money(item.amount)+' em atraso':''}</b><small>{item.detail}</small></button><Contact student={item.student}/></article>):<p className="tdEmpty">{loading?'A verificar assuntos pendentes…':error?'Os alertas de agenda e pagamentos não puderam ser atualizados.':'Tudo em dia. Sem assuntos pendentes neste momento.'}</p>}
   </Panel>
   <Panel title="Momentos para celebrar" sub="Aniversários próximos e evolução nas avaliações">
    {highlights.celebrations.length?highlights.celebrations.map(item=><article className="tdAlert" key={item.id}><span className={'tdSymbol '+item.tone}>{item.id.startsWith('birthday')?<Cake size={20}/>:<TrendingUp size={20}/>}</span><button className="tdAlertCopy" onClick={()=>open(item.page,item.student)}><b>{item.title}</b><small>{item.detail}</small></button><Contact student={item.student}/></article>):<p className="tdEmpty">Sem aniversários nos próximos 14 dias ou novas evoluções para apresentar.</p>}
   </Panel>
+  </div></div>
   {model.enabled&&!loading&&!error&&<button className="tdAdd" aria-label="Marcar nova sessão" onClick={()=>setDialog({type:'session'})}><Plus size={29}/></button>}
   {dialog?.type==='attendance'&&<AttendanceForm row={dialog.row} initialStatus={dialog.initialStatus} name={studentById.get(dialog.row.student_id)?.name||'Presença'} packs={packs} onClose={()=>setDialog(null)} onSaved={saved}/>}
   {dialog?.type==='session'&&<SessionForm attendance={model.attendance} students={active} packs={packs} date={day} onClose={()=>setDialog(null)} onSaved={saved}/>}
