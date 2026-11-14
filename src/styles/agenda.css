@@ -2,46 +2,45 @@
 .ufAgendaDialog select{white-space:nowrap;text-overflow:ellipsis}@media(max-width:380px){.ufAgendaTwo{grid-template-columns:minmax(0,1fr)}}
 
 
-/* Agenda semanal em grelha, com vista diária para registo de presenças. */
+/* Agenda semanal com grelha e cores da identidade Ultimate Fit. */
 .ufAgendaToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0}
 .ufAgendaDateNav,.ufAgendaToolbarActions{display:flex;align-items:center;gap:8px;min-width:0}
 .ufAgendaDateNav{flex:1}
-.ufAgendaRange{margin-left:8px;color:#a9bac7;font-size:13px;text-transform:capitalize}
+.ufAgendaRange{margin-left:8px;color:var(--muted);font-size:13px;text-transform:capitalize}
 .ufAgendaToolbarActions{flex-wrap:wrap;justify-content:flex-end}
-.ufAgendaViewSwitch{display:inline-flex;align-items:center;padding:3px;border:1px solid #294153;background:#10212d;border-radius:10px}
+.ufAgendaViewSwitch{display:inline-flex;align-items:center;padding:3px;border:1px solid var(--line);background:var(--card2);border-radius:10px}
 .ufAgendaViewSwitch button{min-height:34px;padding:6px 12px;font-size:12px}
-.ufAgenda .ufAgendaViewSwitch button[aria-pressed=true]{background:#e8eef3;color:#0b1720;border-color:#e8eef3}
-.ufAgendaCalendar{overflow:auto;border:1px solid #203746;border-radius:15px;background:#0b1923}
+.ufAgenda .ufAgendaViewSwitch button[aria-pressed=true]{background:var(--y);color:#050505;border-color:var(--y)}
+.ufAgendaCalendar{overflow:auto;border:1px solid var(--line);border-radius:15px;background:var(--bg)}
 .ufAgendaWeekHeader,.ufAgendaTimeline{display:grid;grid-template-columns:60px repeat(7,minmax(112px,1fr));min-width:920px}
-.ufAgendaWeekHeader{position:sticky;top:0;z-index:2;background:#0b1923;border-bottom:1px solid #203746}
-.ufAgendaWeekCorner{border-right:1px solid #203746}
-.ufAgendaWeekDay{min-width:0;min-height:58px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:7px 3px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#a8b6c2!important;text-align:center}
-.ufAgendaWeekDay+button{border-left:1px solid #182e3d!important}
+.ufAgendaWeekHeader{position:sticky;top:0;z-index:2;background:var(--card);border-bottom:1px solid var(--line)}
+.ufAgendaWeekCorner{border-right:1px solid var(--line)}
+.ufAgendaWeekDay{min-width:0;min-height:58px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:7px 3px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#b8b8bf!important;text-align:center}
+.ufAgendaWeekDay+button{border-left:1px solid rgba(255,255,255,.06)!important}
 .ufAgendaWeekDay small{font-size:10px;text-transform:capitalize}
 .ufAgendaWeekDay strong{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;font-size:14px}
-.ufAgendaWeekDay.isToday strong{background:#ffdd00;color:#101215}
-.ufAgendaWeekDay.isSelected:not(.isToday){color:#edf2f6!important}
-.ufAgendaWeekDay.isSelected:not(.isToday) strong{background:#e8eef3;color:#0b1720}
-.ufAgendaTimeline{position:relative;background:#0b1923}
+.ufAgendaWeekDay.isToday strong,.ufAgendaWeekDay.isSelected strong{background:var(--y);color:#050505}
+.ufAgendaWeekDay.isSelected{color:#fff!important}
+.ufAgendaTimeline{position:relative;background:var(--bg)}
 .ufAgendaTimeLabels{position:relative}
-.ufAgendaTimeLabels span{position:absolute;right:7px;transform:translateY(-50%);color:#75899a;font-size:9px;line-height:1;white-space:nowrap}
-.ufAgendaTimelineDay{position:relative;min-width:0;border-left:1px solid #203343;background-color:#0c1a24;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--agenda-hour-height) - 1px),#203343 calc(var(--agenda-hour-height) - 1px),#203343 var(--agenda-hour-height))}
-.ufAgendaTimelineDay.isSelected{background-color:#0e1e29}
-.ufAgendaTimelineDay.isToday{background-color:#0d1e2a}
-.ufAgendaHourRule{position:absolute;left:0;right:0;height:1px;border-top:1px solid #203343;pointer-events:none}
-.ufAgendaEvent{position:absolute;z-index:1;left:4px;right:4px;min-width:0!important;min-height:20px!important;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;overflow:hidden;padding:2px 4px!important;border:1px solid #1a3850!important;border-left:3px solid #3b82f6!important;border-radius:6px!important;background:#12283a!important;color:#e0e8ee!important;text-align:left;line-height:1.25;font-size:10px!important}
+.ufAgendaTimeLabels span{position:absolute;right:7px;transform:translateY(-50%);color:#92929a;font-size:9px;line-height:1;white-space:nowrap}
+.ufAgendaTimelineDay{position:relative;min-width:0;border-left:1px solid rgba(255,255,255,.08);background-color:#0b0b0d;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--agenda-hour-height) - 1px),rgba(255,255,255,.08) calc(var(--agenda-hour-height) - 1px),rgba(255,255,255,.08) var(--agenda-hour-height))}
+.ufAgendaTimelineDay.isSelected{background-color:#111113}
+.ufAgendaTimelineDay.isToday{background-color:#14130b}
+.ufAgendaHourRule{position:absolute;left:0;right:0;height:1px;border-top:1px solid rgba(255,255,255,.08);pointer-events:none}
+.ufAgendaEvent{position:absolute;z-index:1;left:4px;right:4px;min-width:0!important;min-height:20px!important;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;overflow:hidden;padding:2px 4px!important;border:1px solid rgba(255,217,8,.22)!important;border-left:3px solid var(--y)!important;border-radius:6px!important;background:var(--card2)!important;color:#f4f4f5!important;text-align:left;line-height:1.25;font-family:inherit;font-size:10px!important}
 .ufAgendaEvent strong{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
 .ufAgendaEvent time{font-weight:800}
-.ufAgendaEvent small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94aec2;font-size:9px}
-.ufAgendaEvent.isGroup{border-left-color:#e7ad4b!important;background:#282519!important}
-.ufAgendaEvent.isOnline{border-left-color:#2bb483!important}
+.ufAgendaEvent small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#b2b2ba;font-size:9px}
+.ufAgendaEvent.isGroup{border-left-color:var(--y)!important;background:rgba(255,217,8,.1)!important}
+.ufAgendaEvent.isOnline{border-left-color:#fff!important}
 .ufAgendaDays{gap:3px;margin:12px 0 18px}
-.ufAgendaDays button{min-height:58px;border:1px solid transparent!important;border-radius:10px!important;color:#a8b6c2;padding:8px 3px!important}
-.ufAgenda .ufAgendaDays button[aria-pressed=true]{background:#e8eef3!important;color:#0b1720!important}
+.ufAgendaDays button{min-height:58px;border:1px solid transparent!important;border-radius:10px!important;color:#b8b8bf;padding:8px 3px!important}
+.ufAgenda .ufAgendaDays button[aria-pressed=true]{background:var(--y)!important;color:#050505!important}
 .ufAgendaDayTitle{margin:16px 0 12px!important;text-transform:capitalize}
-.ufAgendaSessions article,.ufAgendaPacks article{background:#0d1c26;border-color:#203746}
-.ufAgendaPerson{border-top-color:#203343}
-.ufAgendaPerson small,.ufAgendaSessions header small{color:#9aafbd}
+.ufAgendaSessions article,.ufAgendaPacks article{background:var(--card);border-color:var(--line)}
+.ufAgendaPerson{border-top-color:rgba(255,255,255,.1)}
+.ufAgendaPerson small,.ufAgendaSessions header small{color:var(--muted)}
 @media(max-width:760px){
  .ufAgendaToolbar{align-items:stretch;flex-direction:column}
  .ufAgendaDateNav{display:grid;grid-template-columns:42px 60px 42px minmax(0,1fr)}
