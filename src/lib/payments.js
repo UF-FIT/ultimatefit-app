@@ -31,3 +31,13 @@ export async function fetchPayments(){
  const [payments,billing]=await Promise.all([allRows('student_payments'),allRows('student_billing')]);
  return {payments,billing};
 }
+
+export async function fetchPaymentDuos(){
+ const [duos,settlements]=await Promise.all([
+  supabase.from('payment_duos').select('*').order('created_at'),
+  supabase.from('payment_duo_settlements').select('*').order('created_at')
+ ]);
+ if(duos.error)throw duos.error;
+ if(settlements.error)throw settlements.error;
+ return {duos:duos.data||[],settlements:settlements.data||[]};
+}
