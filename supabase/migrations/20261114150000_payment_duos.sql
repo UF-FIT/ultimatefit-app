@@ -27,9 +27,6 @@ create table public.payment_duo_settlements (
  unique(payment_a_id),
  unique(payment_b_id)
 );
-alter table public.student_payments
- add column duo_settlement_id uuid references public.payment_duo_settlements(id);
-
 alter table public.payment_duos enable row level security;
 alter table public.payment_duo_settlements enable row level security;
 revoke all on public.payment_duos,public.payment_duo_settlements from anon,authenticated;
@@ -121,18 +118,18 @@ begin
  if p_id is null then
   if v_mode<>'shared' then raise exception 'Este duo está configurado para pagamentos individuais.'; end if;
   select * into v_payment_a from public.student_payments
-   where owner_id=auth.uid() and student_id=v_a and kind='monthly' and period=p_period and status='pending' and duo_settlement_id is null
+   where owner_id=auth.uid() and student_id=v_a and kind='monthly' and period=p_period and status='pending'
    for update;
   if not found then raise exception 'A mensalidade do primeiro aluno não está pendente neste mês.'; end if;
   select * into v_payment_b from public.student_payments
-   where owner_id=auth.uid() and student_id=v_b and kind='monthly' and period=p_period and status='pending' and duo_settlement_id is null
+   where owner_id=auth.uid() and student_id=v_b and kind='monthly' and period=p_period and status='pending'
    for update;
   if not found then raise exception 'A mensalidade do segundo aluno não está pendente neste mês.'; end if;
   insert into public.payment_duo_settlements(owner_id,duo_id,period,payment_a_id,payment_b_id,request_id)
    values(auth.uid(),p_duo_id,p_period,v_payment_a.id,v_payment_b.id,p_request_id) returning id into v_id;
   update public.student_payments set status='paid',paid_on=p_paid_on,method=p_method,
-   receipt_reference=coalesce(p_receipt_reference,''),duo_settlement_id=v_id,version=version+1,updated_at=now()
-   where owner_id=auth.uid() and id in (v_payment_a.id,v_payment_b.id) and status='pending' and duo_settlement_id is null;
+   receipt_reference=coalesce(p_receipt_reference,''),version=version+1,updated_at=now()
+   where owner_id=auth.uid() and id in (v_payment_a.id,v_payment_b.id) and status='pending';
   get diagnostics v_count=row_count;
   if v_count<>2 then raise exception 'Os dois pagamentos deixaram de estar pendentes. Atualiza os dados e tenta novamente.'; end if;
  else
@@ -143,7 +140,7 @@ begin
   end if;
   update public.student_payments set paid_on=p_paid_on,method=p_method,
    receipt_reference=coalesce(p_receipt_reference,''),version=version+1,updated_at=now()
-   where owner_id=auth.uid() and duo_settlement_id=p_id and status='paid';
+   where owner_id=auth.uid() and id in (v_settlement.payment_a_id,v_settlement.payment_b_id) and status='paid';
   get diagnostics v_count=row_count;
   if v_count<>2 then raise exception 'O pagamento conjunto está incompleto e não pode ser editado.'; end if;
   v_id:=p_id;
@@ -169,7 +166,7 @@ begin
  if nullif(p_data->>'id','') is not null then
   select * into v_old from public.student_payments where id=v_id for update;
   if not found or v_old.owner_id<>auth.uid() or v_old.student_id<>v_student then raise exception 'Pagamento não disponível.' using errcode='42501'; end if;
-  if v_old.duo_settlement_id is not null then raise exception 'Este pagamento foi registado em conjunto. Altera-o através do registo do duo.'; end if;
+  if exists(select 1 from public.payment_duo_settlements where payment_a_id=v_id or payment_b_id=v_id) then raise exception 'Este pagamento foi registado em conjunto. Altera-o através do registo do duo.'; end if;
   if v_old.version is distinct from (p_data->>'version')::integer then raise exception 'Este pagamento foi alterado. Atualiza a página antes de guardar.'; end if;
   if v_old.status='cancelled' then raise exception 'Um registo anulado não pode ser alterado.'; end if;
   update public.student_payments set kind=p_data->>'kind',amount_cents=(p_data->>'amount_cents')::integer,
