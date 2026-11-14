@@ -180,3 +180,25 @@ body.ufWorkoutImmersiveOpen{overflow:hidden}
 @media(min-width:761px){
   .ufTrainingWeekArrow{opacity:1;pointer-events:auto}
 }
+
+
+/* Confirmation shown when an in-progress workout is about to be left. */
+.ufWorkoutSaveStatus{display:flex;justify-content:flex-end;margin:-6px 0 12px;color:#a7aa9e;font-size:11px;line-height:1.2}
+.ufWorkoutSaveStatus.error{border-color:rgba(255,111,112,.45);color:#ff8586}
+.ufWorkoutExitModal{width:min(100%,460px);max-height:min(88vh,720px);overflow:auto;padding:26px;border:1px solid rgba(255,217,8,.65);border-radius:24px;background:#111113;color:#fff;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.ufWorkoutExitIcon{width:46px;height:46px;margin-bottom:18px;border-radius:14px;background:rgba(255,217,8,.12);color:#ffd908;display:grid;place-items:center}
+.ufWorkoutExitIcon svg{width:22px;height:22px}
+.ufWorkoutExitModal h2{margin:8px 0;font-size:24px;line-height:1.15}
+.ufWorkoutExitModal p{margin:0;color:#aaa;font-size:14px;line-height:1.55}
+.ufWorkoutExitActions{display:grid;gap:10px;margin-top:22px}
+.ufWorkoutExitActions button{min-height:50px;padding:0 16px;border-radius:15px;font:inherit;font-weight:800;cursor:pointer}
+.ufWorkoutExitActions button:disabled{opacity:.65;cursor:wait}
+.ufWorkoutExitActions .primary{border:0;background:#ffd908;color:#080808}
+.ufWorkoutExitActions .secondary{border:1px solid #55565b;background:#202024;color:#fff}
+.ufWorkoutExitActions .danger{border:1px solid rgba(255,111,112,.55);background:rgba(255,111,112,.08);color:#ff8586}
+@media(max-width:760px){
+  .ufWorkoutSaveStatus{font-size:10px}
+  .ufWorkoutExitModal{padding:22px;border-radius:20px}
+  .ufWorkoutExitModal h2{font-size:22px}
+  .ufWorkoutExitModal p{font-size:13px}
+}
