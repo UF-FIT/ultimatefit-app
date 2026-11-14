@@ -522,12 +522,38 @@ function SimplifiedActivityCard({ activity, blockTitle, onVideo, onComplete, onE
   </article>;
 }
 
+function ExitWorkoutModal({ busy, error, onContinue, onSaveAndExit }) {
+  return createPortal(<div className="ufWorkoutModalBackdrop dark">
+    <section className="ufWorkoutExitModal" role="dialog" aria-modal="true" aria-labelledby="ufWorkoutExitTitle" aria-describedby="ufWorkoutExitDescription">
+      <div className="ufWorkoutExitIcon"><ArrowLeft/></div>
+      <span className="ufWorkoutKicker">TREINO EM CURSO</span>
+      <h2 id="ufWorkoutExitTitle">Queres sair do treino?</h2>
+      <p id="ufWorkoutExitDescription">O teu progresso fica guardado para poderes continuar mais tarde. O treino só entra no histórico quando o concluíres.</p>
+      {error && <div className="errorBanner" role="alert">{error}</div>}
+      <div className="ufWorkoutExitActions">
+        <button type="button" className="primary" disabled={busy} onClick={onSaveAndExit}>{busy ? 'A guardar progresso…' : 'Guardar progresso e sair'}</button>
+        <button type="button" className="secondary" disabled={busy} onClick={onContinue}>Continuar treino</button>
+      </div>
+    </section>
+  </div>, document.body);
+}
+
 function WorkoutRunner({
   run, initialState, historySets, legacyLoads,
   onExitToHome, onRunCancelled, onRunCompleted,
 }) {
   const [state, setState] = useState(()=>normaliseRunState(initialState || run?.state || {}));
   const [mode, setMode] = useState(run?.mode || 'guided');
+  const [exitPromptOpen, setExitPromptOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('saved');
+  const stateRef = useRef(state);
+  const modeRef = useRef(mode);
+  const saveQueueRef = useRef(Promise.resolve());
+  const saveSequenceRef = useRef(0);
+  const mountedRef = useRef(true);
+  const skipUnmountSaveRef = useRef(false);
+  stateRef.current = state;
+  modeRef.current = mode;
   const [menuOpen, setMenuOpen] = useState(false);
   const [video, setVideo] = useState(null);
   const [historyActivity, setHistoryActivity] = useState(null);
@@ -541,11 +567,39 @@ function WorkoutRunner({
   const saveTimer = useRef(null);
   const lastRestActive = useRef(state.rest?.active === true);
 
+  function queueRunStateSave(snapshot = stateRef.current, saveMode = modeRef.current) {
+    if (!run?.id) return Promise.resolve(snapshot);
+    const sequence = ++saveSequenceRef.current;
+    if (mountedRef.current) setSaveStatus('saving');
+    const operation = saveQueueRef.current
+      .catch(() => null)
+      .then(() => saveWorkoutRunState(run.id, saveMode, snapshot));
+    saveQueueRef.current = operation;
+    return operation.then(result => {
+      if (mountedRef.current && sequence === saveSequenceRef.current) {
+        setSaveStatus('saved');
+        setSaveError('');
+      }
+      return result;
+    }).catch(error => {
+      if (mountedRef.current && sequence === saveSequenceRef.current) {
+        setSaveStatus('error');
+        setSaveError('Não foi possível sincronizar o progresso. Verifica a ligação e tenta novamente.');
+      }
+      throw error;
+    });
+  }
+
   useEffect(() => {
+    mountedRef.current = true;
     document.body.classList.add('ufWorkoutImmersiveOpen');
     return () => {
       document.body.classList.remove('ufWorkoutImmersiveOpen');
       window.clearTimeout(saveTimer.current);
+      if (!skipUnmountSaveRef.current && !finalising.current && run?.id) {
+        void queueRunStateSave(stateRef.current, modeRef.current).catch(() => {});
+      }
+      mountedRef.current = false;
     };
   }, []);
 
@@ -571,10 +625,8 @@ function WorkoutRunner({
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       if (finalising.current) return;
-      saveWorkoutRunState(run.id, mode, state)
-        .then(() => { if (!finalising.current) setSaveError(''); })
-        .catch(() => { if (!finalising.current) setSaveError('Não foi possível sincronizar o progresso. Mantém este ecrã aberto e verifica a ligação.'); });
-    }, 500);
+      queueRunStateSave(state, mode).catch(() => {});
+    }, 250);
     return () => window.clearTimeout(saveTimer.current);
   }, [run?.id, mode, state]);
 
@@ -583,7 +635,7 @@ function WorkoutRunner({
     const flush = () => {
       if (finalising.current) return;
       window.clearTimeout(saveTimer.current);
-      saveWorkoutRunState(run.id, mode, state).catch(() => setSaveError('Não foi possível sincronizar o progresso. Verifica a ligação antes de sair.'));
+      void queueRunStateSave(stateRef.current, modeRef.current).catch(() => {});
     };
     const visibility = () => { if (document.hidden) flush(); };
     window.addEventListener('pagehide', flush);
@@ -592,7 +644,29 @@ function WorkoutRunner({
       window.removeEventListener('pagehide', flush);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [run?.id, mode, state]);
+  }, [run?.id]);
+
+  useEffect(() => {
+    if (!run?.id) return undefined;
+    const entryUrl = window.location.href;
+    const entryState = window.history.state;
+    const guardBack = event => {
+      event.stopImmediatePropagation();
+      window.history.pushState(entryState, '', entryUrl);
+      if (!finalising.current) setExitPromptOpen(true);
+    };
+    const guardUnload = event => {
+      if (finalising.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('popstate', guardBack, true);
+    window.addEventListener('beforeunload', guardUnload);
+    return () => {
+      window.removeEventListener('popstate', guardBack, true);
+      window.removeEventListener('beforeunload', guardUnload);
+    };
+  }, [run?.id]);
 
   useEffect(() => {
     if (!state.rest?.active || !state.rest?.endsAt) {
@@ -636,11 +710,10 @@ function WorkoutRunner({
 
   function patchState(mutator) {
     if (finalising.current) return;
-    setState(currentState => {
-      const next = cloneValue(currentState);
-      mutator(next);
-      return next;
-    });
+    const next = cloneValue(stateRef.current);
+    mutator(next);
+    stateRef.current = next;
+    setState(next);
   }
 
   function patchSet(activityIndex, setIndex, patch) {
@@ -746,24 +819,37 @@ function WorkoutRunner({
   }
 
   async function cancelRun() {
-    if (!window.confirm('Cancelar este treino? O progresso desta sessão não será registado como treino concluído.')) return;
+    if (!window.confirm('Cancelar este treino? O progresso não será registado como treino concluído.')) return;
     setBusy(true);
+    window.clearTimeout(saveTimer.current);
     try {
+      await saveQueueRef.current.catch(() => null);
       await cancelWorkoutRun(run.id);
+      skipUnmountSaveRef.current = true;
       onRunCancelled();
     } catch (error) {
       window.alert(error.message || 'Não foi possível cancelar o treino.');
-    } finally { setBusy(false); }
+      setBusy(false);
+    }
   }
 
-  async function exitToHome() {
-    if (finalising.current) return;
+  function requestExit() {
+    if (finalising.current || busy) return;
+    setMenuOpen(false);
+    setExitPromptOpen(true);
+  }
+
+  async function saveAndExit() {
+    if (finalising.current || busy) return;
+    setBusy(true);
     window.clearTimeout(saveTimer.current);
     try {
-      if (run?.id) await saveWorkoutRunState(run.id, mode, state);
-      onExitToHome();
-    } catch (error) {
-      setSaveError('Não foi possível guardar o progresso. Verifica a ligação e tenta sair novamente.');
+      const savedState = await queueRunStateSave(stateRef.current, modeRef.current);
+      skipUnmountSaveRef.current = true;
+      setExitPromptOpen(false);
+      onExitToHome(savedState, modeRef.current);
+    } catch {
+      setBusy(false);
     }
   }
 
@@ -786,12 +872,12 @@ function WorkoutRunner({
   }
 
   const menu = <div className="ufWorkoutMoreMenu">
-    <button type="button" onClick={()=>{setMode(mode==='guided'?'simplified':'guided');setMenuOpen(false);}}>{mode==='guided'?'Modo simplificado':'Modo guiado'}</button>
+    <button type="button" onClick={()=>{const nextMode=mode==='guided'?'simplified':'guided';modeRef.current=nextMode;setMode(nextMode);setMenuOpen(false);}}>{mode==='guided'?'Modo simplificado':'Modo guiado'}</button>
     <button type="button" className="danger" onClick={()=>{setMenuOpen(false);cancelRun();}}>Cancelar treino</button>
   </div>;
 
   const topControls = <div className="ufWorkoutTopControls">
-    <button type="button" className="ufWorkoutCircleButton" onClick={exitToHome}><ArrowLeft/></button>
+    <button type="button" className="ufWorkoutCircleButton" onClick={requestExit} aria-label="Sair do treino"><ArrowLeft/></button>
     <div className="ufWorkoutTopRight">
       <button type="button" className="ufWorkoutCircleButton sound" onClick={()=>patchState(next=>{next.soundEnabled=!next.soundEnabled;})}>{state.soundEnabled?<Volume2/>:<VolumeX/>}</button>
       <button type="button" className="ufWorkoutEndButton" disabled={busy} onClick={()=>finalise(workoutRunSummary(state, elapsed))}><Check/>Concluir treino</button>
@@ -804,7 +890,10 @@ function WorkoutRunner({
 
   const runner = <div className={cx('ufWorkoutRunner', mode==='simplified' && 'simplified')}>
     {topControls}
-    {saveError && <div className="errorBanner" role="alert">{saveError}</div>}
+    {saveError && !exitPromptOpen && <div className="errorBanner" role="alert">{saveError}</div>}
+    <div className={cx('ufWorkoutSaveStatus', saveStatus==='error' && 'error')} role="status" aria-live="polite">
+      {saveStatus==='saving' ? 'A guardar progresso…' : saveStatus==='error' ? 'Progresso por sincronizar' : 'Progresso guardado'}
+    </div>
     {mode === 'guided' ? <>
       <GuidedActivity
         activity={current}
@@ -866,6 +955,12 @@ function WorkoutRunner({
       onSave={patch=>{patchSet(quickSet.activityIndex,quickSet.setIndex,patch);setQuickSet(null);}}
     />}
     {summaryOpen && <SummaryScreen run={run} state={state} elapsed={elapsed} busy={busy} error={completionError} onBackToRun={()=>setSummaryOpen(false)} onFinish={finalise}/>}
+    {exitPromptOpen && <ExitWorkoutModal
+      busy={busy}
+      error={saveError}
+      onContinue={()=>setExitPromptOpen(false)}
+      onSaveAndExit={saveAndExit}
+    />}
   </div>;
 
   return createPortal(runner, document.body);
@@ -972,6 +1067,24 @@ export default function StudentTrainingExperience({ student, plans = [], complet
     await reloadRunData();
   }
 
+  async function resumeActiveRun() {
+    if (!studentId || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const latest = await fetchActiveWorkoutRun(studentId);
+      if (!latest) {
+        setActiveRun(null);
+        setError('O treino em curso já não está disponível. Atualiza a página e tenta novamente.');
+        return;
+      }
+      setActiveRun(latest);
+      setView('runner');
+    } catch (err) {
+      setError(err.message || 'Não foi possível retomar o treino.');
+    } finally { setBusy(false); }
+  }
+
   async function handleCompleted(summary) {
     setLastSummary(summary);
     setView('home');
@@ -1001,7 +1114,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
     completions={completions}
     onBack={()=>setView('home')}
     onStart={begin}
-    onAccessRun={()=>setView('runner')}
+    onAccessRun={resumeActiveRun}
   />;
 
   return <>
@@ -1042,7 +1155,7 @@ export default function StudentTrainingExperience({ student, plans = [], complet
         <p>Quando o teu professor publicar o plano, aparecerá aqui.</p>
       </section> : activeRun ? <section className="ufTrainingCurrentCard active-run">
         <h2>{activeRun.planTitle || selectedPlan.title}</h2>
-        <button type="button" className="ufBigYellowButton" onClick={()=>setView('runner')}>Aceder ao treino em curso</button>
+        <button type="button" className="ufBigYellowButton" disabled={busy} onClick={resumeActiveRun}>{busy?'A carregar…':'Aceder ao treino em curso'}</button>
       </section> : <section className="ufTrainingCurrentCard">
         {publishedPlans.length > 1 ? <label className="ufTrainingPlanSelector">Plano
           <select value={selectedPlan.id} onChange={event=>{setSelectedPlanId(event.target.value);setSelectedSessionId('');}}>
@@ -1072,7 +1185,16 @@ export default function StudentTrainingExperience({ student, plans = [], complet
       initialState={activeRun.state}
       historySets={historySets}
       legacyLoads={legacyLoads}
-      onExitToHome={()=>setView('home')}
+      onExitToHome={(savedState, mode)=> {
+        setActiveRun(current => current ? {
+          ...current,
+          state: savedState || current.state,
+          mode: mode || current.mode,
+          currentActivityIndex: savedState?.currentIndex ?? current.currentActivityIndex,
+          updatedAt: new Date().toISOString(),
+        } : current);
+        setView('home');
+      }}
       onRunCancelled={handleCancelled}
       onRunCompleted={handleCompleted}
     />}
