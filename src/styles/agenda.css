@@ -1,2 +1,54 @@
 .ufAgendaToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0}.ufAgendaToolbar>span{font-size:13px;flex:1}.ufAgendaDays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.ufAgendaDays button{display:flex;align-items:center;flex-direction:column;padding:8px 2px;gap:3px;background:transparent}.ufAgendaDays button[aria-pressed=true]{background:#ffdd00;color:#111}.ufAgendaDays strong{font-size:20px}.ufAgendaDays small{font-size:11px}.ufAgendaDays span{height:8px;line-height:8px}.ufAgendaDayTitle{margin:20px 0 12px!important}.ufAgendaSessions{display:grid;gap:12px}.ufAgendaSessions article,.ufAgendaPacks article{background:#111113;border:1px solid #303034;border-radius:14px;padding:15px}.ufAgendaSessions header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.ufAgendaSessions header p{margin:5px 0}.ufAgendaSessions header small{font-size:12px;color:#aaa;overflow-wrap:anywhere}.ufAgendaPerson{display:flex;gap:10px;align-items:center;justify-content:space-between;padding-top:12px;margin-top:12px;border-top:1px solid #303034}.ufAgendaPerson>div{flex:1}.ufAgendaPerson b{font-size:14px;overflow-wrap:anywhere}.ufAgendaPerson small{display:block;font-size:12px;line-height:1.5;color:#aaa;margin-top:5px}.ufAgendaPerson button{flex-shrink:0;max-width:120px}.ufAgendaTwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ufAgendaStudents{max-height:200px;overflow:auto;border:1px solid #303034;border-radius:10px;padding:8px}.ufAgendaStudents label{padding:10px 3px;border-bottom:1px solid #252528}.ufAgendaStudents label:last-child{border-bottom:0}.ufAgendaStudents input{flex-shrink:0}.ufAgendaPacks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:12px}.ufAgendaPacks strong{font-size:28px;display:block}.ufAgendaPacks strong small{font-size:13px;font-weight:400}.ufAgendaPacks progress{width:100%;height:8px;accent-color:#ffdd00;margin-top:15px}.ufAgendaDialog input[type=time]{appearance:none;-webkit-appearance:none;min-width:0;max-width:100%;width:100%;display:block}.ufAgendaDialog input[type=date]::-webkit-date-and-time-value,.ufAgendaDialog input[type=time]::-webkit-date-and-time-value{min-height:1.3em}.ufAgendaDialog select{white-space:normal}.ufAgendaDialog .ufPaymentCheck{font-weight:400}.ufAgenda{padding-bottom:32px}
 .ufAgendaDialog select{white-space:nowrap;text-overflow:ellipsis}@media(max-width:380px){.ufAgendaTwo{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Agenda semanal em grelha, com vista diária para registo de presenças. */
+.ufAgendaToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0}
+.ufAgendaDateNav,.ufAgendaToolbarActions{display:flex;align-items:center;gap:8px;min-width:0}
+.ufAgendaDateNav{flex:1}
+.ufAgendaRange{margin-left:8px;color:#a9bac7;font-size:13px;text-transform:capitalize}
+.ufAgendaToolbarActions{flex-wrap:wrap;justify-content:flex-end}
+.ufAgendaViewSwitch{display:inline-flex;align-items:center;padding:3px;border:1px solid #294153;background:#10212d;border-radius:10px}
+.ufAgendaViewSwitch button{min-height:34px;padding:6px 12px;font-size:12px}
+.ufAgenda .ufAgendaViewSwitch button[aria-pressed=true]{background:#e8eef3;color:#0b1720;border-color:#e8eef3}
+.ufAgendaCalendar{overflow:auto;border:1px solid #203746;border-radius:15px;background:#0b1923}
+.ufAgendaWeekHeader,.ufAgendaTimeline{display:grid;grid-template-columns:60px repeat(7,minmax(112px,1fr));min-width:920px}
+.ufAgendaWeekHeader{position:sticky;top:0;z-index:2;background:#0b1923;border-bottom:1px solid #203746}
+.ufAgendaWeekCorner{border-right:1px solid #203746}
+.ufAgendaWeekDay{min-width:0;min-height:58px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:7px 3px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#a8b6c2!important;text-align:center}
+.ufAgendaWeekDay+button{border-left:1px solid #182e3d!important}
+.ufAgendaWeekDay small{font-size:10px;text-transform:capitalize}
+.ufAgendaWeekDay strong{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;font-size:14px}
+.ufAgendaWeekDay.isToday strong{background:#ffdd00;color:#101215}
+.ufAgendaWeekDay.isSelected:not(.isToday){color:#edf2f6!important}
+.ufAgendaWeekDay.isSelected:not(.isToday) strong{background:#e8eef3;color:#0b1720}
+.ufAgendaTimeline{position:relative;background:#0b1923}
+.ufAgendaTimeLabels{position:relative}
+.ufAgendaTimeLabels span{position:absolute;right:7px;transform:translateY(-50%);color:#75899a;font-size:9px;line-height:1;white-space:nowrap}
+.ufAgendaTimelineDay{position:relative;min-width:0;border-left:1px solid #203343;background-color:#0c1a24;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--agenda-hour-height) - 1px),#203343 calc(var(--agenda-hour-height) - 1px),#203343 var(--agenda-hour-height))}
+.ufAgendaTimelineDay.isSelected{background-color:#0e1e29}
+.ufAgendaTimelineDay.isToday{background-color:#0d1e2a}
+.ufAgendaHourRule{position:absolute;left:0;right:0;height:1px;border-top:1px solid #203343;pointer-events:none}
+.ufAgendaEvent{position:absolute;z-index:1;left:4px;right:4px;min-width:0!important;min-height:20px!important;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;overflow:hidden;padding:2px 4px!important;border:1px solid #1a3850!important;border-left:3px solid #3b82f6!important;border-radius:6px!important;background:#12283a!important;color:#e0e8ee!important;text-align:left;line-height:1.25;font-size:10px!important}
+.ufAgendaEvent strong{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.ufAgendaEvent time{font-weight:800}
+.ufAgendaEvent small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94aec2;font-size:9px}
+.ufAgendaEvent.isGroup{border-left-color:#e7ad4b!important;background:#282519!important}
+.ufAgendaEvent.isOnline{border-left-color:#2bb483!important}
+.ufAgendaDays{gap:3px;margin:12px 0 18px}
+.ufAgendaDays button{min-height:58px;border:1px solid transparent!important;border-radius:10px!important;color:#a8b6c2;padding:8px 3px!important}
+.ufAgenda .ufAgendaDays button[aria-pressed=true]{background:#e8eef3!important;color:#0b1720!important}
+.ufAgendaDayTitle{margin:16px 0 12px!important;text-transform:capitalize}
+.ufAgendaSessions article,.ufAgendaPacks article{background:#0d1c26;border-color:#203746}
+.ufAgendaPerson{border-top-color:#203343}
+.ufAgendaPerson small,.ufAgendaSessions header small{color:#9aafbd}
+@media(max-width:760px){
+ .ufAgendaToolbar{align-items:stretch;flex-direction:column}
+ .ufAgendaDateNav{display:grid;grid-template-columns:42px 60px 42px minmax(0,1fr)}
+ .ufAgendaDateNav button{padding:8px!important}
+ .ufAgendaRange{margin-left:4px;font-size:11px}
+ .ufAgendaToolbarActions{justify-content:space-between}
+ .ufAgendaCalendar{margin-right:-2px}
+ .ufAgendaWeekHeader,.ufAgendaTimeline{grid-template-columns:48px repeat(7,minmax(100px,1fr));min-width:790px}
+}
+@media(max-width:380px){.ufAgendaDateNav{grid-template-columns:38px 56px 38px minmax(0,1fr)}.ufAgendaRange{font-size:10px}}

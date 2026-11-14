@@ -51,27 +51,68 @@ function PackForm({students,packs,payments,template,onClose,onSaved}){
 }
 
 export default function AgendaModule(){
- const {data,currentUser}=useApp();const [day,setDay]=useState(today()),[access,setAccess]=useState(null),[snapshot,setSnapshot]=useState({sessions:[],attendance:[],packs:[]}),[payments,setPayments]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState(''),[dialog,setDialog]=useState(null),[tab,setTab]=useState('agenda'),[revision,setRevision]=useState(0);
+ const {data,currentUser}=useApp();
+ const [day,setDay]=useState(today());
+ const [view,setView]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(max-width: 760px)').matches?'day':'week');
+ const [access,setAccess]=useState(null),[snapshot,setSnapshot]=useState({sessions:[],attendance:[],packs:[]}),[payments,setPayments]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState(''),[dialog,setDialog]=useState(null),[tab,setTab]=useState('agenda'),[revision,setRevision]=useState(0);
  const week=monday(day),manager=access==='manage';
+ const weekDays=Array.from({length:7},(_,i)=>addDays(week,i));
+ const todayValue=today();
+ const shortDays=['seg.','ter.','qua.','qui.','sex.','sáb.','dom.'];
+ const fullDays=['segunda','terça','quarta','quinta','sexta','sábado','domingo'];
  const students=data.students.filter(s=>manager?s.trainerIds?.includes(currentUser.id)&&!s.deletedAt:s.userId===currentUser.id).sort((a,b)=>a.name.localeCompare(b.name,'pt-PT'));
  useEffect(()=>{let active=true;setLoading(true);setError('');(async()=>{try{const mode=await paymentRpc('student_module_access',{p_module:'agenda'});if(!active)return;setAccess(mode);if(mode==='none')return;const [result,financial]=await Promise.all([agendaRpc('pt_snapshot',{p_week:week}),fetchPayments()]);if(active){setSnapshot(result);setPayments(financial.payments);}}catch(err){if(active)setError(err.message);}finally{if(active)setLoading(false);}})();return()=>{active=false;};},[week,currentUser.id,revision]);
  const saved=message=>{setDialog(null);setNotice(message);setRevision(n=>n+1);};
- const daySessions=snapshot.sessions.filter(s=>localDateTime(s.starts_at).slice(0,10)===day);
+ const weekEvents=snapshot.sessions.map(session=>{
+  const local=localDateTime(session.starts_at);
+  const startMinutes=Number(local.slice(11,13))*60+Number(local.slice(14,16));
+  return {...session,local,sessionDate:local.slice(0,10),startMinutes,endMinutes:startMinutes+Number(session.duration),members:snapshot.attendance.filter(a=>a.session_id===session.id)};
+ }).sort((a,b)=>a.startMinutes-b.startMinutes);
+ const daySessions=weekEvents.filter(s=>s.sessionDate===day);
+ const firstHour=weekEvents.length?Math.floor(Math.min(...weekEvents.map(s=>s.startMinutes))/60):7;
+ const lastHour=weekEvents.length?Math.ceil(Math.max(...weekEvents.map(s=>s.endMinutes))/60):22;
+ const startHour=Math.max(0,Math.min(7,firstHour));
+ const endHour=Math.min(24,Math.max(22,lastHour));
+ const hourCount=Math.max(1,endHour-startHour);
+ const hourHeight=44;
+ const hours=Array.from({length:hourCount},(_,i)=>startHour+i);
  const packOptions=snapshot.packs.filter(p=>payments.find(pay=>pay.id===p.payment_id)?.status!=='cancelled');
+ const eventNames=session=>session.members.map(a=>students.find(st=>st.id===a.student_id)?.name||'Aluno').join(' + ');
+ const eventKind=session=>session.kind==='group'&&session.members.length===2?'Treino duo':sessionKinds[session.kind];
  if(access==='none')return <section className="ufPayments"><h1>Agenda</h1><p>Esta funcionalidade ainda não está disponível para esta conta.</p></section>;
- return <section className="ufPayments ufAgenda"><div className="ufPaymentHeading"><div><h1>{manager?'Agenda':'A minha agenda'}</h1><p>Sessões PT e saldo dos packs.</p></div>{manager&&<button className="primary" disabled={loading} onClick={()=>setDialog({type:'session'})}>+ Nova sessão</button>}</div>
- <div className="ufPaymentFilters"><button aria-pressed={tab==='agenda'} onClick={()=>setTab('agenda')}>Agenda</button><button aria-pressed={tab==='packs'} onClick={()=>setTab('packs')}>Packs de sessões</button></div>
- {notice&&<p role="status" className="ufPaymentNotice">{notice}</p>}{error&&<div role="alert" className="ufPaymentError">{error}<button onClick={()=>setRevision(n=>n+1)}>Tentar novamente</button></div>}
- {loading?<p role="status">A carregar agenda…</p>:!error&&<>{tab==='agenda'?<>
-  <div className="ufAgendaToolbar"><button aria-label="Semana anterior" onClick={()=>setDay(addDays(day,-7))}>‹</button><button onClick={()=>setDay(today())}>Hoje</button><button aria-label="Semana seguinte" onClick={()=>setDay(addDays(day,7))}>›</button><span>{shortDate(week)} — {shortDate(addDays(week,6))}</span>{manager&&<button onClick={()=>setDialog({type:'copy'})}>Copiar semana</button>}</div>
-  <div className="ufAgendaDays">{Array.from({length:7},(_,i)=>{const date=addDays(week,i);const has=snapshot.sessions.some(s=>localDateTime(s.starts_at).slice(0,10)===date);return <button key={date} aria-pressed={day===date} aria-label={shortDate(date)} onClick={()=>setDay(date)}><small>{['seg.','ter.','qua.','qui.','sex.','sáb.','dom.'][i]}</small><strong>{Number(date.slice(8))}</strong><span aria-hidden="true">{has?'•':' '}</span></button>;})}</div>
-  <h2 className="ufAgendaDayTitle">{shortDate(day)}{day===today()?' · Hoje':''}</h2>
-  <div className="ufAgendaSessions">{daySessions.length?daySessions.map(s=>{const members=snapshot.attendance.filter(a=>a.session_id===s.id);return <article key={s.id}><header><div><strong>{localDateTime(s.starts_at).slice(11)} — {localDateTime(new Date(new Date(s.starts_at).getTime()+s.duration*60000)).slice(11)}</strong><p>{sessionKinds[s.kind]} · {s.duration} min</p>{s.location&&<small>{s.location}</small>}</div>{manager&&<button disabled={members.some(a=>a.status!=='booked')} title="Para editar, as presenças têm de estar Por registar" onClick={()=>setDialog({type:'session',session:s})}>Editar</button>}</header>{members.map(a=>{const pack=snapshot.packs.find(p=>p.id===a.pack_id);return <div key={a.student_id} className="ufAgendaPerson"><div><b>{students.find(st=>st.id===a.student_id)?.name||'Aluno'}</b><small>{attendanceLabels[a.status]}{pack?` · ${a.deduct?'1 sessão descontada': 'Sem desconto'} · ${pack.title}`:' · Sem pack'}</small></div>{manager&&<button onClick={()=>setDialog({type:'attendance',row:a})}>{a.status==='booked'?'Registar presença':'Corrigir'}</button>}</div>;})}</article>;}):<p className="ufPaymentEmpty">Sem sessões neste dia.</p>}</div>
- </>:<><div className="ufPaymentHeading"><h2>Packs de sessões</h2>{manager&&<button className="primary" onClick={()=>setDialog({type:'pack'})}>+ Novo pack</button>}</div><div className="ufAgendaPacks">{snapshot.packs.length?snapshot.packs.map(p=>{const payment=payments.find(pay=>pay.id===p.payment_id);return <article key={p.id}><h3>{p.title}</h3>{manager&&<p>{students.find(s=>s.id===p.student_id)?.name||'Aluno'}</p>}<strong>{p.total-p.used}<small> de {p.total} sessões disponíveis</small></strong><progress max={p.total} value={p.used} aria-label="Sessões utilizadas"/><p>{p.used} utilizadas{payment&&<> · {payment.status==='paid'?'Pago':payment.status==='cancelled'?'Pagamento anulado':'Pagamento pendente'}</>}</p>{manager&&<button onClick={()=>setDialog({type:'pack',template:p})}>Renovar pack</button>}</article>;}):<p>Ainda não existem packs.{manager?' Cria um pack ou associa um pagamento de pack já registado.':''}</p>}</div></> }</>}
- {dialog?.type==='session'&&<SessionForm session={dialog.session} attendance={snapshot.attendance} students={students} packs={packOptions} date={day} onClose={()=>setDialog(null)} onSaved={saved}/>}
- {dialog?.type==='attendance'&&<AttendanceForm row={dialog.row} name={students.find(s=>s.id===dialog.row.student_id)?.name||'Presença'} packs={snapshot.packs} onClose={()=>setDialog(null)} onSaved={saved}/>}
- {dialog?.type==='pack'&&<PackForm students={students} packs={snapshot.packs} payments={payments} template={dialog.template} onClose={()=>setDialog(null)} onSaved={saved}/>}
- {dialog?.type==='copy'&&<CopyWeek week={week} count={snapshot.sessions.length} onClose={()=>setDialog(null)} onSaved={saved}/>}
+ return <section className="ufPayments ufAgenda">
+  <div className="ufPaymentHeading"><div><h1>{manager?'Agenda':'A minha agenda'}</h1><p>Sessões PT e saldo dos packs.</p></div>{manager&&<button className="primary" disabled={loading} onClick={()=>setDialog({type:'session'})}>+ Nova sessão</button>}</div>
+  <div className="ufPaymentFilters"><button aria-pressed={tab==='agenda'} onClick={()=>setTab('agenda')}>Agenda</button><button aria-pressed={tab==='packs'} onClick={()=>setTab('packs')}>Packs de sessões</button></div>
+  {notice&&<p role="status" className="ufPaymentNotice">{notice}</p>}{error&&<div role="alert" className="ufPaymentError">{error}<button onClick={()=>setRevision(n=>n+1)}>Tentar novamente</button></div>}
+  {loading?<p role="status">A carregar agenda…</p>:!error&&<>
+   {tab==='agenda'?<>
+    <div className="ufAgendaToolbar">
+     <div className="ufAgendaDateNav"><button aria-label="Anterior" onClick={()=>setDay(addDays(day,view==='week'?-7:-1))}>‹</button><button onClick={()=>setDay(todayValue)}>Hoje</button><button aria-label="Seguinte" onClick={()=>setDay(addDays(day,view==='week'?7:1))}>›</button><span className="ufAgendaRange">{view==='week'?new Date(week+'T12:00:00Z').toLocaleDateString('pt-PT',{day:'numeric',month:'long',timeZone:'UTC'})+' – '+new Date(addDays(week,6)+'T12:00:00Z').toLocaleDateString('pt-PT',{day:'numeric',month:'long',timeZone:'UTC'}):new Date(day+'T12:00:00Z').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'})}</span></div>
+     <div className="ufAgendaToolbarActions"><div className="ufAgendaViewSwitch" role="group" aria-label="Vista da agenda"><button aria-pressed={view==='week'} onClick={()=>setView('week')}>Semana</button><button aria-pressed={view==='day'} onClick={()=>setView('day')}>Dia</button></div>{manager&&<button onClick={()=>setDialog({type:'copy'})}>Copiar semana</button>}</div>
+    </div>
+    {view==='week'?<div className="ufAgendaCalendar" aria-label="Agenda semanal">
+     <div className="ufAgendaWeekHeader"><span className="ufAgendaWeekCorner" aria-hidden="true"/>{weekDays.map((date,i)=><button type="button" key={date} className={'ufAgendaWeekDay'+(date===day?' isSelected':'')+(date===todayValue?' isToday':'')} aria-label={fullDays[i]+' '+shortDate(date)} onClick={()=>{setDay(date);setView('day');}}><small>{fullDays[i]}</small><strong>{Number(date.slice(8,10))}</strong></button>)}</div>
+     <div className="ufAgendaTimeline" style={{'--agenda-hour-height':hourHeight+'px','--agenda-hour-count':hourCount}}>
+      <div className="ufAgendaTimeLabels" aria-hidden="true">{hours.map((hour,i)=><span key={hour} style={{top:(i*hourHeight)+'px'}}>{String(hour).padStart(2,'0')}:00</span>)}</div>
+      {weekDays.map(date=><div key={date} className={'ufAgendaTimelineDay'+(date===day?' isSelected':'')+(date===todayValue?' isToday':'')} style={{height:(hourCount*hourHeight)+'px'}} role="group" aria-label={shortDate(date)}>
+       {hours.map((hour,i)=><span key={hour} className="ufAgendaHourRule" style={{top:(i*hourHeight)+'px'}} aria-hidden="true"/>)}
+       {weekEvents.filter(session=>session.sessionDate===date).map(session=>{const top=((session.startMinutes-startHour*60)/60)*hourHeight;const height=Math.max(20,(session.duration/60)*hourHeight);const names=eventNames(session);return <button key={session.id} type="button" className={'ufAgendaEvent'+(session.kind==='group'?' isGroup':'')+(session.kind==='online'?' isOnline':'')} style={{top:top+'px',height:height+'px'}} aria-label={localDateTime(session.starts_at).slice(11)+' · '+names+' · '+eventKind(session)} title={localDateTime(session.starts_at).slice(11)+' · '+names+' · '+eventKind(session)} onClick={()=>{setDay(date);setView('day');}}><strong><time>{localDateTime(session.starts_at).slice(11)}</time> {names}</strong>{height>=38&&<small>{eventKind(session)}</small>}</button>;})}
+      </div>)}
+     </div>
+    </div>:<>
+     <div className="ufAgendaDays">{weekDays.map((date,i)=>{const has=weekEvents.some(s=>s.sessionDate===date);return <button key={date} aria-pressed={day===date} aria-label={fullDays[i]+' '+shortDate(date)} onClick={()=>setDay(date)}><small>{shortDays[i]}</small><strong>{Number(date.slice(8,10))}</strong><span aria-hidden="true">{has?'•':' '}</span></button>;})}</div>
+     <h2 className="ufAgendaDayTitle">{new Date(day+'T12:00:00Z').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'})}{day===todayValue?' · Hoje':''}</h2>
+     <div className="ufAgendaSessions">{daySessions.length?daySessions.map(s=>{const members=s.members;return <article key={s.id}><header><div><strong>{s.local.slice(11)} — {localDateTime(new Date(new Date(s.starts_at).getTime()+s.duration*60000)).slice(11)}</strong><p>{eventKind(s)} · {s.duration} min</p>{s.location&&<small>{s.location}</small>}</div>{manager&&<button disabled={members.some(a=>a.status!=='booked')} title="Para editar, as presenças têm de estar Por registar" onClick={()=>setDialog({type:'session',session:s})}>Editar</button>}</header>{members.map(a=>{const pack=snapshot.packs.find(p=>p.id===a.pack_id);return <div key={a.student_id} className="ufAgendaPerson"><div><b>{students.find(st=>st.id===a.student_id)?.name||'Aluno'}</b><small>{attendanceLabels[a.status]}{pack?(' · '+(a.deduct?'1 sessão descontada':'Sem desconto')+' · '+pack.title):' · Sem pack'}</small></div>{manager&&<button onClick={()=>setDialog({type:'attendance',row:a})}>{a.status==='booked'?'Registar presença':'Corrigir'}</button>}</div>;})}</article>;}):<p className="ufPaymentEmpty">Sem sessões neste dia.</p>}</div>
+    </>}
+   </>:<>
+    <div className="ufPaymentHeading"><h2>Packs de sessões</h2>{manager&&<button className="primary" onClick={()=>setDialog({type:'pack'})}>+ Novo pack</button>}</div>
+    <div className="ufAgendaPacks">{snapshot.packs.length?snapshot.packs.map(p=>{const payment=payments.find(pay=>pay.id===p.payment_id);return <article key={p.id}><h3>{p.title}</h3>{manager&&<p>{students.find(s=>s.id===p.student_id)?.name||'Aluno'}</p>}<strong>{p.total-p.used}<small> de {p.total} sessões disponíveis</small></strong><progress max={p.total} value={p.used} aria-label="Sessões utilizadas"/><p>{p.used} utilizadas{payment&&<> · {payment.status==='paid'?'Pago':payment.status==='cancelled'?'Pagamento anulado':'Pagamento pendente'}</>}</p>{manager&&<button onClick={()=>setDialog({type:'pack',template:p})}>Renovar pack</button>}</article>;}):<p>Ainda não existem packs.{manager?' Cria um pack ou associa um pagamento de pack já registado.':''}</p>}</div>
+   </>}
+  </>}
+  {dialog?.type==='session'&&<SessionForm session={dialog.session} attendance={snapshot.attendance} students={students} packs={packOptions} date={day} onClose={()=>setDialog(null)} onSaved={saved}/>}
+  {dialog?.type==='attendance'&&<AttendanceForm row={dialog.row} name={students.find(s=>s.id===dialog.row.student_id)?.name||'Presença'} packs={snapshot.packs} onClose={()=>setDialog(null)} onSaved={saved}/>}
+  {dialog?.type==='pack'&&<PackForm students={students} packs={snapshot.packs} payments={payments} template={dialog.template} onClose={()=>setDialog(null)} onSaved={saved}/>}
+  {dialog?.type==='copy'&&<CopyWeek week={week} count={snapshot.sessions.length} onClose={()=>setDialog(null)} onSaved={saved}/>}
  </section>;
 }
 function CopyWeek({week,count,onClose,onSaved}){const [target,setTarget]=useState(addDays(week,7));return <FormDialog title="Copiar planeamento semanal" onClose={onClose} button="Copiar semana" onSave={async()=>{const n=await agendaRpc('pt_copy_week',{p_source:week,p_target:monday(target)});onSaved(n?`${n} sessão(ões) copiada(s), sem presenças nem descontos.`:'Nenhuma sessão nova: a semana está vazia, cancelada ou já foi copiada.');}}><p>Origem: {shortDate(week)} — {shortDate(addDays(week,6))} · {count} sessão(ões).</p><label>Uma data da semana de destino<input type="date" required value={target} onChange={e=>setTarget(e.target.value)}/></label>{target&&<p>Destino: {shortDate(monday(target))} — {shortDate(addDays(monday(target),6))}.</p>}<p>Mantém os dias, horários e participantes. Sessões canceladas são excluídas. Se existir um conflito de horário, a cópia é interrompida sem alterar a agenda.</p></FormDialog>;}
