@@ -195,6 +195,7 @@ body.ufWorkoutImmersiveOpen{overflow:hidden}
 .ufWorkoutExitActions button:disabled{opacity:.65;cursor:wait}
 .ufWorkoutExitActions .primary{border:0;background:#ffd908;color:#080808}
 .ufWorkoutExitActions .secondary{border:1px solid #55565b;background:#202024;color:#fff}
+.ufWorkoutExitActions .danger{border:1px solid rgba(255,111,112,.55);background:rgba(255,111,112,.08);color:#ff8586}
 @media(max-width:760px){
   .ufWorkoutSaveStatus{font-size:10px}
   .ufWorkoutExitModal{padding:22px;border-radius:20px}
