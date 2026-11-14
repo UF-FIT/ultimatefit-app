@@ -65,7 +65,7 @@ export default function TeacherDashboard({onNavigate}){
   </div></div>
   {model.enabled&&!loading&&!error&&<button className="tdAdd" aria-label="Marcar nova sessão" onClick={()=>setDialog({type:'session'})}><Plus size={29}/></button>}
   {dialog?.type==='attendance'&&<AttendanceForm row={dialog.row} initialStatus={dialog.initialStatus} name={studentById.get(dialog.row.student_id)?.name||'Presença'} packs={packs} onClose={()=>setDialog(null)} onSaved={saved}/>}
-  {dialog?.type==='session'&&<SessionForm attendance={model.attendance} students={active} packs={packs} date={day} onClose={()=>setDialog(null)} onSaved={saved}/>}
+  {dialog?.type==='session'&&<SessionForm attendance={model.attendance} students={active} packs={packs} sessions={model.sessions} date={day} onClose={()=>setDialog(null)} onSaved={saved}/>}
  </main>;
 }
 
