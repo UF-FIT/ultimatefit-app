@@ -73,7 +73,7 @@ function PaymentDuoManager({duos,students,onClose,onSaved}){
   setError('');
  },[editingId,duos,students]);
  const set=(name,value)=>setForm(previous=>({...previous,[name]:value}));
- const available=students.filter(s=>!duos.some(d=>d.active&&d.id!==editingId&&(d.member_a_id===s.id||d.member_b_id===s.id)));
+ const available=students.filter(s=>s.id===form.student_a||s.id===form.student_b||!duos.some(d=>d.active&&d.id!==editingId&&(d.member_a_id===s.id||d.member_b_id===s.id)));
  async function save(e){
   e.preventDefault();if(busy)return;
   setBusy(true);setError('');
