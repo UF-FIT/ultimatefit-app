@@ -522,17 +522,18 @@ function SimplifiedActivityCard({ activity, blockTitle, onVideo, onComplete, onE
   </article>;
 }
 
-function ExitWorkoutModal({ busy, error, onContinue, onSaveAndExit }) {
+function ExitWorkoutModal({ busy, error, onContinue, onSaveAndExit, onCancelWorkout }) {
   return createPortal(<div className="ufWorkoutModalBackdrop dark">
     <section className="ufWorkoutExitModal" role="dialog" aria-modal="true" aria-labelledby="ufWorkoutExitTitle" aria-describedby="ufWorkoutExitDescription">
       <div className="ufWorkoutExitIcon"><ArrowLeft/></div>
       <span className="ufWorkoutKicker">TREINO EM CURSO</span>
       <h2 id="ufWorkoutExitTitle">Queres sair do treino?</h2>
-      <p id="ufWorkoutExitDescription">O teu progresso fica guardado para poderes continuar mais tarde. O treino só entra no histórico quando o concluíres.</p>
+      <p id="ufWorkoutExitDescription">Podes guardar o progresso para continuar mais tarde. O treino só entra no histórico quando o concluíres.</p>
       {error && <div className="errorBanner" role="alert">{error}</div>}
       <div className="ufWorkoutExitActions">
         <button type="button" className="primary" disabled={busy} onClick={onSaveAndExit}>{busy ? 'A guardar progresso…' : 'Guardar progresso e sair'}</button>
         <button type="button" className="secondary" disabled={busy} onClick={onContinue}>Continuar treino</button>
+        <button type="button" className="danger" disabled={busy} onClick={onCancelWorkout}>{busy ? 'A cancelar…' : 'Cancelar treino e sair'}</button>
       </div>
     </section>
   </div>, document.body);
@@ -819,16 +820,18 @@ function WorkoutRunner({
   }
 
   async function cancelRun() {
-    if (!window.confirm('Cancelar este treino? O progresso não será registado como treino concluído.')) return;
+    if (finalising.current || busy) return;
     setBusy(true);
+    setSaveError('');
     window.clearTimeout(saveTimer.current);
     try {
       await saveQueueRef.current.catch(() => null);
       await cancelWorkoutRun(run.id);
       skipUnmountSaveRef.current = true;
+      setExitPromptOpen(false);
       onRunCancelled();
     } catch (error) {
-      window.alert(error.message || 'Não foi possível cancelar o treino.');
+      setSaveError(error.message || 'Não foi possível cancelar o treino.');
       setBusy(false);
     }
   }
@@ -873,7 +876,7 @@ function WorkoutRunner({
 
   const menu = <div className="ufWorkoutMoreMenu">
     <button type="button" onClick={()=>{const nextMode=mode==='guided'?'simplified':'guided';modeRef.current=nextMode;setMode(nextMode);setMenuOpen(false);}}>{mode==='guided'?'Modo simplificado':'Modo guiado'}</button>
-    <button type="button" className="danger" onClick={()=>{setMenuOpen(false);cancelRun();}}>Cancelar treino</button>
+    <button type="button" className="danger" onClick={requestExit}>Cancelar treino</button>
   </div>;
 
   const topControls = <div className="ufWorkoutTopControls">
@@ -960,6 +963,7 @@ function WorkoutRunner({
       error={saveError}
       onContinue={()=>setExitPromptOpen(false)}
       onSaveAndExit={saveAndExit}
+      onCancelWorkout={cancelRun}
     />}
   </div>;
 
