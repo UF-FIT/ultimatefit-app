@@ -31,7 +31,8 @@ export default function StudioManagement(){
  const [dialog,setDialog]=useState(null);
  const [revision,setRevision]=useState(0);
  const [busyId,setBusyId]=useState('');
- const owner=currentUser.id;
+ const profileId=currentUser.id;
+ const canManageStudio=currentUser.role==='admin'||currentUser.systemRole==='owner';
  const members=payload?.members||[];
  const charges=payload?.charges||[];
  const records=payload?.records||[];
@@ -41,33 +42,33 @@ export default function StudioManagement(){
  async function reload(){
   setLoading(true);setError('');
   try{
-   const next=view==='month'?await loadStudioMonth(owner,month):await loadStudioYearSummary(owner,year);
+   const next=view==='month'?await loadStudioMonth(profileId,month):await loadStudioYearSummary(profileId,year);
    setPayload(next);
   }catch(err){setPayload(null);setError(err.message||'Não foi possível carregar a gestão do estúdio.');}
   finally{setLoading(false);}
  }
- useEffect(()=>{if(currentUser.systemRole==='owner')reload();else setLoading(false);},[owner,currentUser.systemRole,view,month,year,revision]);
+ useEffect(()=>{if(canManageStudio)reload();else setLoading(false);},[profileId,canManageStudio,view,month,year,revision]);
  function saved(message){setDialog(null);setNotice(message);setRevision(n=>n+1);}
  function shiftMonth(delta){const date=new Date(month+'-01T12:00:00');date.setMonth(date.getMonth()+delta);setMonth(date.toISOString().slice(0,7));}
  async function setChargePaid(row,paid){
   setBusyId(row.id);setError('');
-  try{await setStudioChargePaid(owner,row.id,paid);setNotice(paid?'Mensalidade do Pilates marcada como paga.':'Estado do pagamento atualizado.');setRevision(n=>n+1);}
+  try{await setStudioChargePaid(profileId,row.id,paid);setNotice(paid?'Mensalidade do Pilates marcada como paga.':'Estado do pagamento atualizado.');setRevision(n=>n+1);}
   catch(err){setError(err.message||'Não foi possível atualizar este pagamento.');}
   finally{setBusyId('');}
  }
  async function setRecordPaid(row,paid){
   setBusyId(row.id);setError('');
-  try{await setStudioFinancialRecordPaid(owner,row.id,paid);setNotice(paid?'Registo marcado como pago/recebido.':'Estado do registo atualizado.');setRevision(n=>n+1);}
+  try{await setStudioFinancialRecordPaid(profileId,row.id,paid);setNotice(paid?'Registo marcado como pago/recebido.':'Estado do registo atualizado.');setRevision(n=>n+1);}
   catch(err){setError(err.message||'Não foi possível atualizar este registo.');}
   finally{setBusyId('');}
  }
  async function toggleRecurring(row){
   setBusyId(row.id);setError('');
-  try{await setStudioRecurringActive(owner,row.id,!row.active);setNotice(row.active?'Registo mensal pausado.':'Registo mensal reativado.');setRevision(n=>n+1);}
+  try{await setStudioRecurringActive(profileId,row.id,!row.active);setNotice(row.active?'Registo mensal pausado.':'Registo mensal reativado.');setRevision(n=>n+1);}
   catch(err){setError(err.message||'Não foi possível atualizar o registo mensal.');}
   finally{setBusyId('');}
  }
- if(currentUser.systemRole!=='owner')return <main className="studioManagement"><h1>Gestão do Estúdio</h1><Notice type="error">Esta secção está disponível apenas para o proprietário.</Notice></main>;
+ if(!canManageStudio)return <main className="studioManagement"><h1>Gestão do Estúdio</h1><Notice type="error">Esta secção está disponível apenas para administradores do estúdio.</Notice></main>;
  const summary=view==='month'?payload?.summary:null;
  const studioResult=(summary?.pilatesReceived||0)+(summary?.otherIncomeReceived||0)-(summary?.expensesPaid||0);
 
@@ -129,8 +130,8 @@ export default function StudioManagement(){
     {!recurringItems.length?<p className="studioEmpty">Ainda não configuraste receitas ou despesas recorrentes.</p>:<div className="studioRecurringList">{recurringItems.map(item=><article key={item.id}><div className={'studioRecurringIcon '+item.direction}><Repeat size={17}/></div><div className="studioRecordDetails"><strong>{item.description}</strong><small>{categoryName(item.category)} · {money(item.amount_cents)} / mês · desde {new Date(item.starts_on+'T12:00:00').toLocaleDateString('pt-PT')}</small></div><span className={'studioTextStatus '+(item.active?'paid':'muted')}>{item.active?'Ativo':'Pausado'}</span><div className="studioRowActions"><button className="studioIconButton" type="button" aria-label={'Editar regra '+item.description} onClick={()=>setDialog({type:'finance',template:item})}><Edit3 size={16}/></button><button type="button" disabled={busyId===item.id} className="studioSmallButton secondary" onClick={()=>toggleRecurring(item)}>{item.active?<><Pause size={14}/> Pausar</>:<><Play size={14}/> Reativar</>}</button></div></article>)}</div>}
    </Card>
   </>:<YearView payload={payload} year={year}/>}
-  {dialog?.type==='member'&&<MemberDialog member={dialog.member} month={month} onClose={()=>setDialog(null)} onSave={async values=>{await saveStudioMember(owner,values);saved(dialog.member?'Inscrição atualizada.':'Aluno de Pilates adicionado.');}}/>}
-  {dialog?.type==='finance'&&<FinanceDialog month={month} record={dialog.record} template={dialog.template} recurring={dialog.recurring} onClose={()=>setDialog(null)} onSave={async values=>{if(values.isRecurring)await saveStudioRecurringItem(owner,values);else await saveStudioFinancialRecord(owner,values);saved(values.isRecurring?(dialog.template?'Regra mensal atualizada.':'Registo mensal criado.'):(dialog.record?'Movimento atualizado.':'Movimento adicionado.'));}}/>}
+  {dialog?.type==='member'&&<MemberDialog member={dialog.member} month={month} onClose={()=>setDialog(null)} onSave={async values=>{await saveStudioMember(profileId,values);saved(dialog.member?'Inscrição atualizada.':'Aluno de Pilates adicionado.');}}/>}
+  {dialog?.type==='finance'&&<FinanceDialog month={month} record={dialog.record} template={dialog.template} recurring={dialog.recurring} onClose={()=>setDialog(null)} onSave={async values=>{if(values.isRecurring)await saveStudioRecurringItem(profileId,values);else await saveStudioFinancialRecord(profileId,values);saved(values.isRecurring?(dialog.template?'Regra mensal atualizada.':'Registo mensal criado.'):(dialog.record?'Movimento atualizado.':'Movimento adicionado.'));}}/>}
  </main>;
 }
 
