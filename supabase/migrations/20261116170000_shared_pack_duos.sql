@@ -134,11 +134,6 @@ begin
   if oldrow.version is distinct from (p_data->>'version')::integer then raise exception 'A sessão mudou. Atualiza a agenda.'; end if;
   if exists(select 1 from public.pt_attendance where session_id=result and status<>'booked') then raise exception 'Repõe primeiro os registos em Por registar para alterar esta sessão.'; end if;
  end if;
- if exists(select 1 from public.pt_sessions s where s.owner_id=auth.uid() and s.id is distinct from result
-  and s.starts_at<starttime+make_interval(mins=>minutes) and s.starts_at+make_interval(mins=>s.duration)>starttime
-  and exists(select 1 from public.pt_attendance a where a.session_id=s.id and a.status<>'cancelled')) then
-  raise exception 'Conflito de horário: já tens uma sessão neste intervalo.';
- end if;
  for item in select * from jsonb_array_elements(p_data->'participants') loop
   sid:=(item->>'student_id')::uuid; pack:=nullif(item->>'pack_id','')::uuid;
   if sid is null or not public.payment_can_manage(sid) then raise exception 'Aluno fora do teu acompanhamento.' using errcode='42501'; end if;
@@ -202,10 +197,6 @@ begin
   targettime:=((s.starts_at at time zone 'Europe/Lisbon')+((p_target-p_source)*interval '1 day')) at time zone 'Europe/Lisbon';
   if exists(select 1 from public.pt_sessions where owner_id=auth.uid() and copied_from=s.id and starts_at=targettime) then continue; end if;
   if exists(select 1 from public.pt_attendance a where a.session_id=s.id and a.status<>'cancelled' and not public.payment_can_manage(a.student_id)) then raise exception 'A semana inclui um aluno que já não acompanhas.'; end if;
-  if exists(select 1 from public.pt_sessions other where other.owner_id=auth.uid() and other.starts_at<targettime+make_interval(mins=>s.duration)
-   and other.starts_at+make_interval(mins=>other.duration)>targettime and exists(select 1 from public.pt_attendance a where a.session_id=other.id and a.status<>'cancelled')) then
-   raise exception 'Conflito de horário em %. Nenhuma sessão foi copiada.',to_char(targettime at time zone 'Europe/Lisbon','DD/MM HH24:MI');
-  end if;
   insert into public.pt_sessions(owner_id,starts_at,duration,kind,location,request_id,copied_from)
   values(auth.uid(),targettime,s.duration,s.kind,s.location,gen_random_uuid(),s.id) returning id into newid;
   insert into public.pt_attendance(session_id,student_id,owner_id,pack_id)
