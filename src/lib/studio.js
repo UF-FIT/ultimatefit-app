@@ -115,9 +115,9 @@ export async function saveStudioRecurringItem(owner,row){
  return run(supabase.from('studio_recurring_items').insert({...values,owner_id:owner,request_id:row.request_id}).select('*').single());
 }
 export async function setStudioRecurringActive(owner,id,active){
- return run(supabase.from('studio_recurring_items').update({
-  active,ends_on:active?null:rowToday(),updated_at:new Date().toISOString(),
- }).eq('owner_id',owner).eq('id',id).select('*').single());
+ const values={active,ends_on:active?null:rowToday(),updated_at:new Date().toISOString()};
+ if(active)values.starts_on=rowToday();
+ return run(supabase.from('studio_recurring_items').update(values).eq('owner_id',owner).eq('id',id).select('*').single());
 }
 export async function setStudioFinancialRecordPaid(owner,id,paid){
  return run(supabase.from('studio_financial_records').update({
