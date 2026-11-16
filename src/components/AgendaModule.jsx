@@ -12,7 +12,7 @@ function FormDialog({title,onClose,onSave,children,button='Guardar'}){
  async function submit(e){e.preventDefault();if(busy)return;setBusy(true);setError('');try{await onSave();}catch(err){setError(err.message);}finally{setBusy(false);}}
  return <Dialog title={title} onClose={()=>!busy&&onClose()}><form onSubmit={submit}><div className="ufPaymentFields">{children}</div>{error&&<p role="alert" className="ufPaymentError">{error}</p>}<footer><button type="button" disabled={busy} onClick={onClose}>Cancelar</button><button className="primary" disabled={busy}>{busy?'A guardar…':button}</button></footer></form></Dialog>;
 }
-function PackSelect({packs,studentId,value,onChange}){return <select aria-label="Pack associado" value={value||''} onChange={e=>onChange(e.target.value)}><option value="">Sem pack · mensalidade / sessão avulsa</option>{packs.filter(p=>p.student_id===studentId).map(p=><option key={p.id} value={p.id}>{p.title} · {p.total-p.used} de {p.total} disponíveis</option>)}</select>;}
+function PackSelect({packs,studentId,value,onChange,duration}){const available=packs.filter(p=>(p.student_id===studentId||p.partner_student_id===studentId)&&(!p.duration_minutes||Number(p.duration_minutes)===Number(duration)));return <select aria-label="Pack associado" value={value||''} onChange={e=>onChange(e.target.value)}><option value="">Sem pack · mensalidade / sessão avulsa</option>{available.map(p=><option key={p.id} value={p.id}>{p.title}{p.partner_name?' · Duo com '+p.partner_name:''} · {p.total-p.used} de {p.total} disponíveis</option>)}</select>;}
 function hasSessionOverlap(form,sessions,attendance){
  const startValue=form?.starts_local||'';
  const duration=Number(form?.duration);
@@ -60,42 +60,78 @@ function layoutOverlapLanes(events){
 export function SessionForm({session,attendance,students,packs,date,sessions=[],onClose,onSaved}){
  const [form,setForm]=useState(()=>session?{...session,starts_local:localDateTime(session.starts_at),participants:attendance.filter(a=>a.session_id===session.id).map(a=>({student_id:a.student_id,pack_id:a.pack_id||''}))}:{request_id:crypto.randomUUID(),kind:'individual',starts_local:date+'T09:00',duration:60,location:'',participants:[]});
  const [query,setQuery]=useState('');const set=(key,value)=>setForm(f=>({...f,[key]:value}));
- function toggle(id){setForm(f=>{const available=packs.filter(p=>p.student_id===id&&p.total>p.used);const packId=f.kind!=='assessment'&&available.length===1?available[0].id:'';return {...f,participants:f.participants.some(p=>p.student_id===id)?f.participants.filter(p=>p.student_id!==id):[...(f.kind==='group'?f.participants:[]),{student_id:id,pack_id:packId}]};});}
+ function toggle(id){setForm(f=>{const available=packs.filter(p=>(p.student_id===id||p.partner_student_id===id)&&p.total>p.used&&(!p.duration_minutes||Number(p.duration_minutes)===Number(f.duration)));const packId=f.kind!=='assessment'&&available.length===1?available[0].id:'';return {...f,participants:f.participants.some(p=>p.student_id===id)?f.participants.filter(p=>p.student_id!==id):[...(f.kind==='group'?f.participants:[]),{student_id:id,pack_id:packId}]};});}
  const overlapping=hasSessionOverlap(form,sessions,attendance);
   async function save(){if(!form.participants.length)throw Error('Seleciona pelo menos um aluno.');await agendaRpc('pt_save_session',{p_data:form});onSaved('Sessão guardada.');}
  return <FormDialog title={session?'Editar sessão':'Nova sessão'} onClose={onClose} onSave={save} button="Guardar sessão">
   <label>Tipo<select aria-label="Tipo de sessão" value={form.kind} onChange={e=>setForm(f=>({...f,kind:e.target.value,participants:e.target.value==='group'?f.participants:f.participants.slice(0,1)}))}>{Object.entries(sessionKinds).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
   <div className="ufAgendaTwo"><label>Data<input type="date" required value={form.starts_local.slice(0,10)} onChange={e=>set('starts_local',e.target.value+'T'+form.starts_local.slice(11))}/></label><label>Hora<input type="time" required value={form.starts_local.slice(11)} onChange={e=>set('starts_local',form.starts_local.slice(0,10)+'T'+e.target.value)}/></label></div>
-  <label>Duração (minutos)<input type="number" required min="5" max="480" value={form.duration} onChange={e=>set('duration',Number(e.target.value))}/></label>
+  <label>Duração (minutos)<input type="number" required min="5" max="480" value={form.duration} onChange={e=>{const duration=Number(e.target.value);setForm(f=>({...f,duration,participants:f.participants.map(item=>{const pack=packs.find(p=>p.id===item.pack_id);return pack?.duration_minutes&&Number(pack.duration_minutes)!==duration?{...item,pack_id:''}:item;})}));}}/></label>
    {overlapping&&<p className="ufAgendaOverlapNote" role="status">Este horário coincide com outra sessão. As sessões serão guardadas separadamente.</p>}
   <label>Local ou ligação (opcional)<input maxLength={200} value={form.location} onChange={e=>set('location',e.target.value)}/></label>
   <label>Pesquisar aluno<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Nome do aluno"/></label>
   <div className="ufAgendaStudents">{students.filter(s=>s.name.toLocaleLowerCase('pt-PT').includes(query.toLocaleLowerCase('pt-PT'))).map(s=><label key={s.id} className="ufPaymentCheck"><input type="checkbox" checked={form.participants.some(p=>p.student_id===s.id)} onChange={()=>toggle(s.id)}/>{s.name}</label>)}</div>
-  {form.participants.map(p=><label key={p.student_id}>{students.find(s=>s.id===p.student_id)?.name} · pack<PackSelect packs={packs} studentId={p.student_id} value={p.pack_id} onChange={value=>set('participants',form.participants.map(a=>a.student_id===p.student_id?{...a,pack_id:value}:a))}/></label>)}
+  {form.participants.map(p=><label key={p.student_id}>{students.find(s=>s.id===p.student_id)?.name} · pack<PackSelect packs={packs} studentId={p.student_id} duration={form.duration} value={p.pack_id} onChange={value=>set('participants',form.participants.map(a=>a.student_id===p.student_id?{...a,pack_id:value}:a))}/></label>)}
   <p>Marcar uma sessão não desconta do pack. Horários em Portugal.</p>
  </FormDialog>;
 }
-export function AttendanceForm({row,name,packs,onClose,onSaved,initialStatus}){
+export function AttendanceForm({row,name,packs,duration,onClose,onSaved,initialStatus}){
  const [status,setStatus]=useState(initialStatus||row.status),[pack,setPack]=useState(row.pack_id||''),[decision,setDecision]=useState(!initialStatus&&['absent','cancelled'].includes(row.status)?String(row.deduct):'');
  async function save(){if(['absent','cancelled'].includes(status)&&!decision)throw Error('Escolhe se descontas ou não do pack.');await agendaRpc('pt_mark_attendance',{p_session:row.session_id,p_student:row.student_id,p_status:status,p_deduct:decision===''?null:decision==='true',p_pack:pack||null,p_version:row.version});onSaved('Presença e saldo do pack atualizados.');}
  return <FormDialog title={name} onClose={onClose} onSave={save}><label>Presença<select aria-label="Estado da presença" value={status} onChange={e=>{setStatus(e.target.value);setDecision('');}}>{Object.entries(attendanceLabels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
- <label>Pack<PackSelect packs={packs} studentId={row.student_id} value={pack} onChange={setPack}/></label>
+ <label>Pack<PackSelect packs={packs} studentId={row.student_id} duration={duration} value={pack} onChange={setPack}/></label>
  {['absent','cancelled'].includes(status)&&<label>Descontar esta sessão?<select required aria-label="Decisão de desconto" value={decision} onChange={e=>setDecision(e.target.value)}><option value="">Selecionar</option><option value="false">Não descontar</option><option value="true">Descontar do pack</option></select></label>}
  <p>{status==='present'?(pack?'Será descontada uma sessão do pack selecionado.':'Esta presença será registada sem desconto de pack.'):status==='booked'?'Qualquer desconto desta sessão será devolvido ao pack.':'Só será descontada uma sessão se escolheres essa opção.'}</p>
  </FormDialog>;
 }
 function PackForm({students,packs,payments,template,onClose,onSaved}){
- const [form,setForm]=useState({request_id:crypto.randomUUID(),student_id:template?.student_id||students[0]?.id||'',title:template?.title||'Pack de 10 sessões',total:template?.total||10,payment_id:'',amount:template?String((payments.find(p=>p.id===template.payment_id)?.amount_cents||0)/100):'',due_on:today()});
+ const [form,setForm]=useState(()=>({request_id:crypto.randomUUID(),student_id:template?.student_id||students[0]?.id||'',title:template?.title||'Pack de 10 sessões',total:template?.total||10,duration_minutes:template?.duration_minutes||60,payment_id:'',amount:template?String((payments.find(p=>p.id===template.payment_id)?.amount_cents||0)/100):'',status:'pending',paid_on:'',due_on:today(),method:'mbway',shared:!!(template?.partner_name||template?.partner_student_id),partner_student_id:template?.partner_student_id||'',partner_name:template?.partner_name||'',partner_phone:template?.partner_phone||''}));
  const set=(key,value)=>setForm(f=>({...f,[key]:value}));
  const available=payments.filter(p=>p.student_id===form.student_id&&p.kind==='package'&&p.status!=='cancelled'&&!packs.some(pack=>pack.payment_id===p.id));
- async function save(){await agendaRpc('pt_create_pack',{p_data:{...form,amount_cents:form.payment_id?null:cents(form.amount)}});onSaved('Pack criado. O recebimento é confirmado na secção Pagamentos.');}
- return <FormDialog title={template?'Renovar pack':'Novo pack'} onClose={onClose} onSave={save}><label>Aluno<select aria-label="Aluno do pack" required value={form.student_id} onChange={e=>setForm(f=>({...f,student_id:e.target.value,payment_id:''}))}>{students.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
- <label>Nome do pack<input required maxLength={120} value={form.title} onChange={e=>set('title',e.target.value)}/></label><label>Número de sessões<input required type="number" min="1" max="1000" value={form.total} onChange={e=>set('total',Number(e.target.value))}/></label>
- <label>Pagamento<select aria-label="Pagamento do pack" value={form.payment_id} onChange={e=>set('payment_id',e.target.value)}><option value="">Criar novo pagamento pendente</option>{available.map(p=><option key={p.id} value={p.id}>{p.description||'Pack registado'} · {money(p.amount_cents)} · {p.status==='paid'?'Pago':'Pendente'}</option>)}</select></label>
- {!form.payment_id&&<><label>Valor (€)<input required inputMode="decimal" value={form.amount} onChange={e=>set('amount',e.target.value)}/></label><label>Data limite<input required type="date" value={form.due_on} onChange={e=>set('due_on',e.target.value)}/></label></>}
- <p>Um novo pack tem o seu próprio saldo. A renovação mantém o histórico do anterior.</p></FormDialog>;
+ const partnerOptions=students.filter(s=>s.id!==form.student_id);
+ async function save(){
+  const partnerName=form.shared?form.partner_name.trim():'';
+  if(form.shared&&!partnerName&&!form.partner_student_id)throw new Error('Indica o nome do parceiro do duo.');
+  await agendaRpc('pt_create_pack',{p_data:{request_id:form.request_id,student_id:form.student_id,title:form.title.trim(),total:Number(form.total),duration_minutes:Number(form.duration_minutes),payment_id:form.payment_id||null,amount_cents:form.payment_id?null:cents(form.amount),status:form.payment_id?undefined:form.status,paid_on:form.payment_id?undefined:(form.status==='paid'?form.paid_on:null),method:form.payment_id?undefined:(form.status==='paid'?form.method:null),due_on:form.payment_id?undefined:(form.status==='paid'?form.paid_on:form.due_on),partner_student_id:form.shared?(form.partner_student_id||null):null,partner_name:partnerName,partner_phone:form.shared?form.partner_phone.trim():''}});
+  onSaved('Pack criado. O pagamento fica associado uma única vez ao aluno principal.');
+ }
+ return <FormDialog title={template?'Renovar pack':'Novo pack'} onClose={onClose} onSave={save} button="Guardar pack">
+  <label>Aluno responsável pelo pagamento<select aria-label="Aluno do pack" required value={form.student_id} onChange={e=>setForm(f=>({...f,student_id:e.target.value,payment_id:''}))}>{students.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+  <label>Nome do pack<input required maxLength={120} value={form.title} onChange={e=>set('title',e.target.value)}/></label>
+  <div className="ufAgendaTwo"><label>Número de sessões<input required type="number" min="1" max="1000" value={form.total} onChange={e=>set('total',Number(e.target.value))}/></label><label>Duração (minutos)<input required type="number" min="5" max="480" value={form.duration_minutes} onChange={e=>set('duration_minutes',Number(e.target.value))}/></label></div>
+  <label>Pagamento<select aria-label="Pagamento do pack" value={form.payment_id} onChange={e=>set('payment_id',e.target.value)}><option value="">Criar novo pagamento</option>{available.map(p=><option key={p.id} value={p.id}>{p.description||'Pack registado'} · {money(p.amount_cents)} · {p.status==='paid'?'Pago':'Pendente'}</option>)}</select></label>
+  {!form.payment_id&&<><label>Valor (€)<input required inputMode="decimal" value={form.amount} onChange={e=>set('amount',e.target.value)}/><small>O valor é registado uma única vez, mesmo num pack duo.</small></label>
+   <label className="ufPaymentCheck"><input type="checkbox" checked={form.status==='paid'} onChange={e=>setForm(f=>({...f,status:e.target.checked?'paid':'pending',paid_on:e.target.checked?f.paid_on:''}))}/> Recebimento confirmado</label>
+   {form.status==='paid'?<><label>Método<select required value={form.method} onChange={e=>set('method',e.target.value)}><option value="mbway">MB WAY</option><option value="cash">Dinheiro</option><option value="transfer">Transferência</option></select></label><label>Pago em<input required type="date" max={today()} value={form.paid_on} onChange={e=>set('paid_on',e.target.value)}/></label></>:<label>Data limite<input required type="date" value={form.due_on} onChange={e=>set('due_on',e.target.value)}/></label>}
+  </>}
+  <label className="ufPaymentCheck"><input type="checkbox" checked={form.shared} onChange={e=>setForm(f=>({...f,shared:e.target.checked,partner_student_id:e.target.checked?f.partner_student_id:'',partner_name:e.target.checked?f.partner_name:'',partner_phone:e.target.checked?f.partner_phone:''}))}/> Pack partilhado por duo</label>
+  {form.shared&&<>
+   <label>Parceiro com perfil na app (opcional)<select value={form.partner_student_id} onChange={e=>{const student=partnerOptions.find(s=>s.id===e.target.value);setForm(f=>({...f,partner_student_id:e.target.value,partner_name:e.target.value?(student?.name||f.partner_name):f.partner_name}));}}><option value="">Ainda sem perfil na app</option>{partnerOptions.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+   <label>Nome do parceiro<input required maxLength="160" value={form.partner_name} onChange={e=>set('partner_name',e.target.value)}/></label>
+   <label>WhatsApp do parceiro (opcional)<input type="tel" maxLength="40" value={form.partner_phone} onChange={e=>set('partner_phone',e.target.value)}/></label>
+   {!form.partner_student_id&&<p>Fica apenas identificado neste pack; não é criada uma conta nem enviado convite.</p>}
+  </>}
+  {form.payment_id&&<p>O pagamento selecionado mantém o valor, estado e data registados. Se estiver pendente, atualiza-o em Pagamentos.</p>}
+  <p>Um novo pack tem o seu próprio saldo. Ao partilhar um pack, ambos os participantes descontam do mesmo total.</p>
+ </FormDialog>;
 }
-
+function PackPartnerForm({pack,students,onClose,onSaved}){
+ const [form,setForm]=useState({partner_student_id:pack.partner_student_id||'',partner_name:pack.partner_name||'',partner_phone:pack.partner_phone||''});
+ const partnerOptions=students.filter(s=>s.id!==pack.student_id);
+ function set(key,value){setForm(f=>({...f,[key]:value}));}
+ async function save(){
+  if(!form.partner_name.trim()&&!form.partner_student_id&&form.partner_phone.trim())throw new Error('Indica também o nome do parceiro.');
+  await agendaRpc('pt_update_pack_partner',{p_id:pack.id,p_partner_student_id:form.partner_student_id||null,p_partner_name:form.partner_name.trim(),p_partner_phone:form.partner_phone.trim()});
+  onSaved('Dados do duo atualizados.');
+ }
+ return <FormDialog title="Gerir duo do pack" onClose={onClose} onSave={save} button="Guardar duo">
+  <p>{pack.title} · {pack.total} sessões</p>
+  <label>Associar a aluno da app (opcional)<select value={form.partner_student_id} onChange={e=>{const student=partnerOptions.find(s=>s.id===e.target.value);setForm(f=>({...f,partner_student_id:e.target.value,partner_name:e.target.value?(student?.name||f.partner_name):f.partner_name}));}}><option value="">Sem perfil associado</option>{partnerOptions.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+  <label>Nome do parceiro<input maxLength="160" value={form.partner_name} onChange={e=>set('partner_name',e.target.value)}/></label>
+  <label>WhatsApp do parceiro (opcional)<input type="tel" maxLength="40" value={form.partner_phone} onChange={e=>set('partner_phone',e.target.value)}/></label>
+  <p>Se ainda não tiver perfil na app, guardamos apenas a identificação e o telefone no pack.</p>
+ </FormDialog>;
+}
 export default function AgendaModule(){
  const {data,currentUser}=useApp();
  const [day,setDay]=useState(today());
@@ -152,12 +188,13 @@ export default function AgendaModule(){
     </>}
    </>:<>
     <div className="ufPaymentHeading"><h2>Packs de sessões</h2>{manager&&<button className="primary" onClick={()=>setDialog({type:'pack'})}>+ Novo pack</button>}</div>
-    <div className="ufAgendaPacks">{snapshot.packs.length?snapshot.packs.map(p=>{const payment=payments.find(pay=>pay.id===p.payment_id);return <article key={p.id}><h3>{p.title}</h3>{manager&&<p>{students.find(s=>s.id===p.student_id)?.name||'Aluno'}</p>}<strong>{p.total-p.used}<small> de {p.total} sessões disponíveis</small></strong><progress max={p.total} value={p.used} aria-label="Sessões utilizadas"/><p>{p.used} utilizadas{payment&&<> · {payment.status==='paid'?'Pago':payment.status==='cancelled'?'Pagamento anulado':'Pagamento pendente'}</>}</p>{manager&&<button onClick={()=>setDialog({type:'pack',template:p})}>Renovar pack</button>}</article>;}):<p>Ainda não existem packs.{manager?' Cria um pack ou associa um pagamento de pack já registado.':''}</p>}</div>
+    <div className="ufAgendaPacks">{snapshot.packs.length?snapshot.packs.map(p=>{const payment=payments.find(pay=>pay.id===p.payment_id);return <article key={p.id}><h3>{p.title}</h3>{manager&&<p>{students.find(s=>s.id===p.student_id)?.name||'Aluno'}</p>}<p>{p.duration_minutes?p.duration_minutes+' min por sessão':'Duração não indicada'}</p>{p.partner_name&&<p>Partilhado com {p.partner_name}</p>}<strong>{p.total-p.used}<small> de {p.total} sessões disponíveis</small></strong><progress max={p.total} value={p.used} aria-label="Sessões utilizadas"/><p>{p.used} utilizadas{payment&&<> · {payment.status==='paid'?'Pago':payment.status==='cancelled'?'Pagamento anulado':'Pagamento pendente'}</>}</p>{manager&&<div className="ufPaymentActions"><button onClick={()=>setDialog({type:'pack-partner',pack:p})}>Gerir duo</button><button onClick={()=>setDialog({type:'pack',template:p})}>Renovar pack</button></div>}</article>;}):<p>Ainda não existem packs.{manager?' Cria um pack ou associa um pagamento de pack já registado.':''}</p>}</div>
    </>}
   </>}
   {dialog?.type==='session'&&<SessionForm session={dialog.session} attendance={snapshot.attendance} students={students} packs={packOptions} sessions={snapshot.sessions} date={day} onClose={()=>setDialog(null)} onSaved={saved}/>}
-  {dialog?.type==='attendance'&&<AttendanceForm row={dialog.row} name={students.find(s=>s.id===dialog.row.student_id)?.name||'Presença'} packs={snapshot.packs} onClose={()=>setDialog(null)} onSaved={saved}/>}
+  {dialog?.type==='attendance'&&<AttendanceForm row={dialog.row} name={students.find(s=>s.id===dialog.row.student_id)?.name||'Presença'} packs={snapshot.packs} duration={snapshot.sessions.find(s=>s.id===dialog.row.session_id)?.duration||60} onClose={()=>setDialog(null)} onSaved={saved}/>}
   {dialog?.type==='pack'&&<PackForm students={students} packs={snapshot.packs} payments={payments} template={dialog.template} onClose={()=>setDialog(null)} onSaved={saved}/>}
+   {dialog?.type==='pack-partner'&&<PackPartnerForm pack={dialog.pack} students={students} onClose={()=>setDialog(null)} onSaved={saved}/>}
   {dialog?.type==='copy'&&<CopyWeek week={week} count={snapshot.sessions.length} onClose={()=>setDialog(null)} onSaved={saved}/>}
  </section>;
 }
