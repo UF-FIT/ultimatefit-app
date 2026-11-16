@@ -1,4 +1,82 @@
--- Gestão do Estúdio: dados independentes dos alunos de treino pessoal.
+-- Shared studio access for active admins and the owner account.
+create or replace function public.studio_can_access() returns boolean
+language sql stable security definer
+set search_path=''
+as $
+ select auth.uid() is not null and exists (
+  select 1 from public.profiles p
+  where p.id=(select auth.uid())
+   and p.role::text in ('admin','owner')
+   and p.is_active and p.deleted_at is null
+ );
+$;
+revoke all on function public.studio_can_access() from public,anon,authenticated;
+grant execute on function public.studio_can_access() to authenticated;
+
+-- The single active owner profile identifies the shared studio workspace.
+create or replace function public.studio_workspace_id() returns uuid
+language plpgsql stable security definer
+set search_path=''
+as $
+declare
+ v_owner_count integer;
+ v_workspace_id uuid;
+begin
+ if not public.studio_can_access() then return null; end if;
+
+ select count(*),(array_agg(p.id order by p.id))[1]
+ into v_owner_count,v_workspace_id
+ from public.profiles p
+ where p.role::text='owner' and p.is_active and p.deleted_at is null;
+
+ if v_owner_count<>1 then
+  raise exception 'The studio workspace requires exactly one active owner account.';
+ end if;
+ return v_workspace_id;
+end
+$;
+revoke all on function public.studio_workspace_id() from public,anon,authenticated;
+grant execute on function public.studio_workspace_id() to authenticated;
+
+-- The owner sees an aggregate across all trainers; each admin sees only their own.
+-- This function never returns payment rows or per-student amounts.
+create function public.studio_personal_training_summary(p_from date,p_to date)
+returns table(month date,amount_cents bigint)
+language plpgsql stable security definer
+set search_path=''
+as $
+declare
+ v_role text;
+begin
+ if auth.uid() is null then
+  raise exception 'Sem permissão para consultar os valores.' using errcode='42501';
+ end if;
+
+ select p.role::text into v_role
+ from public.profiles p
+ where p.id=(select auth.uid()) and p.is_active and p.deleted_at is null;
+
+ if coalesce(v_role,'') not in ('admin','owner') then
+  raise exception 'Sem permissão para consultar os valores.' using errcode='42501';
+ end if;
+ if p_from is null or p_to is null or p_to<=p_from then
+  raise exception 'Intervalo inválido.';
+ end if;
+
+ return query
+ select date_trunc('month',p.paid_on::timestamp)::date,sum(p.amount_cents)::bigint
+ from public.student_payments p
+ where p.status='paid'
+  and p.paid_on>=p_from and p.paid_on<p_to
+  and (v_role='owner' or p.owner_id=(select auth.uid()))
+ group by date_trunc('month',p.paid_on::timestamp)::date
+ order by date_trunc('month',p.paid_on::timestamp)::date;
+end
+$;
+revoke all on function public.studio_personal_training_summary(date,date) from public,anon,authenticated;
+grant execute on function public.studio_personal_training_summary(date,date) to authenticated;
+
+-- Gestão do Estúdio: registos partilhados, independentes dos alunos de treino pessoal.
 create table public.studio_group_members (
  id uuid primary key default gen_random_uuid(),
  owner_id uuid not null references public.profiles(id),
@@ -96,37 +174,40 @@ revoke all on public.studio_group_members,public.studio_group_charges,
 grant select,insert,update,delete on public.studio_group_members,public.studio_group_charges,
  public.studio_recurring_items,public.studio_financial_records to authenticated;
 
-create policy studio_group_members_owner_all on public.studio_group_members
+create policy studio_group_members_admins_all on public.studio_group_members
  for all to authenticated
- using (owner_id=(select auth.uid()) and (select public.is_owner()))
- with check (owner_id=(select auth.uid()) and (select public.is_owner()));
-create policy studio_group_charges_owner_all on public.studio_group_charges
+ using ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()))
+ with check ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()));
+create policy studio_group_charges_admins_all on public.studio_group_charges
  for all to authenticated
- using (owner_id=(select auth.uid()) and (select public.is_owner()))
- with check (owner_id=(select auth.uid()) and (select public.is_owner()));
-create policy studio_recurring_items_owner_all on public.studio_recurring_items
+ using ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()))
+ with check ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()));
+create policy studio_recurring_items_admins_all on public.studio_recurring_items
  for all to authenticated
- using (owner_id=(select auth.uid()) and (select public.is_owner()))
- with check (owner_id=(select auth.uid()) and (select public.is_owner()));
-create policy studio_financial_records_owner_all on public.studio_financial_records
+ using ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()))
+ with check ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()));
+create policy studio_financial_records_admins_all on public.studio_financial_records
  for all to authenticated
- using (owner_id=(select auth.uid()) and (select public.is_owner()))
- with check (owner_id=(select auth.uid()) and (select public.is_owner()));
+ using ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()))
+ with check ((select public.studio_can_access()) and owner_id=(select public.studio_workspace_id()));
 
 -- Geração idempotente da mensalidade de grupo e dos registos recorrentes do mês.
 -- SECURITY INVOKER mantém a verificação de RLS do utilizador autenticado.
 create function public.studio_generate_month(p_month date) returns integer
 language plpgsql
+security invoker
 set search_path=''
 as $$
 declare
  v_end date;
  v_count integer:=0;
  v_step integer;
+ v_workspace_id uuid;
 begin
- if auth.uid() is null or not public.is_owner() then
+ if auth.uid() is null or not public.studio_can_access() then
   raise exception 'Sem permissão para gerir o estúdio.' using errcode='42501';
  end if;
+ v_workspace_id:=public.studio_workspace_id();
  if p_month is null or extract(day from p_month)<>1 then
   raise exception 'Mês inválido.';
  end if;
@@ -137,7 +218,7 @@ begin
  select m.owner_id,m.id,p_month,m.monthly_fee_cents,
   p_month+(least(m.due_day,extract(day from v_end)::integer)-1)
  from public.studio_group_members m
- where m.owner_id=auth.uid()
+ where m.owner_id=v_workspace_id
   and (m.active or m.ends_on is not null)
   and m.starts_on<=v_end
   and (m.ends_on is null or m.ends_on>=p_month)
@@ -152,7 +233,7 @@ begin
   p_month+(least(r.due_day,extract(day from v_end)::integer)-1),
   gen_random_uuid()
  from public.studio_recurring_items r
- where r.owner_id=auth.uid()
+ where r.owner_id=v_workspace_id
   and (r.active or r.ends_on is not null)
   and r.starts_on<=v_end
   and (r.ends_on is null or r.ends_on>=p_month)
