@@ -12,8 +12,8 @@ create index pt_packs_partner_student on public.pt_packs(partner_student_id) whe
 drop policy pack_read on public.pt_packs;
 create policy pack_read on public.pt_packs for select to authenticated
  using (
-  public.payment_can_read(owner_id,student_id)
-  or (partner_student_id is not null and public.payment_can_read(owner_id,partner_student_id))
+  public.student_module_can_read(owner_id,student_id,'agenda')
+  or (partner_student_id is not null and public.student_module_can_read(owner_id,partner_student_id,'agenda'))
  );
 
 create or replace function public.pt_create_pack(p_data jsonb) returns uuid
@@ -185,7 +185,7 @@ begin
 end $$;
 
 create or replace function public.pt_copy_week(p_source date,p_target date) returns integer
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $$
 declare s public.pt_sessions; targettime timestamptz; newid uuid; countnew integer:=0;
 begin
  if not public.payment_can_manage() then raise exception 'Sem permissão.' using errcode='42501'; end if;
@@ -210,7 +210,7 @@ begin
   countnew:=countnew+1;
  end loop;
  return countnew;
-end $;
+end $$;
 
 create or replace function public.pt_snapshot(p_week date) returns jsonb
 language plpgsql security invoker set search_path='' as $$
