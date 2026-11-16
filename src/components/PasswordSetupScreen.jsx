@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, LockKeyhole } from 'lucide-react';
-import { consumeAuthLink, createAuthLinkClient, supabase } from '../lib/supabase';
+import { consumeAuthLink, createAuthLinkClient, readAuthLink, supabase } from '../lib/supabase';
 import BrandLogo from './BrandLogo';
 
 export default function PasswordSetupScreen({ mode = 'recovery' }) {
   const clientRef = useRef(null);
   const [linkUser, setLinkUser] = useState(null);
   const [linkType, setLinkType] = useState('');
+  const [authLink, setAuthLink] = useState(null);
   const [validating, setValidating] = useState(true);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,84 +18,103 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
   const isInvite = mode === 'invite';
 
   useEffect(() => {
-    let active = true;
     const client = createAuthLinkClient();
     clientRef.current = client;
 
-    async function validateLink() {
-      try {
-        const { session, type } = await consumeAuthLink(client);
-        const user = session.user;
-
-        if (isInvite && type && type !== 'invite') {
-          throw new Error('Este link não é um convite de ativação.');
-        }
-        if (!isInvite && type && type !== 'recovery') {
-          throw new Error('Este link não é um pedido de recuperação de palavra-passe.');
-        }
-
-        const { data: profile, error: profileError } = await client
-          .from('profiles')
-          .select('id,email,full_name,role,is_active,deleted_at')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError || !profile) {
-          throw new Error('Não foi possível validar o perfil associado a este link.');
-        }
-        if (profile.deleted_at || !profile.is_active) {
-          throw new Error('Esta conta não está ativa.');
-        }
-        if (isInvite && profile.role === 'owner') {
-          throw new Error('Este convite não pode ser utilizado na conta do Proprietário.');
-        }
-
-        if (isInvite) {
-          const [studentInvite, teamInvite] = await Promise.all([
-            client
-              .from('student_invitations')
-              .select('id,status')
-              .eq('auth_user_id', user.id)
-              .eq('status', 'pending')
-              .limit(1),
-            client
-              .from('team_invitations')
-              .select('id,status')
-              .eq('auth_user_id', user.id)
-              .eq('status', 'pending')
-              .limit(1),
-          ]);
-
-          if (studentInvite.error && studentInvite.error.code !== '42P01') throw studentInvite.error;
-          if (teamInvite.error && teamInvite.error.code !== '42P01') throw teamInvite.error;
-          const hasPendingInvite = Boolean(studentInvite.data?.length || teamInvite.data?.length);
-          if (!hasPendingInvite) {
-            throw new Error('Este convite já foi utilizado, foi cancelado ou ficou incompleto. Solicita um novo convite.');
-          }
-        }
-
-        if (!active) return;
-        setLinkUser({
-          id: user.id,
-          email: user.email || profile.email,
-          name: profile.full_name || user.email,
-          role: profile.role,
-        });
-        setLinkType(type);
-        window.history.replaceState({}, '', window.location.pathname);
-      } catch (validationError) {
-        if (!active) return;
-        setError(validationError?.message || 'Não foi possível validar este link.');
-      } finally {
-        if (active) setValidating(false);
+    try {
+      const link = readAuthLink();
+      if (isInvite && link.type && link.type !== 'invite') {
+        throw new Error('Este link não é um convite de ativação.');
       }
+      if (!isInvite && link.type && link.type !== 'recovery') {
+        throw new Error('Este link não é um pedido de recuperação de palavra-passe.');
+      }
+
+      setAuthLink(link);
+    } catch (linkError) {
+      setError(linkError?.message || 'Não foi possível validar este link.');
+    } finally {
+      setValidating(false);
+    }
+  }, [isInvite]);
+
+  async function validateAccess() {
+    setError('');
+    if (!authLink || !clientRef.current) {
+      setError('O link não está disponível. Solicita um novo acesso.');
+      return;
     }
 
-    validateLink();
-    return () => {
-      active = false;
-    };
-  }, [isInvite]);
+    setValidating(true);
+    const client = clientRef.current;
+    try {
+      const { session, type } = await consumeAuthLink(client, authLink);
+      const user = session.user;
+
+      if (isInvite && type && type !== 'invite') {
+        throw new Error('Este link não é um convite de ativação.');
+      }
+      if (!isInvite && type && type !== 'recovery') {
+        throw new Error('Este link não é um pedido de recuperação de palavra-passe.');
+      }
+
+      const { data: profile, error: profileError } = await client
+        .from('profiles')
+        .select('id,email,full_name,role,is_active,deleted_at')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('Não foi possível validar o perfil associado a este link.');
+      }
+      if (profile.deleted_at || !profile.is_active) {
+        throw new Error('Esta conta não está ativa.');
+      }
+      if (isInvite && profile.role === 'owner') {
+        throw new Error('Este convite não pode ser utilizado na conta do Proprietário.');
+      }
+
+      if (isInvite) {
+        const [studentInvite, teamInvite] = await Promise.all([
+          client
+            .from('student_invitations')
+            .select('id,status')
+            .eq('auth_user_id', user.id)
+            .eq('status', 'pending')
+            .limit(1),
+          client
+            .from('team_invitations')
+            .select('id,status')
+            .eq('auth_user_id', user.id)
+            .eq('status', 'pending')
+            .limit(1),
+        ]);
+
+        if (studentInvite.error && studentInvite.error.code !== '42P01') throw studentInvite.error;
+        if (teamInvite.error && teamInvite.error.code !== '42P01') throw teamInvite.error;
+        const hasPendingInvite = Boolean(studentInvite.data?.length || teamInvite.data?.length);
+        if (!hasPendingInvite) {
+          throw new Error('Este convite já foi utilizado, foi cancelado ou ficou incompleto. Solicita um novo convite.');
+        }
+      }
+
+      setLinkUser({
+        id: user.id,
+        email: user.email || profile.email,
+        name: profile.full_name || user.email,
+        role: profile.role,
+      });
+      setLinkType(type);
+      setAuthLink(null);
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch (validationError) {
+      setAuthLink(null);
+      window.history.replaceState({}, '', window.location.pathname);
+      setError(validationError?.message || 'Não foi possível validar este link.');
+    } finally {
+      setValidating(false);
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -150,6 +170,23 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
           <small>A VALIDAR LINK</small>
           <h1>A preparar o acesso</h1>
           <div className="loader" />
+        </section>
+      </main>
+    );
+  }
+
+  if (authLink) {
+    return (
+      <main className="passwordPage">
+        <section className="passwordCard">
+          <div className="loginMarkImage"><BrandLogo compact/></div>
+          <small>{isInvite ? 'CONVITE DE ACESSO' : 'RECUPERAÇÃO DE ACESSO'}</small>
+          <h1>{isInvite ? 'Confirma o convite' : 'Confirma o pedido'}</h1>
+          <p>Carrega no botão para validar o link e continuar. A validação só acontece depois desta confirmação.</p>
+          {error && <div className="loginError">{error}</div>}
+          <button className="primary full" onClick={validateAccess} disabled={validating}>
+            {validating ? 'A validar…' : 'Validar e continuar'}
+          </button>
         </section>
       </main>
     );
