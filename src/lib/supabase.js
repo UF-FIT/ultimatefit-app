@@ -38,11 +38,10 @@ function authLinkError(search, hash) {
     || '';
 }
 
-// Supports Supabase's implicit links (#access_token=...) as well as PKCE
-// redirects (?code=...) and direct token_hash links.
-export async function consumeAuthLink(client) {
-  if (!client) throw new Error('Supabase não configurado.');
-
+// Read the link without consuming its one-time token. Email security scanners may
+// open the destination automatically; verification happens only after the user
+// explicitly chooses to continue in PasswordSetupScreen.
+export function readAuthLink() {
   const search = new URLSearchParams(window.location.search);
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const linkError = authLinkError(search, hash);
@@ -54,6 +53,17 @@ export async function consumeAuthLink(client) {
   const accessToken = hash.get('access_token') || search.get('access_token');
   const refreshToken = hash.get('refresh_token') || search.get('refresh_token');
 
+  if (!code && !(tokenHash && type) && !(accessToken && refreshToken)) {
+    throw new Error('Este endereço não contém um convite ou pedido de recuperação válido.');
+  }
+
+  return { type, code, tokenHash, accessToken, refreshToken };
+}
+
+export async function consumeAuthLink(client, link = readAuthLink()) {
+  if (!client) throw new Error('Supabase não configurado.');
+
+  const { type, code, tokenHash, accessToken, refreshToken } = link;
   let result;
   if (code) {
     result = await client.auth.exchangeCodeForSession(code);
