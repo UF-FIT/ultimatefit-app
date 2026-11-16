@@ -93,7 +93,7 @@ export default function StudioManagement(){
     <div className="result"><small>Resultado do estúdio</small><strong>{money(studioResult)}</strong><span>Receitas menos despesas · antes de impostos</span></div>
    </div>
    <div className="studioMetrics studioSecondaryMetrics">
-    <div><small>PT recebido por ti</small><strong>{money(payload?.personalReceived||0)}</strong><span>Calculado separadamente a partir dos teus pagamentos pessoais</span></div>
+    <div><small>{currentUser.systemRole==='owner'?'Treino pessoal · total global':'PT recebido por ti'}</small><strong>{money(payload?.personalReceived||0)}</strong><span>{currentUser.systemRole==='owner'?'Soma agregada dos pagamentos de treino pessoal de todos os professores.':'Total dos pagamentos dos teus alunos de treino pessoal.'}</span></div>
     <div className="result"><small>Total recebido + resultado do estúdio</small><strong>{money((payload?.personalReceived||0)+studioResult)}</strong><span>Treino pessoal + resultado operacional do estúdio</span></div>
     <div><small>Por receber</small><strong>{money(summary?.pendingIncome||0)}</strong><span>Mensalidades e outros rendimentos pendentes neste mês</span></div>
     <div><small>Despesas pendentes</small><strong>{money(summary?.pendingExpenses||0)}</strong><span>Contas e outros custos ainda por pagar</span></div>
@@ -140,14 +140,14 @@ function YearView({payload,year}){
  const totals=payload?.totals||{personal:0,pilates:0,otherIncome:0,expenses:0,studioResult:0,total:0};
  return <>
   <div className="studioMetrics">
-   <div><small>Treino pessoal</small><strong>{money(totals.personal)}</strong><span>Pagamentos recebidos no ano</span></div>
+   <div><small>{currentUser.systemRole==='owner'?'Treino pessoal · total global':'Treino pessoal'}</small><strong>{money(totals.personal)}</strong><span>Pagamentos recebidos no ano</span></div>
    <div><small>Pilates</small><strong>{money(totals.pilates)}</strong><span>Mensalidades recebidas</span></div>
    <div><small>Outros rendimentos</small><strong>{money(totals.otherIncome)}</strong><span>Inclui valores pagos pelos professores</span></div>
    <div><small>Despesas do estúdio</small><strong>{money(totals.expenses)}</strong><span>Despesas pagas no ano</span></div>
   </div>
   <Card className="studioYearCard"><header className="studioCardHeader"><div><h2>Resumo de {year}</h2><p>Valores registados por data de recebimento/pagamento. O resultado é apresentado antes de impostos.</p></div></header>
    <div className="studioYearResult"><span>Resultado do estúdio</span><strong>{money(totals.studioResult)}</strong><span>Total incluindo treino pessoal</span><strong>{money(totals.total)}</strong></div>
-   <div className="studioYearTableWrap"><table className="studioYearTable"><thead><tr><th>Mês</th><th>Treino pessoal</th><th>Pilates</th><th>Outros</th><th>Despesas</th><th>Resultado estúdio</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th>{row.label}</th><td>{money(row.personal)}</td><td>{money(row.pilates)}</td><td>{money(row.otherIncome)}</td><td>{money(row.expenses)}</td><td>{money(row.studioResult)}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{money(totals.personal)}</td><td>{money(totals.pilates)}</td><td>{money(totals.otherIncome)}</td><td>{money(totals.expenses)}</td><td>{money(totals.studioResult)}</td></tr></tfoot></table></div>
+   <div className="studioYearTableWrap"><table className="studioYearTable"><thead><tr><th>Mês</th><th>{currentUser.systemRole==='owner'?'Treino pessoal · global':'Treino pessoal'}</th><th>Pilates</th><th>Outros</th><th>Despesas</th><th>Resultado estúdio</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th>{row.label}</th><td>{money(row.personal)}</td><td>{money(row.pilates)}</td><td>{money(row.otherIncome)}</td><td>{money(row.expenses)}</td><td>{money(row.studioResult)}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{money(totals.personal)}</td><td>{money(totals.pilates)}</td><td>{money(totals.otherIncome)}</td><td>{money(totals.expenses)}</td><td>{money(totals.studioResult)}</td></tr></tfoot></table></div>
   </Card>
  </>;
 }
