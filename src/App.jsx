@@ -19,13 +19,15 @@ import {NoticeManager,StudentNoticeBoard,StudentNoticePopup} from './components/
 import {paymentRpc} from './lib/payments';
 import {fetchRuntimeSettings,saveRuntimeSettings} from './lib/runtime';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
-import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,CalendarDays,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
+import {Activity,AlertTriangle,Apple,BarChart3,BookOpen,Building2,CalendarDays,CheckCircle2,ClipboardList,Dumbbell,FileText,Flag,Home,LogOut,Mail,ExternalLink,MessageSquare,Plus,Power,RefreshCw,Search,Settings,ShieldCheck,SlidersHorizontal,Target,Trash2,User,UserCog,Users,X} from 'lucide-react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 
 const PaymentsModule=lazy(()=>import('./components/PaymentsModule'));
 const AgendaModule=lazy(()=>import('./components/AgendaModule'));
+const StudioManagement=lazy(()=>import('./components/StudioManagement'));
 
 const adminNav=[['dashboard','Dashboard',Home],['profile','O meu perfil',User],['students','Alunos',Users],['plans','Planos de treino',Dumbbell],['nutrition','Nutrição',Apple],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['exercises','Biblioteca',BookOpen],['settings','Backoffice',Settings]];
+const ownerNav=[...adminNav.slice(0,3),['studio','Gestão do Estúdio',Building2],...adminNav.slice(3)];
 const trainerNav=adminNav.filter(x=>x[0]!=='settings');
 const studentNav=[['dashboard','Início',Home],['plans','Treino',Dumbbell],['nutrition','Nutrição',Apple],['assessments','Avaliações',ClipboardList],['challenges','Desafios',Flag],['activities','Atividades',CalendarDays],['profile','Perfil',User]];
 
@@ -49,6 +51,7 @@ const pagePaths={
  dashboard:{aluno:'/inicio',default:'/dashboard'},
  profile:{aluno:'/perfil',default:'/perfil'},
  students:{default:'/alunos'},
+ studio:{default:'/estudio'},
  payments:{default:'/pagamentos'},
  agenda:{default:'/agenda'},
  assessments:{default:'/avaliacoes'},
@@ -76,6 +79,7 @@ function routeFromPath(pathname,role){
   const tabBySlug={definicoes:'settings',professores:'trainers',avisos:'notices'};
   return {page:'settings',context:{tab:tabBySlug[backofficeMatch[1].toLowerCase()]||'settings'}};
  }
+ if(path.startsWith('/estudio')) return {page:'studio',context:{}};
  if(path==='/inicio'||path==='/dashboard'||path==='/') return {page:'dashboard',context:{}};
  if(path.startsWith('/perfil')) return {page:'profile',context:{}};
  if(path.startsWith('/agenda')) return {page:'agenda',context:{}};
@@ -130,7 +134,7 @@ function Shell(){
   const nextContext=context||{};
   routeNavigate(pathForPage(key,currentUser.role,nextContext),{state:{pageContext:nextContext}});
  };
- const baseNav=currentUser.role==='admin'?adminNav:currentUser.role==='professor'?trainerNav:studentNav;
+ const baseNav=currentUser.role==='admin'?ownerNav:currentUser.role==='professor'?trainerNav:studentNav;
  const nav=[...baseNav,...(['manage','read'].includes(agendaAccess)?[['agenda','Agenda',CalendarDays]]:[]),...(['manage','read'].includes(paymentAccess)?[['payments','Pagamentos',FileText]]:[])];
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={(page===key||(page==='assessments'&&key==='students'))?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
@@ -146,7 +150,8 @@ function Shell(){
 function PageRouter({page,context,onNavigate}){
  const {currentUser}=useApp();
  if(currentUser.role==='aluno'&&['students','trainers','exercises','settings'].includes(page)) return <Dashboard onNavigate={onNavigate}/>;
- const map={agenda:<Suspense fallback={<p>A carregar agenda…</p>}><AgendaModule/></Suspense>,payments:<Suspense fallback={<p>A carregar pagamentos…</p>}><PaymentsModule/></Suspense>,dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
+ if(page==='studio'&&currentUser.role!=='admin'&&currentUser.systemRole!=='owner') return <Dashboard onNavigate={onNavigate}/>;
+ const map={studio:<Suspense fallback={<p>A carregar Gestão do Estúdio…</p>}><StudioManagement/></Suspense>,agenda:<Suspense fallback={<p>A carregar agenda…</p>}><AgendaModule/></Suspense>,payments:<Suspense fallback={<p>A carregar pagamentos…</p>}><PaymentsModule/></Suspense>,dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}

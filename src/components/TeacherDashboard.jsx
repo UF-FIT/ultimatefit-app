@@ -6,7 +6,9 @@ import {AttendanceForm,SessionForm} from './AgendaModule';
 import {localDateTime,sessionKinds,attendanceLabels} from '../lib/agenda';
 import {today,money} from '../lib/payments';
 import {loadTeacherDashboard,dashboardSummary,studentHighlights} from '../lib/teacherDashboard';
+import {loadStudioDashboardSummary} from '../lib/studio';
 import '../styles/teacher-dashboard.css';
+import '../styles/studio-management.css';
 
 const empty={enabled:false,sessions:[],attendance:[],packs:[],payments:[]};
 function Avatar({student}){return <span className="tdAvatar">{student?.thumbUrl?<img src={student.thumbUrl} alt=""/>:(student?.name||'Aluno').split(' ').map(n=>n[0]).slice(0,2).join('')}</span>;}
@@ -16,8 +18,10 @@ function Metric({label,value,detail,icon:Icon,onClick}){return <button className
 export default function TeacherDashboard({onNavigate}){
  const {data,currentUser}=useApp(),navigate=useNavigate();
  const [model,setModel]=useState(empty),[loading,setLoading]=useState(true),[error,setError]=useState(''),[revision,setRevision]=useState(0),[dialog,setDialog]=useState(null),[notice,setNotice]=useState(''),[day,setDay]=useState(today());
+ const [studioSummary,setStudioSummary]=useState(null),[studioError,setStudioError]=useState('');
  useEffect(()=>{const refresh=()=>{setDay(today());setRevision(n=>n+1);};window.addEventListener('focus',refresh);const timer=setInterval(()=>setDay(today()),60000);return()=>{window.removeEventListener('focus',refresh);clearInterval(timer);};},[]);
  useEffect(()=>{let alive=true;setLoading(true);setError('');loadTeacherDashboard(currentUser.id,day).then(result=>{if(alive)setModel(result);}).catch(err=>{if(alive){setModel(empty);setError(err.message||'Não foi possível carregar o Dashboard.');}}).finally(()=>{if(alive)setLoading(false);});return()=>{alive=false;};},[currentUser.id,day,revision]);
+ useEffect(()=>{if(currentUser.role!=='admin'&&currentUser.systemRole!=='owner'){setStudioSummary(null);setStudioError('');return;}let alive=true;setStudioError('');loadStudioDashboardSummary(currentUser.id,day.slice(0,7)).then(value=>{if(alive)setStudioSummary(value);}).catch(err=>{if(alive){setStudioSummary(null);setStudioError(err.message||'Não foi possível carregar os valores do estúdio.');}});return()=>{alive=false;};},[currentUser.id,currentUser.role,currentUser.systemRole,day,revision]);
  const students=data.students.filter(s=>s.trainerIds?.includes(currentUser.id)&&!s.deletedAt);
  const active=students.filter(s=>s.active&&!s.archivedAt&&s.status!=='archived');
  const summary=dashboardSummary(model,day),highlights=studentHighlights(active,data.assessments,model,day);
@@ -30,6 +34,8 @@ export default function TeacherDashboard({onNavigate}){
  const packs=model.packs.filter(p=>!model.payments.some(pay=>pay.id===p.payment_id&&pay.status==='cancelled'));
  const metric=value=>loading?'…':error?'—':value;
  const unavailable='Disponível na fase de testes';
+ const studioResult=(studioSummary?.pilatesReceived||0)+(studioSummary?.otherIncomeReceived||0)-(studioSummary?.expensesPaid||0);
+ const combinedResult=(studioSummary?.personalReceived||0)+studioResult;
  return <main className="teacherDashboard">
   <header className="tdGreeting">
    <div><small>O TEU DIA NA ULTIMATE FIT</small><h1>{greeting}, {(currentUser.name||'Professor').split(' ')[0]}</h1><p>{new Date(day+'T12:00:00Z').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'})}</p></div>
@@ -54,6 +60,9 @@ export default function TeacherDashboard({onNavigate}){
   <Panel title="Receita" sub="Pagamentos recebidos nos últimos 6 meses" action={model.enabled&&<button onClick={()=>open('payments')}>Ver pagamentos</button>}>
    {model.enabled?<div className="tdChart" role="img" aria-label={summary.months.map(m=>m.label+': '+money(m.value)).join('; ')}>{summary.months.map((m,i)=><div className={'tdBarColumn '+(i===5?'current':'')} key={m.key}><strong>{money(m.value)}</strong><div className="tdBarTrack"><span style={{height:(m.value/Math.max(1,...summary.months.map(x=>x.value))*100)+'%'}}/></div><small>{m.label}</small></div>)}</div>:<p className="tdEmpty">Os pagamentos estão em testes e ainda não estão disponíveis para esta conta.</p>}
   </Panel>
+  {currentUser.systemRole==='owner'&&<Panel title="Resultado do estúdio" sub="Pilates, rendimentos adicionais e despesas" action={<button className="tdStudioLink" onClick={()=>onNavigate('studio')}>Abrir gestão <ChevronRight size={15}/></button>}>
+   {studioSummary?<div className="tdStudioSummary"><div className="tdStudioGrid"><div className="tdStudioCell"><small>{currentUser.systemRole==='owner'?'Treino pessoal · total global':'Treino pessoal · recebido'}</small><strong>{money(studioSummary.personalReceived||0)}</strong></div><div className="tdStudioCell"><small>Pilates · recebido</small><strong>{money(studioSummary.pilatesReceived)}</strong></div><div className="tdStudioCell"><small>Outros rendimentos</small><strong>{money(studioSummary.otherIncomeReceived)}</strong></div><div className="tdStudioCell"><small>Despesas do estúdio</small><strong>{money(studioSummary.expensesPaid)}</strong></div></div><div className="tdStudioResult"><div><span>Resultado do estúdio</span><small>Receitas do estúdio menos despesas · antes de impostos</small></div><strong>{money(studioResult)}</strong></div><div className="tdStudioResult"><div><span>Total incluindo o treino pessoal</span><small>Treino pessoal recebido + resultado do estúdio</small></div><strong>{money(combinedResult)}</strong></div></div>:<p className="tdStudioSummaryError" role="status">{studioError||'A carregar os valores do estúdio…'}</p>}
+  </Panel>}
   </>}
   </div><div className="tdSecondaryColumn">
   <Panel title="Precisa de ti" sub="Pagamentos, packs e acompanhamento dos teus alunos">
