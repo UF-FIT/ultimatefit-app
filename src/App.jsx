@@ -134,7 +134,7 @@ function Shell(){
   const nextContext=context||{};
   routeNavigate(pathForPage(key,currentUser.role,nextContext),{state:{pageContext:nextContext}});
  };
- const baseNav=currentUser.role==='admin'?(currentUser.systemRole==='owner'?ownerNav:adminNav):currentUser.role==='professor'?trainerNav:studentNav;
+ const baseNav=currentUser.role==='admin'?ownerNav:currentUser.role==='professor'?trainerNav:studentNav;
  const nav=[...baseNav,...(['manage','read'].includes(agendaAccess)?[['agenda','Agenda',CalendarDays]]:[]),...(['manage','read'].includes(paymentAccess)?[['payments','Pagamentos',FileText]]:[])];
  return <div className="appShell">
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={(page===key||(page==='assessments'&&key==='students'))?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
@@ -150,7 +150,7 @@ function Shell(){
 function PageRouter({page,context,onNavigate}){
  const {currentUser}=useApp();
  if(currentUser.role==='aluno'&&['students','trainers','exercises','settings'].includes(page)) return <Dashboard onNavigate={onNavigate}/>;
- if(page==='studio'&&currentUser.systemRole!=='owner') return <Dashboard onNavigate={onNavigate}/>;
+ if(page==='studio'&&currentUser.role!=='admin'&&currentUser.systemRole!=='owner') return <Dashboard onNavigate={onNavigate}/>;
  const map={studio:<Suspense fallback={<p>A carregar Gestão do Estúdio…</p>}><StudioManagement/></Suspense>,agenda:<Suspense fallback={<p>A carregar agenda…</p>}><AgendaModule/></Suspense>,payments:<Suspense fallback={<p>A carregar pagamentos…</p>}><PaymentsModule/></Suspense>,dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
 }
