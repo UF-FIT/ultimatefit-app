@@ -2,14 +2,14 @@
 create or replace function public.studio_can_access() returns boolean
 language sql stable security definer
 set search_path=''
-as $
+as $$
  select auth.uid() is not null and exists (
   select 1 from public.profiles p
   where p.id=(select auth.uid())
    and p.role::text in ('admin','owner')
    and p.is_active and p.deleted_at is null
  );
-$;
+$$;
 revoke all on function public.studio_can_access() from public,anon,authenticated;
 grant execute on function public.studio_can_access() to authenticated;
 
@@ -17,7 +17,7 @@ grant execute on function public.studio_can_access() to authenticated;
 create or replace function public.studio_workspace_id() returns uuid
 language plpgsql stable security definer
 set search_path=''
-as $
+as $$
 declare
  v_owner_count integer;
  v_workspace_id uuid;
@@ -34,7 +34,7 @@ begin
  end if;
  return v_workspace_id;
 end
-$;
+$$;
 revoke all on function public.studio_workspace_id() from public,anon,authenticated;
 grant execute on function public.studio_workspace_id() to authenticated;
 
@@ -44,7 +44,7 @@ create function public.studio_personal_training_summary(p_from date,p_to date)
 returns table(month date,amount_cents bigint)
 language plpgsql stable security definer
 set search_path=''
-as $
+as $$
 declare
  v_role text;
 begin
@@ -72,7 +72,7 @@ begin
  group by date_trunc('month',p.paid_on::timestamp)::date
  order by date_trunc('month',p.paid_on::timestamp)::date;
 end
-$;
+$$;
 revoke all on function public.studio_personal_training_summary(date,date) from public,anon,authenticated;
 grant execute on function public.studio_personal_training_summary(date,date) to authenticated;
 
