@@ -392,6 +392,8 @@ export default function StudentDirectory({ onNavigate }) {
   const [activeStudentId, setActiveStudentId] = useState(studentIdFromUrl);
   const [formStudent, setFormStudent] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showFloatingAdd, setShowFloatingAdd] = useState(false);
+  const studentsHeaderRef = useRef(null);
   const [createdMessage, setCreatedMessage] = useState(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -408,6 +410,19 @@ export default function StudentDirectory({ onNavigate }) {
 
   useEffect(() => { fetchAvailableTrainers().then(setTrainers).catch(err => setError(err.message)); }, []);
   useEffect(() => { setActiveStudentId(studentIdFromUrl); }, [studentIdFromUrl]);
+  useEffect(() => {
+    if (showForm || activeStudentId) {
+      setShowFloatingAdd(false);
+      return;
+    }
+    const header = studentsHeaderRef.current;
+    if (!header || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setShowFloatingAdd(!entry.isIntersecting);
+    }, { threshold: 0, rootMargin: '-72px 0px 0px 0px' });
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [activeStudentId, showForm]);
 
   const list = useMemo(() => data.students.filter(student => {
     const query = q.trim().toLowerCase();
@@ -460,7 +475,7 @@ export default function StudentDirectory({ onNavigate }) {
 
   return <>
     {createdMessage !== null && <StudentCreatedDialog message={createdMessage} onClose={closeCreatedDialog}/>}
-    <div className="ultimateStudentsHeader"><h1>Os meus alunos</h1><div className="ultimateStudentsActions"><button type="button" className="ultimateStudentsSearchToggle" aria-label="Pesquisar aluno" title="Pesquisar aluno" aria-expanded={searchOpen} onClick={()=>setSearchOpen(open=>!open)}><Search size={24}/></button><button type="button" className="ultimateStudentsAdd" aria-label="Adicionar aluno" title="Adicionar aluno" onClick={()=>{setFormStudent(null);setShowForm(true)}}><Plus size={25}/></button></div></div>
+    <div ref={studentsHeaderRef} className="ultimateStudentsHeader"><h1>Os meus alunos</h1><div className="ultimateStudentsActions"><button type="button" className="ultimateStudentsSearchToggle" aria-label="Pesquisar aluno" title="Pesquisar aluno" aria-expanded={searchOpen} onClick={()=>setSearchOpen(open=>!open)}><Search size={24}/></button><button type="button" className={`ultimateStudentsAdd${showFloatingAdd ? ' isFloating' : ''}`} aria-label="Adicionar aluno" title="Adicionar aluno" onClick={()=>{setFormStudent(null);setShowForm(true)}}><Plus size={25}/></button></div></div>
     {notice && <div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     {(error || studentsError) && <div className="errorBanner"><AlertTriangle size={18}/>{error || studentsError}</div>}
     {searchOpen&&<div className="ultimateStudentsSearch"><Search size={18}/><input autoFocus value={q} onChange={event=>setQ(event.target.value)} placeholder="Pesquisar aluno…" aria-label="Pesquisar aluno"/>{q&&<button type="button" onClick={()=>setQ('')} aria-label="Limpar pesquisa"><X size={18}/></button>}</div>}
