@@ -419,7 +419,7 @@ export default function StudentDirectory({ onNavigate }) {
     if (!header || typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(([entry]) => {
       setShowFloatingAdd(!entry.isIntersecting);
-    }, { threshold: 0 });
+    }, { threshold: 0, rootMargin: '-72px 0px 0px 0px' });
     observer.observe(header);
     return () => observer.disconnect();
   }, [activeStudentId, showForm]);
