@@ -71,6 +71,70 @@ function repsDisplay(value) {
   return String(value);
 }
 
+function weightDraftFrom(value) {
+  if (value == null || value === '') return '';
+  return String(value).replace('.', ',');
+}
+
+function sanitizeWeightDraft(value) {
+  const cleaned = String(value).replace(/[^0-9,.]/g, '');
+  const separator = cleaned.search(/[,.]/);
+  if (separator < 0) return cleaned;
+  return cleaned.slice(0, separator + 1) + cleaned.slice(separator + 1).replace(/[,.]/g, '');
+}
+
+function parseCompleteWeight(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw || !/^(?:\d+(?:[,.]\d+)?|[,.]\d+)$/.test(raw)) return null;
+  const number = Number(raw.replace(',', '.'));
+  return Number.isFinite(number) ? number : null;
+}
+
+function GuidedWeightInput({ value, onChange }) {
+  const inputRef = useRef(null);
+  const [draft, setDraft] = useState(() => weightDraftFrom(value));
+
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) setDraft(weightDraftFrom(value));
+  }, [value]);
+
+  function commitDraft() {
+    const raw = draft.trim();
+    if (!raw) {
+      onChange(null);
+      setDraft('');
+      return;
+    }
+    const completed = /^\d+[,.]$/.test(raw) ? raw.slice(0, -1) : raw;
+    const parsed = parseCompleteWeight(completed);
+    if (parsed == null) {
+      setDraft(weightDraftFrom(value));
+      return;
+    }
+    onChange(parsed);
+    setDraft(weightDraftFrom(parsed));
+  }
+
+  return <input
+    ref={inputRef}
+    type="text"
+    inputMode="decimal"
+    value={draft}
+    onChange={event => {
+      const next = sanitizeWeightDraft(event.target.value);
+      setDraft(next);
+      if (!next) onChange(null);
+      else {
+        const parsed = parseCompleteWeight(next);
+        if (parsed != null) onChange(parsed);
+      }
+    }}
+    onBlur={commitDraft}
+    placeholder="—"
+    aria-label="Carga da série em quilogramas"
+  />;
+}
+
 function planSort(a, b) {
   if (a.active !== b.active) return a.active ? -1 : 1;
   return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
@@ -479,7 +543,7 @@ function GuidedActivity({ activity, historyRows, onChangeSet, onToggleSet, onVid
             return <div className={cx('ufGuidedSetRow', set.completed && 'done')} key={set.index}>
               <b>{set.index}</b>
               <input inputMode="numeric" value={set.reps} onChange={event=>onChangeSet(index,{reps:Math.max(1,Number(event.target.value)||1)})}/>
-              <input inputMode="decimal" value={set.weightKg == null ? '' : String(set.weightKg).replace('.',',')} onChange={event=>onChangeSet(index,{weightKg:numberFrom(event.target.value)})} placeholder="—"/>
+              <GuidedWeightInput key={`${activity.activityIndex}:${set.index}`} value={set.weightKg} onChange={weightKg=>onChangeSet(index,{weightKg})}/>
               <span>{latest ? (latest.weight == null ? `${latest.reps} reps` : `${latest.reps} × ${formatKg(latest.weight)} kg`) : '—'}</span>
               <button type="button" className={cx('ufGuidedSetDone', set.completed && 'done')} onClick={()=>onToggleSet(index)}>{set.completed?<Check/>:<Circle/>}</button>
             </div>;
