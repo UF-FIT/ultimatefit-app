@@ -388,7 +388,7 @@ export default function StudentDirectory({ onNavigate }) {
   const [status, setStatus] = useState('all');
   const [tracking, setTracking] = useState('all');
   const [trainer, setTrainer] = useState('all');
-  const [selected, setSelected] = useState(new Set());
+
   const [activeStudentId, setActiveStudentId] = useState(studentIdFromUrl);
   const [formStudent, setFormStudent] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -434,25 +434,6 @@ export default function StudentDirectory({ onNavigate }) {
     return matchesQuery && matchesStatus && matchesTracking && matchesTrainer;
   }).sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'pt-PT', { sensitivity: 'base' }) || String(a.studentCode).localeCompare(String(b.studentCode), 'pt-PT', { numeric: true })), [data.students, q, status, tracking, trainer]);
 
-  function toggleSelected(id) {
-    setSelected(current => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next; });
-  }
-
-  async function bulkAction(action) {
-    if (!selected.size) return;
-    const confirmed = action === 'delete'
-      ? window.confirm(`Eliminar definitivamente ${selected.size} aluno(s)?\n\nTodos os dados associados serão apagados e esta ação não pode ser anulada. Para preservar histórico, usa Arquivar.`)
-      : window.confirm(`Aplicar esta ação a ${selected.size} aluno(s)?`);
-    if (!confirmed) return;
-    setError('');setNotice('');
-    try {
-      for (const studentId of selected) await invokeStudentAction({ action, studentId });
-      setSelected(new Set());
-      await refreshStudents();
-      setNotice('Ação concluída nos alunos selecionados.');
-    } catch (err) { setError(err.message); }
-  }
-
   async function saved(message) {
     const created = !formStudent;
     if (created) setCreatedMessage(message || 'O aluno já está disponível na tua lista.');
@@ -479,8 +460,7 @@ export default function StudentDirectory({ onNavigate }) {
     {notice && <div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
     {(error || studentsError) && <div className="errorBanner"><AlertTriangle size={18}/>{error || studentsError}</div>}
     {searchOpen&&<div className="ultimateStudentsSearch"><Search size={18}/><input autoFocus value={q} onChange={event=>setQ(event.target.value)} placeholder="Pesquisar aluno…" aria-label="Pesquisar aluno"/>{q&&<button type="button" onClick={()=>setQ('')} aria-label="Limpar pesquisa"><X size={18}/></button>}</div>}
-    {selected.size > 0 && <div className="bulkToolbar"><b>{selected.size} selecionado(s)</b><button className="secondary" onClick={()=>bulkAction('deactivate')}><Power size={15}/>Desativar</button><button className="secondary" onClick={()=>bulkAction('reactivate')}><RefreshCw size={15}/>Reativar</button><button className="secondary" onClick={()=>bulkAction('archive')}><Archive size={15}/>Arquivar</button>{currentUser.role==='admin'&&<button className="dangerButton" onClick={()=>bulkAction('delete')}><Trash2 size={15}/>Eliminar definitivamente</button>}<button className="textButton" onClick={()=>setSelected(new Set())}>Limpar seleção</button></div>}
-    {studentsLoading ? <div className="card pad loadingCard"><div className="loader"/><p>A carregar alunos…</p></div> : list.length ? <div className="studentDirectoryGrid">{list.map(student=><article className="studentDirectoryCard ultimateStudentsListItem" key={student.id} onClick={()=>setStudentRoute(student.id)}><label className="studentSelect"><input type="checkbox" checked={selected.has(student.id)} onChange={()=>toggleSelected(student.id)} onClick={event=>event.stopPropagation()}/><span/></label><StudentPhoto student={student}/><div className="studentCardIdentity"><span className="ultimateStudentsStatus"><i className={student.active?'active':'inactive'}/>{student.active?'Ativo':'Inativo'}</span><h3>{student.name}</h3><p>{student.age ?? '—'} anos</p><small><CalendarDays size={14}/> {formatDate(student.birth)}</small></div><button className="secondary full" onClick={event=>{event.stopPropagation();setStudentRoute(student.id)}}>Entrar no perfil <ChevronRight size={16}/></button></article>)}</div> : <div className="emptyState card pad"><Users size={36}/><h2>Sem alunos</h2><p>Cria o primeiro registo real. O aluno receberá um email para definir a palavra-passe.</p><button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>Novo aluno</button></div>}
+    {studentsLoading ? <div className="card pad loadingCard"><div className="loader"/><p>A carregar alunos…</p></div> : list.length ? <div className="studentDirectoryGrid">{list.map(student=><article className="studentDirectoryCard ultimateStudentsListItem" key={student.id} onClick={()=>setStudentRoute(student.id)}><StudentPhoto student={student}/><div className="studentCardIdentity"><span className="ultimateStudentsStatus"><i className={student.active?'active':'inactive'}/>{student.active?'Ativo':'Inativo'}</span><h3>{student.name}</h3><p>{student.age ?? '—'} anos</p><small><CalendarDays size={14}/> {formatDate(student.birth)}</small></div><button className="secondary full" onClick={event=>{event.stopPropagation();setStudentRoute(student.id)}}>Entrar no perfil <ChevronRight size={16}/></button></article>)}</div> : <div className="emptyState card pad"><Users size={36}/><h2>Sem alunos</h2><p>Cria o primeiro registo real. O aluno receberá um email para definir a palavra-passe.</p><button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>Novo aluno</button></div>}
   </>;
 }
 
