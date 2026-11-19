@@ -1,12 +1,8 @@
 .studentDirectoryGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
 .studentDirectoryCard{position:relative;display:grid;grid-template-columns:82px minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:11px;row-gap:12px;justify-items:stretch;text-align:left;padding:15px;background:#101012;border:1px solid #2a2a2d;border-radius:11px;min-width:0;min-height:230px;transition:border-color .2s,transform .2s,box-shadow .2s}
 .studentDirectoryCard:hover{transform:translateY(-2px);border-color:rgba(255,217,8,.32);box-shadow:0 14px 32px rgba(0,0,0,.24)}
-.studentDirectoryCard .studentSelect{position:absolute;top:11px;right:11px;width:25px;height:25px;z-index:3}
-.studentDirectoryCard .studentSelect input{opacity:0;position:absolute}
-.studentDirectoryCard .studentSelect span{display:block;width:25px;height:25px;border:1px solid #454549;border-radius:5px;background:#09090b}
-.studentDirectoryCard .studentSelect input:checked+span{background:var(--y);border-color:var(--y);box-shadow:inset 0 0 0 6px #111}
 .studentDirectoryCard .studentCardIdentity{display:contents}
-.studentDirectoryCard .studentCardIdentity>h3{grid-column:1/-1;grid-row:1;margin:0;padding-right:34px;font-size:19px;line-height:1.08;font-weight:800;color:#fff;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studentDirectoryCard .studentCardIdentity>h3{grid-column:1/-1;grid-row:1;margin:0;padding-right:0;font-size:19px;line-height:1.08;font-weight:800;color:#fff;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .studentDirectoryCard .studentCardIdentity>p,.studentDirectoryCard .studentCardIdentity>small{display:none}
 .studentDirectoryCard .studentPhoto{grid-column:1;grid-row:2;width:78px;height:78px;align-self:center;justify-self:start;border-radius:15px;border:1.5px solid rgba(255,217,8,.58);background:linear-gradient(145deg,#252525,#0a0a0a);overflow:hidden;display:grid;place-items:center;color:var(--y);font-family:'Bebas Neue';font-size:25px}
 .studentDirectoryCard .studentPhoto img{width:100%;height:100%;object-fit:cover}
@@ -55,61 +51,8 @@
   .studentDirectoryCard .studentCardIdentity>p,.studentDirectoryCard .studentCardIdentity>small{display:none}
   .studentDirectoryCardMeta{display:none!important}
   .studentDirectoryCard>.secondary.full{display:none}
-  .studentDirectoryCard .studentSelect{top:50%;right:16px;width:24px;height:24px;transform:translateY(-50%)}
-  .studentDirectoryCard .studentSelect span{width:24px;height:24px;border-radius:7px;background:#0b0b0d}
 
-  /* Compact selection toolbar: four actions in a strict 2x2 grid. */
-  .bulkToolbar{
-    display:grid!important;
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-    gap:8px!important;
-    padding:12px!important;
-    border-radius:14px!important;
-    align-items:center!important;
-  }
-  .bulkToolbar>b{
-    grid-column:1/-1!important;
-    margin:0 0 2px!important;
-    font-size:14px!important;
-    line-height:1.2!important;
-  }
-  .bulkToolbar>button:not(.textButton){
-    width:100%!important;
-    min-width:0!important;
-    min-height:40px!important;
-    margin:0!important;
-    padding:7px 8px!important;
-    border-radius:9px!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    gap:6px!important;
-    font-size:12px!important;
-    line-height:1.1!important;
-    white-space:nowrap!important;
-  }
-  .bulkToolbar>button:not(.textButton) svg{
-    width:15px!important;
-    height:15px!important;
-    flex:0 0 15px!important;
-  }
-  .bulkToolbar>.dangerButton{
-    font-size:10.5px!important;
-    letter-spacing:-.01em!important;
-  }
-  .bulkToolbar>.textButton{
-    grid-column:1/-1!important;
-    justify-self:start!important;
-    width:auto!important;
-    min-height:28px!important;
-    margin:0!important;
-    padding:2px 0!important;
-    border:0!important;
-    background:transparent!important;
-    color:var(--y)!important;
-    font-size:12px!important;
-    font-weight:800!important;
-  }
+
 }
 
 
@@ -133,7 +76,6 @@
 .ultimateStudentsStatus i{display:block;width:9px;height:9px;border-radius:50%;background:#ed796d}
 .ultimateStudentsStatus i.active{background:#25c5a6}
 .studentDirectoryCard.ultimateStudentsListItem>.secondary.full{display:none!important}
-.studentDirectoryCard.ultimateStudentsListItem .studentSelect{position:static!important;transform:none!important;flex:0 0 24px!important;margin-left:auto!important}
 @media(max-width:600px){.ultimateStudentsHeader{margin-top:0;margin-bottom:18px}.ultimateStudentsHeader h1{font-size:26px}.ultimateStudentsActions{gap:6px}.ultimateStudentsAdd{width:48px;height:48px}.studentDirectoryCard.ultimateStudentsListItem{min-height:80px!important;padding:12px 14px!important}}
 
 
@@ -143,7 +85,6 @@
 .studentDirectoryCard.ultimateStudentsListItem .studentPhoto{order:1!important;flex-shrink:0!important}
 .studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity{order:2!important;min-width:0!important}
 .studentDirectoryCard.ultimateStudentsListItem .studentCardIdentity h3{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-.studentDirectoryCard.ultimateStudentsListItem .studentSelect{order:3!important;margin-left:auto!important;flex-shrink:0!important}
 /* Keep the add-student action reachable after the directory header scrolls away. */
 .ultimateStudentsAdd.isFloating {
   position: fixed;
