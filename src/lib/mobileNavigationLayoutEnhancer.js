@@ -116,7 +116,10 @@ function rebuildMobileNavigation() {
     }
   }
 
-  if (!isProfessional && available.length <= 5) {
+  const assessmentMenuOnly = !isProfessional && document.querySelector('.appShell')?.dataset.assessmentPreference === 'declined';
+  const primaryAvailable = assessmentMenuOnly ? available.filter(button => normalizeLabel(button.textContent) !== 'avaliações') : available;
+
+  if (!isProfessional && !assessmentMenuOnly && available.length <= 5) {
     document.querySelector('.mobileNavOverflowPanel')?.remove();
     const studentPrimaryOrder = ['treino', 'avaliações', 'nutrição', 'desafios', 'atividades'];
     const studentSources = studentPrimaryOrder
@@ -141,13 +144,13 @@ function rebuildMobileNavigation() {
 
   const preferredPrimary = isProfessional
     ? ['dashboard', 'alunos', 'planos de treino', 'nutrição']
-    : ['treino', 'avaliações', 'nutrição', 'desafios'];
+    : assessmentMenuOnly ? ['treino', 'nutrição', 'desafios', 'atividades'] : ['treino', 'avaliações', 'nutrição', 'desafios'];
   const primarySources = preferredPrimary
-    .map((label) => available.find((button) => normalizeLabel(button.textContent) === label))
+    .map((label) => primaryAvailable.find((button) => normalizeLabel(button.textContent) === label))
     .filter(Boolean)
     .slice(0, 4);
 
-  available.forEach((button) => {
+  primaryAvailable.forEach((button) => {
     if (primarySources.length >= 4) return;
     if (!primarySources.includes(button)) primarySources.push(button);
   });
@@ -258,5 +261,5 @@ export function startMobileNavigationLayoutEnhancer() {
   window.addEventListener('popstate', run);
 
   const observer = new MutationObserver(run);
-  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-assessment-preference'] });
 }
