@@ -278,7 +278,7 @@ function ProfileModuleHub({ student, assessments = [], onNavigate, studentView =
     { key:'nutrition', icon:Apple, title:'Plano alimentar', caption: currentFood ? currentFood.title : 'Sem plano publicado', context:{studentId:student.id}, status: currentFood ? 'Disponível' : 'A preparar' },
     { key:'challenges', icon:Flag, title:'Desafios', caption: challengeSummary.loading ? 'A verificar desafios…' : challengeSummary.active ? `${challengeSummary.active} desafio(s) ativo(s)` : 'Sem desafios ativos', context:{studentId:student.id}, status: challengeSummary.active ? 'Em curso' : 'Disponível' },
   ];
-  return <section className="profileHub"><div className="profileHubHeader"><div><span className="eyebrow">ÁREA DO ALUNO</span><h2>{studentView ? 'O meu acompanhamento' : 'Acompanhamento'}</h2><p>Todos os módulos deste aluno num único perfil.</p></div></div><div className="profileHubGrid">{modules.map(({key,icon:Icon,title,caption,context,status}) => <button key={key} className="profileHubCard" onClick={() => onNavigate?.(key, context)}><div className="profileHubIcon"><Icon/></div><div className="profileHubCopy"><div><b>{title}</b><span>{status}</span></div><p>{caption}</p></div><ChevronRight/></button>)}</div></section>;
+  return <section className="profileHub"><div className="profileHubHeader"><div><span className="eyebrow">ÁREA DO ALUNO</span><h2>{studentView ? 'O meu acompanhamento' : 'Acompanhamento'}</h2><p>Todos os módulos deste aluno num único perfil.</p></div></div><div className="profileHubGrid">{modules.filter(module=>!studentView||module.key!=='assessments'||(student.assessmentPreference||'planned')==='planned').map(({key,icon:Icon,title,caption,context,status}) => <button key={key} className="profileHubCard" onClick={() => onNavigate?.(key, context)}><div className="profileHubIcon"><Icon/></div><div className="profileHubCopy"><div><b>{title}</b><span>{status}</span></div><p>{caption}</p></div><ChevronRight/></button>)}</div></section>;
 }
 
 function AssessmentSnapshot({ assessments = [], onOpen }) {
@@ -471,6 +471,7 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
   const [notice, setNotice] = useState('');
   useEffect(()=>{fetchAvailableTrainers().then(setTrainers).catch(()=>{})},[]);
   if (!student) return <div className="emptyState card pad"><UserRound size={36}/><h2>Perfil do aluno indisponível</h2><p>Contacta a administração para concluir a associação da conta.</p></div>;
+  const showAssessments=(student.assessmentPreference||'planned')==='planned';
   const professorUrl = whatsappUrl(student.primaryTrainer?.whatsappPhone, `Olá ${student.primaryTrainer?.name || 'Professor'}, sou ${student.name}.`);
   const publishedAssessments=[...assessments].filter(item=>item.status==='published').sort((a,b)=>a.date.localeCompare(b.date));
   const latestAssessment=publishedAssessments.at(-1);
@@ -478,14 +479,13 @@ export function StudentSelfHome({ student, assessments = [], onNavigate, onRefre
   function exportLatestAssessment(){if(!latestAssessment){setNotice('Ainda não existe uma avaliação publicada para exportar.');return;}try{downloadAssessmentPdf(student,latestAssessment,previousAssessment);setNotice('PDF da avaliação exportado com sucesso.');}catch(err){setNotice(err.message||'Não foi possível exportar o PDF.')}}
   return <div className="studentSelfProfilePage">
     {notice&&<div className="successBanner"><CheckCircle2 size={18}/>{notice}</div>}
-    <section className="studentSelfHero profileHeroV2"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {trackingLabels[student.trackingType] || 'Acompanhamento ULTIMATE FIT'}</p><div className="profileChips"><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span></div></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button><button onClick={exportLatestAssessment} disabled={!latestAssessment}><FileText/><span>Exportar avaliação em PDF</span></button><button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
+    <section className="studentSelfHero profileHeroV2"><StudentPhoto student={student} large/><div><span className="eyebrow">A MINHA ÁREA</span><h1>{student.name}</h1><p>{student.age ?? '—'} anos · {trackingLabels[student.trackingType] || 'Acompanhamento ULTIMATE FIT'}</p><div className="profileChips"><span>Professor: {student.primaryTrainer?.name || 'Por definir'}</span><span>{studentStatusLabels[student.status] || student.status}</span></div></div><div className="selfActions"><button onClick={()=>setEditing(true)}><Edit3/><span>Editar perfil</span></button>{showAssessments&&<button onClick={exportLatestAssessment} disabled={!latestAssessment}><FileText/><span>Exportar avaliação em PDF</span></button>}<button onClick={()=>professorUrl&&window.open(professorUrl,'_blank','noopener,noreferrer')} disabled={!professorUrl}><MessageCircle/><span>Falar com o professor</span></button></div></section>
     <TrainingActivityCalendar completions={(data.workoutCompletions||[]).filter(item=>item.studentId===student.id)}/>
-    <AssessmentPreferencePanel key={student.id} student={student} currentUser={currentUser}/>
     <ProfileModuleHub student={student} assessments={assessments} onNavigate={onNavigate} studentView/>
     <AssignedTrainerProfile trainer={student.primaryTrainer} studentName={student.name}/>
-    <div className="grid two profileOverviewGrid"><AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/><StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/></div>
+    <div className="grid two profileOverviewGrid">{showAssessments&&<AssessmentSnapshot assessments={assessments} onOpen={() => onNavigate?.('assessments',{studentId:student.id})}/>}<StudentGoalPanel student={student} editable={false} onRefresh={onRefresh}/></div>
     <ParqStatusCard studentId={student.id} studentName={student.name}/>
-    <ProfileSummaryChart assessments={assessments}/>
+    {showAssessments&&<ProfileSummaryChart assessments={assessments}/>}
     <StudentDetailsPanel student={student} self/>
     {editing&&<Modal title="Editar o meu perfil" close={()=>setEditing(false)} wide><StudentForm student={student} trainers={trainers} currentUser={currentUser} onCancel={()=>setEditing(false)} onSaved={async message=>{setEditing(false);setNotice(message);await onRefresh?.()}}/></Modal>}
   </div>;
