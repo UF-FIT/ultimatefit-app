@@ -16,6 +16,7 @@ import ExerciseLibraryModule from './components/ExerciseLibraryModule';
 import ActivitiesModule from './components/ActivitiesModule';
 import NutritionModule from './components/NutritionModule';
 import {NoticeManager,StudentNoticeBoard,StudentNoticePopup} from './components/NoticeCenter';
+import {whatsappUrl} from './lib/students';
 import {paymentRpc} from './lib/payments';
 import {fetchRuntimeSettings,saveRuntimeSettings} from './lib/runtime';
 import {defaultTrainerPermissions,fetchTeamMembers,invokeTeamAction,trainerPermissionOptions,updateTrainerWhatsApp} from './lib/team';
@@ -110,7 +111,9 @@ function pathForPage(key,role,context={}){
 }
 
 function Shell(){
- const {currentUser}=useApp();
+ const {currentUser,data}=useApp();
+ const ownStudent=data.students.find(student=>student.userId===currentUser.id);
+ const assessmentPreference=ownStudent?.assessmentPreference||'planned';
  const [paymentAccess,setPaymentAccess]=useState('none');
  const [agendaAccess,setAgendaAccess]=useState('none');
 
@@ -135,8 +138,8 @@ function Shell(){
   routeNavigate(pathForPage(key,currentUser.role,nextContext),{state:{pageContext:nextContext}});
  };
  const baseNav=currentUser.role==='admin'?ownerNav:currentUser.role==='professor'?trainerNav:studentNav;
- const nav=[...baseNav,...(['manage','read'].includes(agendaAccess)?[['agenda','Agenda',CalendarDays]]:[]),...(['manage','read'].includes(paymentAccess)?[['payments','Pagamentos',FileText]]:[])];
- return <div className="appShell">
+ const nav=[...baseNav.filter(([key])=>currentUser.role!=='aluno'||key!=='assessments'||assessmentPreference!=='not_applicable'),...(['manage','read'].includes(agendaAccess)?[['agenda','Agenda',CalendarDays]]:[]),...(['manage','read'].includes(paymentAccess)?[['payments','Pagamentos',FileText]]:[])];
+ return <div className="appShell" data-assessment-preference={currentUser.role==='aluno'?assessmentPreference:undefined}>
   <aside className="sidebar"><Logo/><div className="navList">{nav.map(([key,label,Icon])=><button key={key} className={(page===key||(page==='assessments'&&key==='students'))?'active':''} onClick={()=>navigate(key)}><Icon size={18}/>{label}</button>)}</div></aside>
   <main className="main"><header className="topbar"><div className="mobileLogo"><Logo/></div><div className="env">Supabase ligado · ambiente de desenvolvimento</div><div className="userTools"><button className="profileShortcut" onClick={()=>navigate('profile')} title="Abrir o meu perfil"><div className="userIdentity"><b>{currentUser.name}</b><small>{currentUser.roleLabel}</small></div><div className="avatar">{currentUser.avatarThumbUrl||currentUser.avatarUrl?<img src={currentUser.avatarThumbUrl||currentUser.avatarUrl} alt={currentUser.name}/>:currentUser.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div></button><button className="logoutButton" onClick={signOut} title="Terminar sessão"><LogOut size={18}/></button></div></header>
   <div className="content"><PageRouter page={page} context={pageContext} onNavigate={navigate}/></div>
@@ -148,11 +151,21 @@ function Shell(){
 }
 
 function PageRouter({page,context,onNavigate}){
- const {currentUser}=useApp();
+ const {currentUser,data}=useApp();
+ const ownStudent=data.students.find(student=>student.userId===currentUser.id);
+ if(currentUser.role==='aluno'&&page==='assessments'){
+  if(ownStudent?.assessmentPreference==='not_applicable') return <Dashboard onNavigate={onNavigate}/>;
+  if(ownStudent?.assessmentPreference==='declined') return <DeclinedAssessment student={ownStudent}/>;
+ }
  if(currentUser.role==='aluno'&&['students','trainers','exercises','settings'].includes(page)) return <Dashboard onNavigate={onNavigate}/>;
  if(page==='studio'&&currentUser.role!=='admin'&&currentUser.systemRole!=='owner') return <Dashboard onNavigate={onNavigate}/>;
  const map={studio:<Suspense fallback={<p>A carregar Gestão do Estúdio…</p>}><StudioManagement/></Suspense>,agenda:<Suspense fallback={<p>A carregar agenda…</p>}><AgendaModule/></Suspense>,payments:<Suspense fallback={<p>A carregar pagamentos…</p>}><PaymentsModule/></Suspense>,dashboard:<Dashboard onNavigate={onNavigate}/>,students:<Students onNavigate={onNavigate}/>,trainers:<Trainers/>,assessments:<AssessmentsModule context={context} onNavigate={onNavigate}/>,plans:<TrainingPlansModule context={context} onNavigate={onNavigate}/>,nutrition:<NutritionModule context={context}/>,challenges:<ChallengesModule context={context} onNavigate={onNavigate}/>,activities:<ActivitiesModule context={context}/>,exercises:<ExerciseLibraryModule/>,settings:<SettingsPage context={context} onNavigate={onNavigate}/>,profile:<Profile onNavigate={onNavigate}/>};
  return map[page]||<Dashboard onNavigate={onNavigate}/>;
+}
+function DeclinedAssessment({student}){
+ const trainer=student.primaryTrainer;
+ const contactUrl=whatsappUrl(trainer?.whatsappPhone,`Olá ${trainer?.name||'Professor'}, sou ${student.name}. Gostaria de começar a fazer avaliações físicas e marcar uma avaliação.`);
+ return <section className="card pad"><h1>Avaliação física</h1><p>Uma vez que a opção tomada no início do acompanhamento foi de não realizar avaliações físicas, esta secção não está ativa.</p><p>Para começar a fazer avaliações físicas, entre em contacto com o seu professor responsável e peça a marcação de uma avaliação física.</p><button className="primary" disabled={!contactUrl} onClick={()=>contactUrl&&window.open(contactUrl,'_blank','noopener,noreferrer')}><MessageSquare size={18}/>Contactar o professor responsável</button>{!contactUrl&&<p>O contacto do professor ainda não está disponível na app. Contacte o estúdio para solicitar a marcação.</p>}</section>;
 }
 function Heading({title,sub,action}){return <div className="heading"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{action}</div>}
 function Kpi({icon:Icon,label,value}){return <Card className="kpi"><div className="iconBox"><Icon/></div><div><small>{label}</small><strong>{value}</strong></div></Card>}
