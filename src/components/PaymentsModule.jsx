@@ -131,7 +131,7 @@ function SharedPaymentForm({duo,members,settlement,students,month,onClose,onSave
 
 
 function normalizeWhatsAppPhone(phone){
- let digits=String(phone||'').replace(/\\D/g,'');
+ let digits=String(phone||'').replace(/\D/g,'');
  if(digits.startsWith('00'))digits=digits.slice(2);
  if(digits.length===9)digits='351'+digits;
  return digits;
@@ -142,7 +142,7 @@ function PaymentRequestDialog({item,students,onClose}){
  const isDuo=item.type==='duo';
  const rows=useMemo(()=>isDuo?item.members:[item.row],[item,isDuo]);
  const people=useMemo(()=>rows.map(row=>students.find(student=>student.id===row.student_id)).filter(Boolean),[rows,students]);
- const names=new Map(students.map(student=>[student.id,student.name]));
+ const names=useMemo(()=>new Map(students.map(student=>[student.id,student.name])),[students]);
  const [recipientId,setRecipientId]=useState(()=>people[0]?.id||'');
  const row=rows[0];
  const packPayment=!isDuo&&row.kind==='package'?row:null;
@@ -158,20 +158,20 @@ function PaymentRequestDialog({item,students,onClose}){
  const recipientName=recipient?.name||names.get(row?.student_id)||'aluno';
  useEffect(()=>{
   if(packPayment&&!packHistory&&!historyError)return;
-  const firstName=recipientName.split(/\\s+/)[0]||'Olá';
+  const firstName=recipientName.split(/\s+/)[0]||'Olá';
   let message='';
   if(packPayment){
    const sessions=packHistory?.sessions||[];
-   const sessionLines=sessions.map(session=>'• '+sessionDateTime(session.starts_at)).join('\\n');
+   const sessionLines=sessions.map(session=>'• '+sessionDateTime(session.starts_at)).join('\n');
    const packName=packHistory?.pack?.title||packPayment.description;
    message='Olá '+firstName+'!\\n\\n'+
     'Segue o resumo das sessões concluídas do teu pack'+(packName?' ('+packName+')':'')+':\\n'+
     sessions.length+' '+(sessions.length===1?'sessão realizada':'sessões realizadas')+'.'+
-    (sessionLines?'\\n'+sessionLines:'\\nAinda não há sessões concluídas associadas a um pack na app.')+'\\n\\n'+
+    (sessionLines?'\n'+sessionLines:'\\nAinda não há sessões concluídas associadas a um pack na app.')+'\\n\\n'+
     'Para continuares os treinos, peço que regularizes o próximo pack no valor de '+money(packPayment.amount_cents)+'. Obrigado!';
   }else if(isDuo){
    const partner=people.find(person=>person.id!==recipient?.id);
-   const breakdown=rows.map(member=>(names.get(member.student_id)||'Aluno')+': '+money(member.amount_cents)).join('\\n');
+   const breakdown=rows.map(member=>(names.get(member.student_id)||'Aluno')+': '+money(member.amount_cents)).join('\n');
    const total=rows.reduce((sum,member)=>sum+member.amount_cents,0);
    message='Olá '+firstName+'!\\n\\n'+
     'A mensalidade de '+monthLabel(row.period.slice(0,7))+' do teu treino com '+(partner?.name||'o teu parceiro')+' está por regularizar.\\n'+
