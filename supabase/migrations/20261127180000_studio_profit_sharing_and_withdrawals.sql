@@ -2,18 +2,18 @@
 -- The existing studio workspace and access policies remain the boundary for these records.
 
 alter table public.studio_financial_records
- add column expense_paid_by text not null default 'studio'
-  check (expense_paid_by in ('studio','partner_a','partner_b','shared'));
+ add column expense_paid_by text
+  check (expense_paid_by is null or expense_paid_by in ('studio','partner_a','partner_b','shared'));
 alter table public.studio_financial_records
  add constraint studio_financial_records_expense_payer_direction
-  check (direction='expense' or expense_paid_by='studio');
+  check (direction='expense' or expense_paid_by is null or expense_paid_by='studio');
 
 alter table public.studio_recurring_items
- add column expense_paid_by text not null default 'studio'
-  check (expense_paid_by in ('studio','partner_a','partner_b','shared'));
+ add column expense_paid_by text
+  check (expense_paid_by is null or expense_paid_by in ('studio','partner_a','partner_b','shared'));
 alter table public.studio_recurring_items
  add constraint studio_recurring_items_expense_payer_direction
-  check (direction='expense' or expense_paid_by='studio');
+  check (direction='expense' or expense_paid_by is null or expense_paid_by='studio');
 
 create table public.studio_profit_settings (
  id uuid primary key default gen_random_uuid(),
@@ -49,7 +49,7 @@ create index studio_owner_withdrawals_owner_date
 alter table public.studio_profit_settings enable row level security;
 alter table public.studio_owner_withdrawals enable row level security;
 
-revoke all on public.studio_profit_settings,public.studio_owner_withdrawals from public,anon,authenticated;
+revoke all on public.studio_profit_settings,public.studio_owner_withdrawals from anon,authenticated;
 grant select,insert,update,delete on public.studio_profit_settings,public.studio_owner_withdrawals to authenticated;
 
 create policy studio_profit_settings_admins_all on public.studio_profit_settings
