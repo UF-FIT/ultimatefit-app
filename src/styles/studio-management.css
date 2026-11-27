@@ -160,3 +160,59 @@
  .tdStudioCell{padding:10px}
  .tdStudioCell strong{font-size:14px}
 }
+
+.studioProfitCard{border-color:rgba(255,217,8,.22)}
+.studioProfitActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.studioProfitActions button{min-height:36px;padding:8px 10px;border:1px solid var(--line,#2d2e32);border-radius:10px;background:var(--card2,#161719);color:var(--text,#f4f4f5);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.studioProfitActions button:first-child svg{color:var(--y,#ffd908)}
+.studioFlow{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr) 24px minmax(0,1fr) 24px minmax(0,1.2fr);align-items:stretch;gap:8px;padding:0 18px 17px}
+.studioFlow>div{min-width:0;padding:13px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.025);display:flex;flex-direction:column;justify-content:center;gap:7px}
+.studioFlow small,.studioPartnerShares small{display:block;color:#a3a3aa;font-size:11px;line-height:1.4}
+.studioFlow strong{font-size:18px;overflow-wrap:anywhere}
+.studioFlow>span{display:flex;align-items:center;justify-content:center;color:var(--y,#ffd908);font-size:18px;font-weight:800}
+.studioFlow .studioFlowResult{border-color:rgba(255,217,8,.38);background:linear-gradient(140deg,rgba(255,217,8,.1),rgba(255,217,8,.025))}
+.studioFlowResult small,.studioFlowResult strong{color:var(--y,#ffd908)}
+.studioPartnerShares{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 18px 16px}
+.studioPartnerShares article{min-width:0;padding:14px;border:1px solid rgba(255,217,8,.2);border-radius:13px;background:rgba(255,217,8,.035)}
+.studioPartnerShares strong{display:block;margin:7px 0;font-size:21px;line-height:1.2;overflow-wrap:anywhere}
+.studioPartnerShares span{display:block;color:#a5a5ac;font-size:11px;line-height:1.5}
+.studioWithdrawals{padding:0 18px 14px}
+.studioWithdrawals h3{margin:0 0 8px;font-size:13px}
+.studioWithdrawals>p{margin:0;padding:11px 12px;border:1px dashed rgba(255,255,255,.12);border-radius:10px;color:#92929a;font-size:11px}
+.studioWithdrawals article{display:grid;grid-template-columns:minmax(0,1fr) auto 36px;align-items:center;gap:9px;padding:9px 0;border-top:1px solid rgba(255,255,255,.08)}
+.studioWithdrawals article>div{min-width:0}
+.studioWithdrawals article strong{font-size:12px}
+.studioWithdrawals article small{display:block;margin-top:3px;color:#92929a;font-size:10px;overflow-wrap:anywhere}
+.studioProfitNote{margin:0 18px 17px;padding:10px 12px;border-left:3px solid var(--y,#ffd908);background:rgba(255,217,8,.045);color:#a7a7ad;font-size:11px;line-height:1.5}
+.studioYearResult{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 18px 17px}
+.studioYearResult article{min-width:0;padding:13px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.025)}
+.studioYearResult article>span{display:block;color:#a2a2a9;font-size:11px;line-height:1.4}
+.studioYearResult article>strong{display:block;margin:6px 0;font-size:20px;color:#f5f5f7;overflow-wrap:anywhere}
+.studioYearResult article>small{display:block;color:#92929a;font-size:10px;line-height:1.45}
+.studioYearResult article.combined{border-color:rgba(255,217,8,.35);background:rgba(255,217,8,.055)}
+.studioYearResult article.combined>strong{color:var(--y,#ffd908)}
+.studioYearNote{margin:0;padding:0 18px 16px;color:#8f8f97;font-size:11px;line-height:1.5}
+@media(max-width:760px){
+ .studioProfitCard>.studioCardHeader{align-items:flex-start;flex-direction:column}
+ .studioProfitActions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .studioProfitActions button{justify-content:center}
+ .studioFlow{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 13px 13px;gap:8px}
+ .studioFlow>span{display:none}
+ .studioFlow>div{padding:11px}
+ .studioFlow strong{font-size:16px}
+ .studioPartnerShares{padding:0 13px 13px;gap:8px}
+ .studioPartnerShares article{padding:11px}
+ .studioPartnerShares strong{font-size:18px}
+ .studioWithdrawals{padding:0 13px 12px}
+ .studioProfitNote{margin:0 13px 13px}
+ .studioYearResult{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 13px 13px;gap:8px}
+ .studioYearResult article{padding:11px}
+ .studioYearResult article>strong{font-size:17px}
+ .studioYearNote{padding:0 13px 13px;font-size:10px}
+}
+@media(max-width:390px){
+ .studioProfitActions{grid-template-columns:1fr}
+ .studioPartnerShares{grid-template-columns:1fr}
+ .studioYearResult{grid-template-columns:1fr 1fr}
+ .studioWithdrawals article{grid-template-columns:minmax(0,1fr) auto 32px}
+}
