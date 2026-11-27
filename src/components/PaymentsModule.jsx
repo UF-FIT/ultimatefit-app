@@ -177,13 +177,23 @@ function PaymentList({rows,duos,settlements,students,manager,filter,search,month
    const namesInDuo=item.members.map(m=>names.get(m.student_id)||'Aluno');
    const total=item.members.reduce((sum,m)=>sum+m.amount_cents,0);
    return <article className="ufPaymentDuoCard" key={'duo-'+item.id}>
-    <div className="ufPaymentRow"><div><h3>{namesInDuo.join(' + ')}</h3><p>{paymentKinds.monthly} · {monthLabel(month)}</p></div><strong>{money(total)}</strong></div>
-    <div className="ufPaymentDuoAmounts">{item.members.map((m,i)=><div key={m.id}><span>{namesInDuo[i]}</span><strong>{money(m.amount_cents)}</strong></div>)}</div>
-    <div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{item.settlement?'Pago em conjunto':stateLabels[item.state]}</span>{manager&&<button onClick={()=>onJoint(item)}>{item.settlement?'Editar pagamento conjunto':'Registar pagamento conjunto'}</button>}</div>
+    <span className="ufPaymentTrainingType duo">Treino em duo</span>
+    <div className="ufPaymentCardContent">
+     <div className="ufPaymentRow"><div><h3>{namesInDuo.join(' + ')}</h3><p>{paymentKinds.monthly} · {monthLabel(month)}</p></div><strong>{money(total)}</strong></div>
+     <div className="ufPaymentDuoAmounts">{item.members.map((m,i)=><div key={m.id}><span>{namesInDuo[i]}</span><strong>{money(m.amount_cents)}</strong></div>)}</div>
+     <div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{item.settlement?'Pago em conjunto':stateLabels[item.state]}</span>{manager&&<button onClick={()=>onJoint(item)}>{item.settlement?'Editar pagamento conjunto':'Registar pagamento conjunto'}</button>}</div>
+    </div>
    </article>;
   }
   const row=item.row;
-  return <article key={row.id}><div className="ufPaymentRow"><div><h3>{manager?(names.get(row.student_id)||'Aluno'):paymentKinds[row.kind]}</h3><p>{manager&&paymentKinds[row.kind]+' · '}{monthLabel(row.period.slice(0,7))}</p>{row.description&&<p>{row.description}</p>}<small>{row.status==='paid'?'Pago em '+dateLabel(row.paid_on)+' · '+paymentMethods[row.method]:'Data limite: '+dateLabel(row.due_on)}</small>{row.receipt_reference&&<small>Recibo: {row.receipt_reference}</small>}</div><strong>{money(row.amount_cents)}</strong></div><div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{stateLabels[item.state]}</span>{manager&&row.status!=='cancelled'&&!item.locked&&<button onClick={()=>onEdit(row)}>{row.status==='paid'?'Editar':'Registar pagamento'}</button>}</div></article>;
+  const isDuo=item.locked||activeDuoByStudent.has(row.student_id);
+  return <article key={row.id}>
+   <span className={'ufPaymentTrainingType '+(isDuo?'duo':'individual')}>{isDuo?'Treino em duo':'Treino individual'}</span>
+   <div className="ufPaymentCardContent">
+    <div className="ufPaymentRow"><div><h3>{manager?(names.get(row.student_id)||'Aluno'):paymentKinds[row.kind]}</h3><p>{manager&&paymentKinds[row.kind]+' · '}{monthLabel(row.period.slice(0,7))}</p>{row.description&&<p>{row.description}</p>}<small>{row.status==='paid'?'Pago em '+dateLabel(row.paid_on)+' · '+paymentMethods[row.method]:'Data limite: '+dateLabel(row.due_on)}</small>{row.receipt_reference&&<small>Recibo: {row.receipt_reference}</small>}</div><strong>{money(row.amount_cents)}</strong></div>
+    <div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{stateLabels[item.state]}</span>{manager&&row.status!=='cancelled'&&!item.locked&&<button onClick={()=>onEdit(row)}>{row.status==='paid'?'Editar':'Registar pagamento'}</button>}</div>
+   </div>
+  </article>;
  })}</div>;
 }
 
