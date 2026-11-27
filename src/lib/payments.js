@@ -41,3 +41,30 @@ export async function fetchPaymentDuos(){
  if(settlements.error)throw settlements.error;
  return {duos:duos.data||[],settlements:settlements.data||[]};
 }
+
+export async function fetchCompletedPackSessions(studentId,paymentId){
+ const {data:packs,error:packError}=await supabase.from('pt_packs').select('id,title,payment_id,created_at').eq('student_id',studentId).order('created_at',{ascending:false});
+ if(packError)throw packError;
+ if(!packs?.length)return {pack:null,sessions:[]};
+ const packIds=packs.map(pack=>pack.id);
+ const {data:attendance,error:attendanceError}=await supabase.from('pt_attendance').select('pack_id,session_id').eq('student_id',studentId).eq('status','present').eq('deduct',true).in('pack_id',packIds);
+ if(attendanceError)throw attendanceError;
+ const sessionIds=[...new Set((attendance||[]).map(item=>item.session_id).filter(Boolean))];
+ const {data:sessionRows,error:sessionError}=sessionIds.length
+  ?await supabase.from('pt_sessions').select('id,starts_at,duration').in('id',sessionIds)
+  :{data:[],error:null};
+ if(sessionError)throw sessionError;
+ const bySession=new Map((sessionRows||[]).map(session=>[session.id,session]));
+ const byPack=new Map();
+ for(const item of attendance||[]){
+  const session=bySession.get(item.session_id);
+  if(!session)continue;
+  if(!byPack.has(item.pack_id))byPack.set(item.pack_id,[]);
+  byPack.get(item.pack_id).push(session);
+ }
+ const preferred=[packs.find(pack=>pack.payment_id===paymentId),...packs].filter(Boolean);
+ const seen=new Set();
+ const pack=preferred.find(candidate=>!seen.has(candidate.id)&&seen.add(candidate.id)&&(byPack.get(candidate.id)||[]).length)||null;
+ const sessions=pack?(byPack.get(pack.id)||[]).sort((a,b)=>a.starts_at.localeCompare(b.starts_at)):[];
+ return {pack,sessions};
+}
