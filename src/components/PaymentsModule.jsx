@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useApp} from '../contexts/AppContext';
-import {cents,fetchPayments,fetchPaymentDuos,money,paymentKinds,paymentMethods,paymentRpc,paymentState,stateLabels,today} from '../lib/payments';
+import {cents,fetchPayments,fetchPaymentDuos,fetchCompletedPackSessions,money,paymentKinds,paymentMethods,paymentRpc,paymentState,stateLabels,today} from '../lib/payments';
 import '../styles/payments.css';
 
 const monthLabel=month=>new Date(month+'-01T12:00:00').toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
@@ -129,7 +129,76 @@ function SharedPaymentForm({duo,members,settlement,students,month,onClose,onSave
  </PaymentDialog>;
 }
 
-function PaymentList({rows,duos,settlements,students,manager,filter,search,month,onEdit,onJoint}){
+
+function normalizeWhatsAppPhone(phone){
+ let digits=String(phone||'').replace(/\\D/g,'');
+ if(digits.startsWith('00'))digits=digits.slice(2);
+ if(digits.length===9)digits='351'+digits;
+ return digits;
+}
+const sessionDateTime=value=>new Intl.DateTimeFormat('pt-PT',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Lisbon'}).format(new Date(value));
+
+function PaymentRequestDialog({item,students,onClose}){
+ const isDuo=item.type==='duo';
+ const rows=useMemo(()=>isDuo?item.members:[item.row],[item,isDuo]);
+ const people=useMemo(()=>rows.map(row=>students.find(student=>student.id===row.student_id)).filter(Boolean),[rows,students]);
+ const names=new Map(students.map(student=>[student.id,student.name]));
+ const [recipientId,setRecipientId]=useState(()=>people[0]?.id||'');
+ const row=rows[0];
+ const packPayment=!isDuo&&row.kind==='package'?row:null;
+ const [packHistory,setPackHistory]=useState(null),[historyError,setHistoryError]=useState(''),[attempt,setAttempt]=useState(0),[draft,setDraft]=useState('');
+ useEffect(()=>{
+  if(!packPayment)return;
+  let active=true;
+  setPackHistory(null);setHistoryError('');
+  fetchCompletedPackSessions(packPayment.student_id,packPayment.id).then(value=>{if(active)setPackHistory(value);}).catch(error=>{if(active)setHistoryError(error.message||'Não foi possível carregar as sessões do pack.');});
+  return()=>{active=false;};
+ },[packPayment?.id,packPayment?.student_id,attempt]);
+ const recipient=people.find(person=>person.id===recipientId)||people[0];
+ const recipientName=recipient?.name||names.get(row?.student_id)||'aluno';
+ useEffect(()=>{
+  if(packPayment&&!packHistory&&!historyError)return;
+  const firstName=recipientName.split(/\\s+/)[0]||'Olá';
+  let message='';
+  if(packPayment){
+   const sessions=packHistory?.sessions||[];
+   const sessionLines=sessions.map(session=>'• '+sessionDateTime(session.starts_at)).join('\\n');
+   const packName=packHistory?.pack?.title||packPayment.description;
+   message='Olá '+firstName+'!\\n\\n'+
+    'Segue o resumo das sessões concluídas do teu pack'+(packName?' ('+packName+')':'')+':\\n'+
+    sessions.length+' '+(sessions.length===1?'sessão realizada':'sessões realizadas')+'.'+
+    (sessionLines?'\\n'+sessionLines:'\\nAinda não há sessões concluídas associadas a um pack na app.')+'\\n\\n'+
+    'Para continuares os treinos, peço que regularizes o próximo pack no valor de '+money(packPayment.amount_cents)+'. Obrigado!';
+  }else if(isDuo){
+   const partner=people.find(person=>person.id!==recipient?.id);
+   const breakdown=rows.map(member=>(names.get(member.student_id)||'Aluno')+': '+money(member.amount_cents)).join('\\n');
+   const total=rows.reduce((sum,member)=>sum+member.amount_cents,0);
+   message='Olá '+firstName+'!\\n\\n'+
+    'A mensalidade de '+monthLabel(row.period.slice(0,7))+' do teu treino com '+(partner?.name||'o teu parceiro')+' está por regularizar.\\n'+
+    breakdown+'\\nTotal: '+money(total)+'.\\n\\n'+
+    'Podes regularizar quando tiveres oportunidade? Obrigado!';
+  }else{
+   message='Olá '+firstName+'!\\n\\n'+
+    'A mensalidade de '+monthLabel(row.period.slice(0,7))+' no valor de '+money(row.amount_cents)+' ainda está por regularizar.\\n\\n'+
+    'Podes fazer o pagamento quando tiveres oportunidade? Obrigado!';
+  }
+  setDraft(message);
+ },[packPayment,packHistory,historyError,isDuo,rows,people,recipient?.id,recipientName,names,row]);
+ const loadingHistory=!!packPayment&&!packHistory&&!historyError;
+ const phone=normalizeWhatsAppPhone(recipient?.phone);
+ const href='https://wa.me/'+phone+'?text='+encodeURIComponent(draft);
+ return <PaymentDialog title="Pedido de pagamento" onClose={onClose}>
+  <p>Revê e ajusta a mensagem antes de abrir o WhatsApp. A app não envia a mensagem automaticamente.</p>
+  {isDuo&&<label className="ufPaymentRequestRecipient">Enviar para WhatsApp<select value={recipient?.id||''} onChange={event=>setRecipientId(event.target.value)}>{people.map(person=><option key={person.id} value={person.id}>{person.name}{person.phone?'':' · sem número registado'}</option>)}</select></label>}
+  {loadingHistory?<p role="status">A carregar as sessões concluídas do pack…</p>:null}
+  {historyError&&<div role="alert" className="ufPaymentError">Não consegui obter o histórico das sessões. {historyError}<button type="button" onClick={()=>setAttempt(value=>value+1)}>Tentar novamente</button></div>}
+  {!phone&&<p className="ufPaymentRequestNote">Este aluno não tem número de WhatsApp registado. O WhatsApp abrirá sem destinatário para escolheres o contacto.</p>}
+  <label className="ufPaymentMessagePreview">Mensagem para WhatsApp<textarea value={draft} onChange={event=>setDraft(event.target.value)} rows={10}/></label>
+  <footer><button type="button" onClick={onClose}>Cancelar</button><a className="primary" href={href} target="_blank" rel="noreferrer" aria-disabled={loadingHistory||!!historyError||!draft} onClick={event=>{if(loadingHistory||historyError||!draft)event.preventDefault();}}>Abrir WhatsApp</a></footer>
+ </PaymentDialog>;
+}
+
+function PaymentList({rows,duos,settlements,students,manager,filter,search,month,onEdit,onJoint,onRequest}){
  const names=new Map(students.map(s=>[s.id,s.name]));
  const activeDuoByStudent=new Map();
  [...duos].filter(d=>d.active).forEach(d=>{activeDuoByStudent.set(d.member_a_id,d);activeDuoByStudent.set(d.member_b_id,d);});
@@ -181,7 +250,7 @@ function PaymentList({rows,duos,settlements,students,manager,filter,search,month
     <div className="ufPaymentCardContent">
      <div className="ufPaymentRow"><div><h3>{namesInDuo.join(' + ')}</h3><p>{paymentKinds.monthly} · {monthLabel(month)}</p></div><strong>{money(total)}</strong></div>
      <div className="ufPaymentDuoAmounts">{item.members.map((m,i)=><div key={m.id}><span>{namesInDuo[i]}</span><strong>{money(m.amount_cents)}</strong></div>)}</div>
-     <div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{item.settlement?'Pago em conjunto':stateLabels[item.state]}</span>{manager&&<button onClick={()=>onJoint(item)}>{item.settlement?'Editar pagamento conjunto':'Registar pagamento conjunto'}</button>}</div>
+     <div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{item.settlement?'Pago em conjunto':stateLabels[item.state]}</span>{manager&&<div className="ufPaymentActionStack">{!item.settlement&&item.members.every(member=>member.status==='pending')&&<button type="button" className="ufPaymentRequestButton" onClick={()=>onRequest(item)}>Enviar pedido de pagamento</button>}<button onClick={()=>onJoint(item)}>{item.settlement?'Editar pagamento conjunto':'Registar pagamento conjunto'}</button></div>}</div>
     </div>
    </article>;
   }
@@ -191,7 +260,7 @@ function PaymentList({rows,duos,settlements,students,manager,filter,search,month
    <span className={'ufPaymentTrainingType '+(isDuo?'duo':'individual')}>{isDuo?'Treino em duo':'Treino individual'}</span>
    <div className="ufPaymentCardContent">
     <div className="ufPaymentRow"><div><h3>{manager?(names.get(row.student_id)||'Aluno'):paymentKinds[row.kind]}</h3><p>{manager&&paymentKinds[row.kind]+' · '}{monthLabel(row.period.slice(0,7))}</p>{row.description&&<p>{row.description}</p>}<small>{row.status==='paid'?'Pago em '+dateLabel(row.paid_on)+' · '+paymentMethods[row.method]:'Data limite: '+dateLabel(row.due_on)}</small>{row.receipt_reference&&<small>Recibo: {row.receipt_reference}</small>}</div><strong>{money(row.amount_cents)}</strong></div>
-    <div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{stateLabels[item.state]}</span>{manager&&row.status!=='cancelled'&&!item.locked&&<button onClick={()=>onEdit(row)}>{row.status==='paid'?'Editar':'Registar pagamento'}</button>}</div>
+    <div className="ufPaymentRow"><span className={'ufPaymentBadge '+item.state}>{stateLabels[item.state]}</span>{manager&&row.status!=='cancelled'&&!item.locked&&<div className="ufPaymentActionStack">{row.status==='pending'&&(row.kind==='monthly'||row.kind==='package')&&<button type="button" className="ufPaymentRequestButton" onClick={()=>onRequest(item)}>Enviar pedido de pagamento</button>}<button onClick={()=>onEdit(row)}>{row.status==='paid'?'Editar':'Registar pagamento'}</button></div>}</div>
    </div>
   </article>;
  })}</div>;
@@ -239,13 +308,14 @@ export default function PaymentsModule(){
    <div className="ufPaymentStats"><div><span>{manager?'Recebido neste mês':'Pago neste mês'}</span><strong>{money(sum(records.payments.filter(p=>p.status==='paid'&&p.paid_on.slice(0,7)===month)))}</strong><small>Pela data do pagamento</small></div><div><span>Por pagar · {monthLabel(month)}</span><strong>{money(sum(rows.filter(p=>p.status==='pending')))}</strong><small>Mensalidades e outros registos</small></div><div><span>Em atraso · total</span><strong>{money(sum(records.payments.filter(p=>paymentState(p)==='overdue')))}</strong><small>Todos os meses</small></div>{manager&&<div><span>Mensalidades ativas</span><strong>{records.billing.filter(b=>b.enabled).length}</strong><small>Alunos com valor definido</small></div>}</div>
    <div className="ufPaymentFilters" aria-label="Filtrar pagamentos">{Object.entries({all:'Todos',pending:'Pendentes',overdue:'Em atraso',paid:'Pagos',cancelled:'Anulados'}).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div>
    {manager&&<input className="ufPaymentSearch" type="search" placeholder="Pesquisar aluno" aria-label="Pesquisar aluno" value={search} onChange={e=>setSearch(e.target.value)}/>}
-   <PaymentList rows={rows} duos={records.duos} settlements={records.settlements} students={students} manager={manager} filter={filter} search={search} month={month} onEdit={row=>setDialog({type:'payment',row})} onJoint={item=>setDialog({type:'joint',duo:item.duo,members:item.members,settlement:item.settlement})}/>
+   <PaymentList rows={rows} duos={records.duos} settlements={records.settlements} students={students} manager={manager} filter={filter} search={search} month={month} onEdit={row=>setDialog({type:'payment',row})} onJoint={item=>setDialog({type:'joint',duo:item.duo,members:item.members,settlement:item.settlement})} onRequest={item=>setDialog({type:'request',item})}/>
    <div className="ufPaymentHistory"><h2>Recebimentos · últimos 6 meses</h2><div>{history.map(h=><figure key={h.key}><span>{money(h.value)}</span><i style={{height:Math.max(2,h.value/max*80)+'px'}}/><figcaption>{h.label}</figcaption></figure>)}</div></div>
   </>}
   {dialog?.type==='payment'&&<PaymentForm row={dialog.row} students={students} month={month} onClose={()=>setDialog(null)} onSaved={saved}/>}
   {dialog?.type==='billing'&&<BillingForm students={students.filter(s=>s.active)} billing={records.billing} onClose={()=>setDialog(null)} onSaved={saved}/>}
   {dialog?.type==='duos'&&<PaymentDuoManager duos={records.duos} students={students.filter(s=>s.active)} onClose={()=>setDialog(null)} onSaved={saved}/>}
   {dialog?.type==='joint'&&<SharedPaymentForm duo={dialog.duo} members={dialog.members} settlement={dialog.settlement} students={students} month={month} onClose={()=>setDialog(null)} onSaved={saved}/>}
+  {dialog?.type==='request'&&<PaymentRequestDialog item={dialog.item} students={students} onClose={()=>setDialog(null)}/>}
   {dialog?.type==='generate'&&<PaymentDialog title="Gerar mensalidades" onClose={()=>!busy&&setDialog(null)}><p>Criar as mensalidades de {monthLabel(month)} para os alunos ativos com valor definido? Os registos existentes mantêm-se.</p>{error&&<p role="alert">{error}</p>}<footer><button disabled={busy} onClick={()=>setDialog(null)}>Cancelar</button><button className="primary" disabled={busy} onClick={generate}>{busy?'A gerar…':'Gerar'}</button></footer></PaymentDialog>}
  </section>;
 }
