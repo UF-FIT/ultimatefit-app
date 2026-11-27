@@ -11,6 +11,9 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
   const [validating, setValidating] = useState(true);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [requestEmail, setRequestEmail] = useState('');
+  const [requestingLink, setRequestingLink] = useState(false);
+  const [linkRequested, setLinkRequested] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -157,6 +160,41 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
     setSubmitting(false);
   }
 
+  async function requestFreshLink(event) {
+    event.preventDefault();
+    const email = requestEmail.trim().toLowerCase();
+    if (!email) {
+      setError('Indica o email associado à tua conta.');
+      return;
+    }
+
+    const client = clientRef.current;
+    if (!client) {
+      setError('Não foi possível preparar o pedido. Atualiza a página e tenta novamente.');
+      return;
+    }
+
+    setRequestingLink(true);
+    setError('');
+    try {
+      const { error: requestError } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/repor-palavra-passe`,
+      });
+      if (requestError) {
+        const rateLimited = requestError.status === 429 || /rate.?limit|too many|60 seconds/i.test(requestError.message || '');
+        setError(rateLimited
+          ? 'Aguarda um minuto antes de pedir outro link.'
+          : 'Não foi possível enviar o link agora. Confirma o endereço e tenta novamente mais tarde.');
+        return;
+      }
+      setLinkRequested(true);
+    } catch {
+      setError('Não foi possível enviar o link agora. Tenta novamente mais tarde.');
+    } finally {
+      setRequestingLink(false);
+    }
+  }
+
   function goToLogin() {
     window.history.replaceState({}, '', '/');
     window.location.assign('/');
@@ -199,8 +237,25 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
           <div className="loginMarkImage"><BrandLogo compact/></div>
           <small>LINK INVÁLIDO OU EXPIRADO</small>
           <h1>Não foi possível validar o acesso</h1>
-          <p>{error || 'Solicita um novo convite ou uma nova recuperação de palavra-passe.'}</p>
-          <button className="primary full" onClick={goToLogin}>Voltar ao login</button>
+          <p>Este link não pode ser validado. Pede um link novo para continuar.</p>
+          <p>Se recebeste mais do que um email, abre o mais recente. Cada link só pode ser utilizado uma vez.</p>
+          {!linkRequested ? (
+            <form onSubmit={requestFreshLink}>
+              <label className="loginField">
+                <span>Email associado à conta</span>
+                <div><input type="email" autoComplete="email" value={requestEmail} onChange={event => setRequestEmail(event.target.value)} required /></div>
+              </label>
+              {error && <div className="loginError">{error}</div>}
+              <button className="primary full" disabled={requestingLink}>
+                {requestingLink ? 'A enviar…' : 'Pedir novo link'}
+              </button>
+            </form>
+          ) : (
+            <div className="loginSuccess">
+              Se a conta estiver registada, enviámos um novo link para esse endereço. Verifica também a pasta de spam e usa a mensagem mais recente.
+            </div>
+          )}
+          <button type="button" className="primary full" onClick={goToLogin}>Voltar ao login</button>
         </section>
       </main>
     );
