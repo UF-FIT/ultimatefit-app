@@ -188,7 +188,7 @@ function YearView({payload,year,currentUser}){
    <div><small>Outros rendimentos do estúdio</small><strong>{money(totals.otherIncome||0)}</strong><span>Inclui mensalidades dos professores</span></div>
    <div><small>Despesas do estúdio</small><strong>{money(totals.expenses||0)}</strong><span>Pagas: {money(totals.expensesPaid||0)} · pendentes: {money(totals.pendingExpenses||0)}</span></div>
   </div>
-  <Card className="studioYearCard"><header className="studioCardHeader"><div><h2>Resumo financeiro de {year}</h2><p>Valores por data efetiva de recebimento ou pagamento. Resultado apresentado antes de impostos; levantamentos não são despesas.</p></div></header>
+  <Card className="studioYearCard"><header className="studioCardHeader"><div><h2>Resumo financeiro de {year}</h2><p>Rendimentos por data de recebimento; despesas pelo mês de referência, incluindo as que ainda estão por pagar. Resultado antes de impostos; levantamentos não são despesas.</p></div></header>
    <div className="studioYearResult">
     <article><span>Resultado do estúdio</span><strong>{money(totals.studioResult||0)}</strong></article>
     <article><span>Quota de {settings.partner_a_name}</span><strong>{money(totals.partnerAShare||0)}</strong><small>Levantado {money(totals.partnerAWithdrawn||0)} · por levantar {money(totals.partnerARemaining||0)}</small></article>
