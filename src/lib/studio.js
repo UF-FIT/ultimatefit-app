@@ -42,18 +42,20 @@ async function loadWithdrawals(owner,from,to){
 }
 async function paidTotals(owner,month){
  const start=periodDate(month),end=nextMonth(month);
- const [pilates,finance,pendingCharges,pendingFinance]=await Promise.all([
+ const [pilates,paidIncome,paidExpenses,pendingCharges,pendingIncome,pendingExpenses]=await Promise.all([
   readAll(()=>supabase.from('studio_group_charges').select('amount_cents,paid_on').eq('owner_id',owner).eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
-  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,paid_on,direction').eq('owner_id',owner).eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,paid_on').eq('owner_id',owner).eq('direction','income').eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,period').eq('owner_id',owner).eq('direction','expense').eq('status','paid').eq('period',start)),
   readAll(()=>supabase.from('studio_group_charges').select('amount_cents,due_on').eq('owner_id',owner).eq('status','pending').eq('period',start)),
-  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,due_on,direction').eq('owner_id',owner).eq('status','pending').eq('period',start)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,due_on').eq('owner_id',owner).eq('direction','income').eq('status','pending').eq('period',start)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,due_on').eq('owner_id',owner).eq('direction','expense').eq('status','pending').eq('period',start)),
  ]);
  return {
   pilatesReceived:sum(pilates),
-  otherIncomeReceived:sum(finance.filter(row=>row.direction==='income')),
-  expensesPaid:sum(finance.filter(row=>row.direction==='expense')),
-  pendingIncome:sum(pendingCharges)+sum(pendingFinance.filter(row=>row.direction==='income')),
-  pendingExpenses:sum(pendingFinance.filter(row=>row.direction==='expense')),
+  otherIncomeReceived:sum(paidIncome),
+  expensesPaid:sum(paidExpenses),
+  pendingIncome:sum(pendingCharges)+sum(pendingIncome),
+  pendingExpenses:sum(pendingExpenses),
  };
 }
 export async function loadStudioDashboardSummary(_profileId,month){
@@ -83,9 +85,10 @@ export async function loadStudioYearSummary(profileId,year){
  }
  const start=firstOfYear(year),end=nextYear(year);
  const owner=await studioWorkspaceId();
- const [charges,records,personalRows,settings,withdrawals]=await Promise.all([
+ const [charges,paidIncomeRecords,expenseRecords,personalRows,settings,withdrawals]=await Promise.all([
   readAll(()=>supabase.from('studio_group_charges').select('amount_cents,paid_on,status').eq('owner_id',owner).eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
-  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,paid_on,direction,status').eq('owner_id',owner).eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,paid_on').eq('owner_id',owner).eq('direction','income').eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,period,status').eq('owner_id',owner).eq('direction','expense').in('status',['paid','pending']).gte('period',start).lt('period',end)),
   personalTrainingTotals(start,end),
   readAll(()=>supabase.from('studio_profit_settings').select('*').eq('owner_id',owner).lt('valid_from',end).order('valid_from')),
   readAll(()=>supabase.from('studio_owner_withdrawals').select('*').eq('owner_id',owner).gte('withdrawn_on',start).lt('withdrawn_on',end)),
@@ -98,10 +101,13 @@ export async function loadStudioYearSummary(profileId,year){
  const months=Array.from({length:12},(_,index)=>{
   const key=String(year)+'-'+String(index+1).padStart(2,'0');
   const inMonth=row=>row.paid_on?.slice(0,7)===key;
+  const inPeriod=row=>row.period?.slice(0,7)===key;
   const pt=personalByMonth.get(key)||0;
   const pilates=sum(charges.filter(inMonth));
-  const other=sum(records.filter(row=>row.direction==='income'&&inMonth(row)));
-  const expenses=sum(records.filter(row=>row.direction==='expense'&&inMonth(row)));
+  const other=sum(paidIncomeRecords.filter(inMonth));
+  const expensesPaid=sum(expenseRecords.filter(row=>row.status==='paid'&&inPeriod(row)));
+  const pendingExpenses=sum(expenseRecords.filter(row=>row.status==='pending'&&inPeriod(row)));
+  const expenses=expensesPaid+pendingExpenses;
   const studioResult=pilates+other-expenses;
   const setting=monthSettings(key);
   const partnerAShare=Math.round(studioResult*Number(setting.partner_a_percent||0)/100);
@@ -109,14 +115,14 @@ export async function loadStudioYearSummary(profileId,year){
   const monthWithdrawals=withdrawals.filter(row=>row.withdrawn_on?.slice(0,7)===key);
   const partnerAWithdrawn=sum(monthWithdrawals.filter(row=>row.partner_key==='partner_a'));
   const partnerBWithdrawn=sum(monthWithdrawals.filter(row=>row.partner_key==='partner_b'));
-  return {key,label:new Date(Number(year),index,1).toLocaleDateString('pt-PT',{month:'short'}),personal:pt,pilates,otherIncome:other,expenses,studioResult,partnerAName:setting.partner_a_name,partnerBName:setting.partner_b_name,partnerAPercent:Number(setting.partner_a_percent||0),partnerBPercent:100-Number(setting.partner_a_percent||0),partnerAShare,partnerBShare,partnerAWithdrawn,partnerBWithdrawn,partnerARemaining:partnerAShare-partnerAWithdrawn,partnerBRemaining:partnerBShare-partnerBWithdrawn};
+  return {key,label:new Date(Number(year),index,1).toLocaleDateString('pt-PT',{month:'short'}),personal:pt,pilates,otherIncome:other,expensesPaid,pendingExpenses,expenses,studioResult,partnerAName:setting.partner_a_name,partnerBName:setting.partner_b_name,partnerAPercent:Number(setting.partner_a_percent||0),partnerBPercent:100-Number(setting.partner_a_percent||0),partnerAShare,partnerBShare,partnerAWithdrawn,partnerBWithdrawn,partnerARemaining:partnerAShare-partnerAWithdrawn,partnerBRemaining:partnerBShare-partnerBWithdrawn};
  });
  const totals=months.reduce((result,row)=>({
-  personal:result.personal+row.personal,pilates:result.pilates+row.pilates,otherIncome:result.otherIncome+row.otherIncome,expenses:result.expenses+row.expenses,
+  personal:result.personal+row.personal,pilates:result.pilates+row.pilates,otherIncome:result.otherIncome+row.otherIncome,expensesPaid:result.expensesPaid+row.expensesPaid,pendingExpenses:result.pendingExpenses+row.pendingExpenses,expenses:result.expenses+row.expenses,
   studioResult:result.studioResult+row.studioResult,partnerAShare:result.partnerAShare+row.partnerAShare,partnerBShare:result.partnerBShare+row.partnerBShare,
   partnerAWithdrawn:result.partnerAWithdrawn+row.partnerAWithdrawn,partnerBWithdrawn:result.partnerBWithdrawn+row.partnerBWithdrawn,
   partnerARemaining:result.partnerARemaining+row.partnerARemaining,partnerBRemaining:result.partnerBRemaining+row.partnerBRemaining,
- }),{personal:0,pilates:0,otherIncome:0,expenses:0,studioResult:0,partnerAShare:0,partnerBShare:0,partnerAWithdrawn:0,partnerBWithdrawn:0,partnerARemaining:0,partnerBRemaining:0});
+ }),{personal:0,pilates:0,otherIncome:0,expensesPaid:0,pendingExpenses:0,expenses:0,studioResult:0,partnerAShare:0,partnerBShare:0,partnerAWithdrawn:0,partnerBWithdrawn:0,partnerARemaining:0,partnerBRemaining:0});
  return {year:Number(year),months,totals,profitSettings:monthSettings(String(year)+'-'+String(lastMonth||1).padStart(2,'0'))};
 }
 export async function saveStudioProfitSettings(_profileId,row){
