@@ -34,8 +34,8 @@ export default function PasswordSetupScreen({ mode = 'recovery' }) {
       }
 
       setAuthLink(link);
-    } catch (linkError) {
-      setError(linkError?.message || 'Não foi possível validar este link.');
+    } catch {
+      setError('');
     } finally {
       setValidating(false);
     }
