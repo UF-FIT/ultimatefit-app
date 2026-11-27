@@ -5,6 +5,7 @@ const nextMonth=month=>{const d=new Date(month+'-01T12:00:00Z');d.setUTCMonth(d.
 const firstOfYear=year=>String(year)+'-01-01';
 const nextYear=year=>String(Number(year)+1)+'-01-01';
 const sum=rows=>(rows||[]).reduce((total,row)=>total+(Number(row.amount_cents)||0),0);
+const normalizedExpensePayer=value=>value==='unknown'?null:(value||'studio');
 
 async function readAll(makeQuery){
  const result=[];
@@ -157,7 +158,7 @@ export async function saveStudioFinancialRecord(_profileId,row){
   direction:row.direction,category:row.category,description:row.description.trim(),amount_cents:row.amount_cents,
   period:row.period,due_on:row.due_on,status:row.status,paid_on:row.status==='paid'?row.paid_on:null,
   method:row.status==='paid'?(row.method||'other'):null,
-  expense_paid_by:row.direction==='expense'?(row.expense_paid_by||'studio'):'studio',updated_at:new Date().toISOString(),
+  expense_paid_by:row.direction==='expense'?normalizedExpensePayer(row.expense_paid_by):'studio',updated_at:new Date().toISOString(),
  };
  if(row.id)return run(supabase.from('studio_financial_records').update(values).eq('owner_id',owner).eq('id',row.id).select('*').single());
  return run(supabase.from('studio_financial_records').insert({...values,owner_id:owner,request_id:row.request_id}).select('*').single());
