@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {AlertCircle,Check,ChevronLeft,ChevronRight,Edit3,MessageCircle,Pause,Play,Plus,Repeat,Users,Wallet,X} from 'lucide-react';
 import {useApp} from '../contexts/AppContext';
 import {cents,money,today} from '../lib/payments';
-import {loadStudioMonth,loadStudioYearSummary,saveStudioMember,saveStudioFinancialRecord,saveStudioRecurringItem,saveStudioProfitSettings,saveStudioWithdrawal,setStudioChargePaid,setStudioFinancialRecordPaid,setStudioRecurringActive} from '../lib/studio';
+import {loadStudioMonth,loadStudioHistory,loadStudioYearSummary,saveStudioMember,saveStudioFinancialRecord,saveStudioRecurringItem,saveStudioProfitSettings,saveStudioWithdrawal,setStudioChargePaid,setStudioFinancialRecordPaid,setStudioRecurringActive} from '../lib/studio';
 import '../styles/studio-management.css';
 
 const incomeCategories=[['trainer_rent','Mensalidade de professor'],['other_income','Outro rendimento']];
@@ -27,6 +27,8 @@ export default function StudioManagement(){
  const [month,setMonth]=useState(localMonth());
  const [year,setYear]=useState(new Date().getFullYear());
  const [view,setView]=useState('month');
+ const [tab,setTab]=useState('overview');
+ const [trendRange,setTrendRange]=useState(6);
  const [payload,setPayload]=useState(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
@@ -36,6 +38,7 @@ export default function StudioManagement(){
  const [busyId,setBusyId]=useState('');
  const profileId=currentUser.id;
  const canManageStudio=currentUser.role==='admin'||currentUser.systemRole==='owner';
+ const isReadOnlyPreview=typeof window!=='undefined'&&window.location.hostname.toLowerCase().endsWith('.vercel.app');
  const members=payload?.members||[];
  const charges=payload?.charges||[];
  const records=payload?.records||[];
@@ -45,8 +48,11 @@ export default function StudioManagement(){
  async function reload(){
   setLoading(true);setError('');
   try{
-   const next=view==='month'?await loadStudioMonth(profileId,month):await loadStudioYearSummary(profileId,year);
-   setPayload(next);
+   if(view==='month'){
+    const next=await loadStudioMonth(profileId,month);
+    next.history=await loadStudioHistory(profileId,month,12);
+    setPayload(next);
+   }else setPayload(await loadStudioYearSummary(profileId,year));
   }catch(err){setPayload(null);setError(err.message||'Não foi possível carregar a gestão do estúdio.');}
   finally{setLoading(false);}
  }
@@ -72,100 +78,114 @@ export default function StudioManagement(){
   finally{setBusyId('');}
  }
  if(!canManageStudio)return <main className="studioManagement"><h1>Gestão do Estúdio</h1><Notice type="error">Esta secção está disponível apenas para administradores do estúdio.</Notice></main>;
- const summary=view==='month'?payload?.summary:null;
- const studioResult=(summary?.pilatesReceived||0)+(summary?.otherIncomeReceived||0)-(summary?.expensesPaid||0)-(summary?.pendingExpenses||0);
+
+ const isOwner=currentUser.systemRole==='owner';
+ const annual=payload?.totals||{};
+ const summary=view==='month'?payload?.summary:{
+  pilatesReceived:annual.pilates||0,otherIncomeReceived:annual.otherIncome||0,
+  expensesPaid:annual.expensesPaid||0,pendingExpenses:annual.pendingExpenses||0,
+  pendingIncome:annual.pendingIncome||0,
+ };
+ const studioResult=view==='month'
+  ?(summary?.pilatesReceived||0)+(summary?.otherIncomeReceived||0)-(summary?.expensesPaid||0)-(summary?.pendingExpenses||0)
+  :(annual.studioResult||0);
  const profitSettings=payload?.profitSettings||{partner_a_name:'Rui Marques',partner_b_name:'Manuel Gonzalves',partner_a_percent:50};
  const partnerAPercent=Number(profitSettings.partner_a_percent??50);
  const partnerBPercent=100-partnerAPercent;
- const partnerAShare=Math.round(studioResult*partnerAPercent/100);
- const partnerBShare=studioResult-partnerAShare;
  const monthlyWithdrawals=payload?.withdrawals||[];
- const partnerAWithdrawn=sumCents(monthlyWithdrawals.filter(row=>row.partner_key==='partner_a'));
- const partnerBWithdrawn=sumCents(monthlyWithdrawals.filter(row=>row.partner_key==='partner_b'));
- const partnerARemaining=partnerAShare-partnerAWithdrawn;
- const partnerBRemaining=partnerBShare-partnerBWithdrawn;
- const forecastResult=studioResult+(summary?.pendingIncome||0);
+ const partnerAWithdrawn=view==='month'?sumCents(monthlyWithdrawals.filter(row=>row.partner_key==='partner_a')):(annual.partnerAWithdrawn||0);
+ const partnerBWithdrawn=view==='month'?sumCents(monthlyWithdrawals.filter(row=>row.partner_key==='partner_b')):(annual.partnerBWithdrawn||0);
+ const partnerAShare=view==='month'?Math.round(studioResult*partnerAPercent/100):(annual.partnerAShare||0);
+ const partnerBShare=view==='month'?studioResult-partnerAShare:(annual.partnerBShare||0);
  const currentName=normalizeName(currentUser.name);
  const currentPartner=currentName===normalizeName(profitSettings.partner_a_name)?'partner_a':currentName===normalizeName(profitSettings.partner_b_name)?'partner_b':null;
  const ownStudioShare=currentPartner==='partner_a'?partnerAShare:currentPartner==='partner_b'?partnerBShare:null;
  const ownStudioWithdrawal=currentPartner==='partner_a'?partnerAWithdrawn:currentPartner==='partner_b'?partnerBWithdrawn:null;
+ const personalReceived=view==='month'?(payload?.personalReceived||0):(annual.personal||0);
+ const personalForDisplay=isOwner?personalReceived:personalReceived+(ownStudioWithdrawal||0);
+ const personalLabel=isOwner?'Treino pessoal · total global':'Total recebido por mim';
+ const personalDetailLabel=isOwner?'Recebimentos de treino pessoal agregados':'Treino pessoal recebido por ti';
+ const withdrawalDetail=isOwner?partnerAWithdrawn+partnerBWithdrawn:(ownStudioWithdrawal||0);
+ const history=view==='month'?(payload?.history||[]):(payload?.months||[]);
+ const pendingIncomeCount=view==='month'
+  ?charges.filter(row=>row.status==='pending').length+records.filter(row=>row.direction==='income'&&row.status==='pending').length
+  :(annual.pendingIncomeCount||0);
+ const pendingExpenseCount=view==='month'
+  ?records.filter(row=>row.direction==='expense'&&row.status==='pending').length
+  :(annual.pendingExpensesCount||0);
+ const selectedMonthLabel=monthLabel(month);
+ const tabLabels=[['overview','Visão Geral'],['members','Alunos'],['movements','Movimentos'],['partners','Sócios'],['reports','Relatórios']];
 
  return <main className="studioManagement">
-  <header className="studioHeading">
-   <div><small>ULTIMATE FIT · GESTÃO</small><h1>Gestão do Estúdio</h1><p>Receitas e despesas do Pilates e da utilização do estúdio, separadas do treino pessoal.</p></div>
-   <div className="studioHeadingActions"><button type="button" onClick={()=>setDialog({type:'member'})}><Plus size={17}/> Novo aluno de grupo</button><button className="primary" type="button" onClick={()=>setDialog({type:'finance'})}><Plus size={17}/> Novo rendimento/despesa</button></div>
+  <header className="studioHeading studioExecutiveHeading">
+   <div><small>ULTIMATE FIT / FINANCE</small><h1>{tabLabels.find(item=>item[0]===tab)?.[1]||'Visão Geral'}</h1><p>Controlo financeiro do estúdio, separado do treino pessoal.</p></div>
+   {view==='month'&&<div className="studioHeadingActions">
+    <button type="button" onClick={()=>setDialog({type:'member'})}><Plus size={16}/> Aluno</button>
+    <button className="primary" type="button" onClick={()=>setDialog({type:'finance'})}><Plus size={16}/> Novo registo</button>
+    <button type="button" onClick={()=>setDialog({type:'withdrawal'})}><Plus size={16}/> Levantamento</button>
+   </div>}
   </header>
-  <div className="studioPrivacy"><Users size={18}/><span>Os alunos de Pilates ficam numa lista independente. Não são associados aos alunos de treino pessoal da Diana, do Manuel ou de outros professores.</span></div>
+  <nav className="studioTabs" role="tablist" aria-label="Secções da Gestão do Estúdio">
+   {tabLabels.map(([key,label])=><button key={key} type="button" role="tab" aria-selected={tab===key} className={tab===key?'active':''} onClick={()=>setTab(key)}>{label}</button>)}
+  </nav>
+  <div className="studioToolbar">
+   <div className="studioViewSwitch" role="group" aria-label="Período de análise">
+    <button type="button" className={view==='month'?'active':''} onClick={()=>setView('month')}>Mês</button>
+    <button type="button" className={view==='year'?'active':''} onClick={()=>setView('year')}>Ano</button>
+   </div>
+   {view==='month'?<div className="studioPeriod"><button type="button" aria-label="Mês anterior" onClick={()=>shiftMonth(-1)}><ChevronLeft size={18}/></button><input aria-label="Mês" type="month" value={month} onChange={event=>setMonth(event.target.value)}/><button type="button" aria-label="Mês seguinte" onClick={()=>shiftMonth(1)}><ChevronRight size={18}/></button></div>:<label className="studioYearSelect">Ano<select value={year} onChange={event=>setYear(Number(event.target.value))}>{yearList().map(value=><option key={value} value={value}>{value}</option>)}</select></label>}
+   <span className="studioPeriodLabel">{view==='month'?selectedMonthLabel:String(year)}</span>
+  </div>
+  {isReadOnlyPreview&&<div className="studioPreviewNotice">Pré-visualização em modo de consulta: os registos não podem ser alterados.</div>}
+  <div className="studioPrivacy"><Users size={18}/><span>Os alunos de Pilates ficam numa lista independente. Os valores de treino pessoal respeitam o perfil: cada administrador vê apenas os seus recebimentos; a conta proprietária vê um total global agregado.</span></div>
   {notice&&<Notice>{notice}</Notice>}
   {error&&<Notice type="error">{error} <button type="button" onClick={()=>setRevision(n=>n+1)}>Tentar novamente</button></Notice>}
-  <div className="studioToolbar">
-   <div className="studioViewSwitch" role="group" aria-label="Período de análise"><button className={view==='month'?'active':''} onClick={()=>setView('month')}>Mês</button><button className={view==='year'?'active':''} onClick={()=>setView('year')}>Ano</button></div>
-   {view==='month'?<div className="studioPeriod"><button aria-label="Mês anterior" onClick={()=>shiftMonth(-1)}><ChevronLeft size={18}/></button><input aria-label="Mês" type="month" value={month} onChange={event=>setMonth(event.target.value)}/><button aria-label="Mês seguinte" onClick={()=>shiftMonth(1)}><ChevronRight size={18}/></button></div>:<label className="studioYearSelect">Ano<select value={year} onChange={event=>setYear(Number(event.target.value))}>{yearList().map(value=><option key={value} value={value}>{value}</option>)}</select></label>}
-   {view==='month'&&<span className="studioPeriodLabel">{monthLabel(month)}</span>}
-  </div>
-  {loading?<div className="studioLoading"><span className="studioSpinner"/><p>A carregar valores e inscrições…</p></div>:view==='month'?<>
-   <div className="studioMetrics">
-    <div><small>Pilates recebido</small><strong>{money(summary?.pilatesReceived||0)}</strong><span>Mensalidades efetivamente recebidas</span></div>
-    <div><small>Outros rendimentos do estúdio</small><strong>{money(summary?.otherIncomeReceived||0)}</strong><span>Inclui as mensalidades pagas pelos professores</span></div>
-    <div><small>Despesas pagas</small><strong>{money(summary?.expensesPaid||0)}</strong><span>Contadas uma única vez, mesmo quando pagas pelos dois sócios</span></div>
-    <div className="result"><small>Resultado do estúdio</small><strong>{money(studioResult)}</strong><span>Receitas recebidas menos despesas pagas e pendentes · antes de impostos</span></div>
-   </div>
-   <div className="studioMetrics studioSecondaryMetrics">
-    <div><small>{currentUser.systemRole==='owner'?'Treino pessoal · total global':'Treino pessoal recebido por ti'}</small><strong>{money(payload?.personalReceived||0)}</strong><span>{currentUser.systemRole==='owner'?'Soma agregada dos pagamentos pessoais de todos os professores.':'Pagamentos dos teus alunos; separado das contas do estúdio.'}</span></div>
-    <div className={currentPartner?'result':''}><small>{currentPartner?'Total recebido por ti · PT + levantamento':'Resultado previsto do estúdio'}</small><strong>{currentPartner?money((payload?.personalReceived||0)+(ownStudioWithdrawal||0)):money(forecastResult)}</strong><span>{currentPartner?'Inclui '+money(ownStudioWithdrawal||0)+' efetivamente levantados do estúdio; a tua quota calculada é '+money(ownStudioShare||0)+'.':<>Resultado atual ajustado por {money(summary?.pendingIncome||0)} por receber e {money(summary?.pendingExpenses||0)} por pagar.</>}</span></div>
-    <div><small>Por receber</small><strong>{money(summary?.pendingIncome||0)}</strong><span>Pilates e outros rendimentos pendentes deste mês</span></div>
-    <div><small>Despesas pendentes</small><strong>{money(summary?.pendingExpenses||0)}</strong><span>Contas e outros custos ainda por pagar</span></div>
-   </div>
-   <Card className="studioProfitCard">
-    <header className="studioCardHeader"><div><h2>Resultado e divisão entre sócios</h2><p>O lucro do estúdio não se soma inteiro ao teu rendimento pessoal. A divisão abaixo aplica-se a partir de {monthLabel(month)}.</p></div><div className="studioProfitActions"><button type="button" onClick={()=>setDialog({type:'profitSettings'})}><Edit3 size={15}/> Definir divisão</button><button type="button" onClick={()=>setDialog({type:'withdrawal'})}><Plus size={15}/> Registar levantamento</button></div></header>
-    <div className="studioFlow">
-     <div><small>Recebido no Pilates</small><strong>{money(summary?.pilatesReceived||0)}</strong></div><span aria-hidden="true">+</span>
-     <div><small>Outros rendimentos</small><strong>{money(summary?.otherIncomeReceived||0)}</strong></div><span aria-hidden="true">−</span>
-     <div><small>Despesas totais</small><strong>{money((summary?.expensesPaid||0)+(summary?.pendingExpenses||0))}</strong></div><span aria-hidden="true">=</span>
-     <div className="studioFlowResult"><small>Resultado antes de impostos</small><strong>{money(studioResult)}</strong></div>
-    </div>
-    <div className="studioPartnerShares">
-     <article><small>Quota de {profitSettings.partner_a_name} · {partnerAPercent}%</small><strong>{money(partnerAShare)}</strong><span>Levantado: {money(partnerAWithdrawn)} · Por levantar: {money(partnerARemaining)}</span></article>
-     <article><small>Quota de {profitSettings.partner_b_name} · {partnerBPercent}%</small><strong>{money(partnerBShare)}</strong><span>Levantado: {money(partnerBWithdrawn)} · Por levantar: {money(partnerBRemaining)}</span></article>
-    </div>
-    <div className="studioWithdrawals">
-     <h3>Levantamentos registados em {monthLabel(month)}</h3>
-     {!monthlyWithdrawals.length?<p>Ainda não há levantamentos registados neste mês.</p>:monthlyWithdrawals.map(row=><article key={row.id}><div><strong>{row.partner_key==='partner_a'?profitSettings.partner_a_name:profitSettings.partner_b_name}</strong><small>{new Date(row.withdrawn_on+'T12:00:00').toLocaleDateString('pt-PT')}{row.description?' · '+row.description:''}</small></div><strong>{money(row.amount_cents)}</strong><button type="button" className="studioIconButton" aria-label={'Editar levantamento de '+money(row.amount_cents)} onClick={()=>setDialog({type:'withdrawal',withdrawal:row})}><Edit3 size={15}/></button></article>)}
-    </div>
-    <div className="studioProfitNote">Os levantamentos são registados à parte e não contam como despesa. Se um movimento estiver marcado como pago por ambos, o custo total continua a ser descontado apenas uma vez.</div>
-   </Card>
-   <div className="studioColumns">
-    <Card>
-     <header className="studioCardHeader"><div><h2>Alunos de Pilates</h2><p>Inscrições e mensalidades de {monthLabel(month)}.</p></div><button type="button" onClick={()=>setDialog({type:'member'})}><Plus size={17}/> Adicionar aluno</button></header>
-     {!members.length?<div className="studioEmpty">Ainda não há alunos de grupo. Adiciona apenas o primeiro e o último nome, valor e, se quiseres enviar lembretes, o WhatsApp.</div>:<div className="studioMemberList">{members.map(member=>{
-      const charge=chargeByMember.get(member.id);
-      const phone=phoneForWhatsApp(member.whatsapp_phone);
-      const statusText=charge?(charge.status==='paid'?'Pago':charge.status==='cancelled'?'Anulado':'Pendente'):member.active?'Sem cobrança neste mês':'Inscrição inativa';
-      const whatsappMessage='Olá '+member.first_name+', tudo bem? Ainda não tenho registado o pagamento da mensalidade de Pilates referente a '+monthLabel(month)+' ('+money(charge?.amount_cents||member.monthly_fee_cents)+'). Quando puderes, envia-me o comprovativo. Obrigado!';
-      return <article className="studioMemberRow" key={member.id}>
-       <div className="studioMemberMain"><span className="studioMemberAvatar">{(member.first_name[0]||'')+(member.last_name[0]||'')}</span><div><strong>{memberName(member)}</strong><small>{money(charge?.amount_cents||member.monthly_fee_cents)} / mês · vence dia {member.due_day}</small></div></div>
-       <div className="studioMemberStatus"><span className={'studioTextStatus '+(charge?.status==='paid'?'paid':member.active?'pending':'muted')}>{statusText}</span>{charge?.status==='paid'&&charge.paid_on&&<small>Pago em {new Date(charge.paid_on+'T12:00:00').toLocaleDateString('pt-PT')}</small>}</div>
-       <div className="studioRowActions"><button type="button" className="studioIconButton" aria-label={'Editar '+memberName(member)} onClick={()=>setDialog({type:'member',member})}><Edit3 size={16}/></button>{member.active&&charge&&charge.status!=='cancelled'&&<button type="button" disabled={busyId===charge.id} className={charge.status==='paid'?'studioSmallButton secondary':'studioSmallButton primary'} onClick={()=>setChargePaid(charge,charge.status!=='paid')}>{charge.status==='paid'?<><X size={15}/> Desfazer</>:<><Check size={15}/> Marcar pago</>}</button>}{member.active&&charge?.status==='pending'&&phone&&<a className="studioWhatsapp" href={'https://wa.me/'+phone+'?text='+encodeURIComponent(whatsappMessage)} target="_blank" rel="noopener noreferrer" aria-label={'Abrir WhatsApp para '+memberName(member)}><MessageCircle size={17}/> Pedir pagamento</a>}</div>
-       {!phone&&member.active&&<small className="studioMemberHint">Sem WhatsApp registado · <button type="button" onClick={()=>setDialog({type:'member',member})}>Adicionar número</button></small>}
-      </article>;
-     })}</div>}
-     <footer className="studioCardFooter"><span>{members.filter(member=>member.active).length} inscrições ativas</span><button type="button" onClick={()=>setDialog({type:'member'})}>+ Adicionar aluno de Pilates</button></footer>
-    </Card>
-    <Card>
-     <header className="studioCardHeader"><div><h2>Movimentos do estúdio</h2><p>Rendimentos adicionais e despesas de {monthLabel(month)}.</p></div><button type="button" onClick={()=>setDialog({type:'finance'})}><Plus size={17}/> Adicionar</button></header>
-     {!records.length?<div className="studioEmpty">Sem movimentos registados neste mês. Podes adicionar uma despesa pontual ou criar um registo mensal recorrente. Exemplo: “Mensalidade da Diana” · 250 €.</div>:<div className="studioRecordList">{records.map(record=><article className="studioRecordRow" key={record.id}>
-      <div className={'studioRecordIcon '+record.direction}>{record.direction==='income'?<Wallet size={18}/>:<Repeat size={18}/>}</div>
-      <div className="studioRecordDetails"><strong>{record.description}</strong><small>{categoryName(record.category)} · vence {new Date(record.due_on+'T12:00:00').toLocaleDateString('pt-PT')}{record.recurring_item_id?' · mensal':''}{record.direction==='expense'?' · '+(record.status==='paid'?'Pago por: ':'Previsto por: ')+expensePayerLabel(record,profitSettings):''}</small></div>
-      <div className="studioRecordAmount"><strong>{money(record.amount_cents)}</strong><Status status={record.status} direction={record.direction}/></div>
-      <div className="studioRowActions"><button className="studioIconButton" type="button" aria-label={'Editar '+record.description} onClick={()=>setDialog({type:'finance',record})}><Edit3 size={16}/></button>{record.status!=='cancelled'&&<button type="button" disabled={busyId===record.id} className="studioSmallButton secondary" onClick={()=>setRecordPaid(record,record.status!=='paid')}>{record.status==='paid'?<><X size={15}/> Desfazer</>:<><Check size={15}/> Marcar pago</>}</button>}</div>
-     </article>)}</div>}
-     <footer className="studioCardFooter"><button type="button" onClick={()=>setDialog({type:'finance',recurring:true})}><Repeat size={16}/> Adicionar rendimento/despesa mensal</button></footer>
-    </Card>
-   </div>
-   <Card className="studioRecurringCard"><header className="studioCardHeader"><div><h2>Registos mensais automáticos</h2><p>As próximas mensalidades e despesas são geradas uma vez por mês, sem duplicações. Alterações futuras não reescrevem o histórico.</p></div><button type="button" onClick={()=>setDialog({type:'finance',recurring:true})}><Plus size={17}/> Criar registo mensal</button></header>
-    {!recurringItems.length?<p className="studioEmpty">Ainda não configuraste receitas ou despesas recorrentes.</p>:<div className="studioRecurringList">{recurringItems.map(item=><article key={item.id}><div className={'studioRecurringIcon '+item.direction}><Repeat size={17}/></div><div className="studioRecordDetails"><strong>{item.description}</strong><small>{categoryName(item.category)} · {money(item.amount_cents)} / mês · desde {new Date(item.starts_on+'T12:00:00').toLocaleDateString('pt-PT')}</small></div><span className={'studioTextStatus '+(item.active?'paid':'muted')}>{item.active?'Ativo':'Pausado'}</span><div className="studioRowActions"><button className="studioIconButton" type="button" aria-label={'Editar regra '+item.description} onClick={()=>setDialog({type:'finance',template:item})}><Edit3 size={16}/></button><button type="button" disabled={busyId===item.id} className="studioSmallButton secondary" onClick={()=>toggleRecurring(item)}>{item.active?<><Pause size={14}/> Pausar</>:<><Play size={14}/> Reativar</>}</button></div></article>)}</div>}
-   </Card>
-  </>:<YearView payload={payload} year={year} currentUser={currentUser}/>}
+  {loading?<div className="studioLoading"><span className="studioSpinner"/><p>A carregar valores e inscrições…</p></div>:<>
+   {tab==='overview'&&<StudioOverview
+    view={view} month={month} year={year} currentUser={currentUser} isOwner={isOwner}
+    personalTotal={personalForDisplay} personalLabel={personalLabel} personalDetailLabel={personalDetailLabel}
+    personalReceived={personalReceived} withdrawalDetail={withdrawalDetail} currentPartner={currentPartner}
+    summary={summary} studioResult={studioResult} partnerSettings={profitSettings}
+    partnerAShare={partnerAShare} partnerBShare={partnerBShare}
+    partnerAWithdrawn={partnerAWithdrawn} partnerBWithdrawn={partnerBWithdrawn}
+    ownStudioShare={ownStudioShare} ownStudioWithdrawal={ownStudioWithdrawal}
+    pendingIncomeCount={pendingIncomeCount} pendingExpenseCount={pendingExpenseCount}
+    records={records} charges={charges} members={members} history={history}
+    trendRange={trendRange} setTrendRange={setTrendRange}
+    onOpenTab={setTab}
+   />}
+   {tab==='members'&&view==='month'&&<StudioMembersPanel
+    month={month} members={members} chargeByMember={chargeByMember} busyId={busyId}
+    onEdit={member=>setDialog({type:'member',member})}
+    onAdd={()=>setDialog({type:'member'})} onSetPaid={setChargePaid}
+   />}
+   {tab==='movements'&&view==='month'&&<StudioMovementsPanel
+    month={month} records={records} recurringItems={recurringItems} profitSettings={profitSettings} busyId={busyId}
+    onEditRecord={record=>setDialog({type:'finance',record})}
+    onAddRecord={()=>setDialog({type:'finance'})}
+    onAddRecurring={()=>setDialog({type:'finance',recurring:true})}
+    onEditRecurring={template=>setDialog({type:'finance',template})}
+    onSetPaid={setRecordPaid} onToggleRecurring={toggleRecurring}
+   />}
+   {tab==='partners'&&view==='month'&&<StudioPartnersPanel
+    month={month} summary={summary} result={studioResult} settings={profitSettings}
+    partnerAPercent={partnerAPercent} partnerBPercent={partnerBPercent}
+    partnerAShare={partnerAShare} partnerBShare={partnerBShare}
+    partnerAWithdrawn={partnerAWithdrawn} partnerBWithdrawn={partnerBWithdrawn}
+    monthlyWithdrawals={monthlyWithdrawals} onEditSettings={()=>setDialog({type:'profitSettings'})}
+    onAddWithdrawal={()=>setDialog({type:'withdrawal'})}
+    onEditWithdrawal={withdrawal=>setDialog({type:'withdrawal',withdrawal})}
+   />}
+   {tab==='reports'&&<StudioReportsPanel
+    currentUser={currentUser} view={view} month={month} year={year} payload={payload} summary={summary}
+    history={history} trendRange={trendRange} setTrendRange={setTrendRange} records={records}
+   />}
+   {view==='year'&&tab!=='overview'&&tab!=='reports'&&<Card className="studioPeriodRequired">
+    <h2>Consulta mensal necessária</h2>
+    <p>A gestão de alunos, movimentos e sócios é apresentada por mês. A visão anual continua disponível em Visão Geral e Relatórios.</p>
+    <button type="button" onClick={()=>setView('month')}>Abrir o mês selecionado</button>
+   </Card>}
+  </>}
   {dialog?.type==='member'&&<MemberDialog member={dialog.member} month={month} onClose={()=>setDialog(null)} onSave={async values=>{await saveStudioMember(profileId,values);saved(dialog.member?'Inscrição atualizada.':'Aluno de Pilates adicionado.');}}/>}
   {dialog?.type==='finance'&&<FinanceDialog month={month} profitSettings={profitSettings} record={dialog.record} template={dialog.template} recurring={dialog.recurring} onClose={()=>setDialog(null)} onSave={async values=>{if(values.isRecurring)await saveStudioRecurringItem(profileId,values);else await saveStudioFinancialRecord(profileId,values);saved(values.isRecurring?(dialog.template?'Regra mensal atualizada.':'Registo mensal criado.'):(dialog.record?'Movimento atualizado.':'Movimento adicionado.'));}}/>}
   {dialog?.type==='profitSettings'&&<ProfitSettingsDialog settings={profitSettings} month={month} onClose={()=>setDialog(null)} onSave={async values=>{await saveStudioProfitSettings(profileId,values);saved('Divisão do resultado atualizada.');}}/>}
@@ -173,32 +193,224 @@ export default function StudioManagement(){
  </main>;
 }
 
+function StudioOverview({view,month,year,isOwner,personalTotal,personalLabel,personalDetailLabel,personalReceived,withdrawalDetail,summary,studioResult,partnerSettings,partnerAShare,partnerBShare,partnerAWithdrawn,partnerBWithdrawn,pendingIncomeCount,pendingExpenseCount,records,charges,members,history,trendRange,setTrendRange,onOpenTab}){
+ const pilates=summary?.pilatesReceived||0;
+ const otherIncome=summary?.otherIncomeReceived||0;
+ const received=pilates+otherIncome;
+ const expensesPaid=summary?.expensesPaid||0;
+ const pendingExpenses=summary?.pendingExpenses||0;
+ const expenses=expensesPaid+pendingExpenses;
+ const pendingIncome=summary?.pendingIncome||0;
+ const resultClass=studioResult>0?'positive':studioResult<0?'negative':'neutral';
+ const resultLabel=studioResult>0?'Lucro operacional':studioResult<0?'Prejuízo operacional':'Equilíbrio';
+ const pilatesShare=received?Math.round(pilates/received*100):0;
+ const memberById=new Map(members.map(row=>[row.id,row]));
+ const recent=[
+  ...records.filter(row=>row.status!=='cancelled').map(row=>({id:'record-'+row.id,label:row.description,date:row.paid_on||row.due_on,amount:Number(row.amount_cents)||0,direction:row.direction,status:row.status,source:categoryName(row.category)})),
+  ...charges.filter(row=>row.status!=='cancelled').map(row=>{const member=memberById.get(row.member_id);return {id:'charge-'+row.id,label:'Mensalidade · '+(member?memberName(member):'Aluno de Pilates'),date:row.paid_on||row.due_on,amount:Number(row.amount_cents)||0,direction:'income',status:row.status,source:'Pilates'};})
+ ].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,6);
+
+ return <div className="studioOverview">
+  <section className="studioPersonalHero">
+   <div className="studioHeroHeading"><div><small>RENDIMENTO PESSOAL</small><h2>{personalLabel}</h2></div><span aria-hidden="true" className="studioHeroWallet"><Wallet size={20}/></span></div>
+   <strong className="studioPersonalAmount">{money(personalTotal)}</strong>
+   <p>{isOwner?'Treino pessoal recebido no estúdio, apresentado apenas como total agregado.':personalDetailLabel}</p>
+   <div className="studioPersonalBreakdown">
+    <div><span>{personalDetailLabel}</span><strong>{money(personalReceived)}</strong></div>
+    <div><span>{isOwner?'Levantamentos do estúdio · total':'Levantamentos feitos a ti'}</span><strong>{money(withdrawalDetail)}</strong></div>
+   </div>
+   <small className="studioHeroFootnote">{isOwner?'Os valores de treino pessoal não são detalhados por aluno.':'A quota do lucro só entra no teu rendimento quando é efetivamente levantada.'}</small>
+  </section>
+
+  <section className="studioAccountSection">
+   <div className="studioSectionTitle"><div><small>CONTAS DO ESTÚDIO</small><h2>Situação financeira</h2></div><span>{view==='month'?monthLabel(month):year}</span></div>
+   <div className="studioAccountMetrics">
+    <article className="revenue"><small>Receitas recebidas</small><strong>{money(received)}</strong><span>Pilates {money(pilates)} · Outras {money(otherIncome)}</span></article>
+    <article className="expenses"><small>Despesas totais</small><strong>{money(expenses)}</strong><span>Pagas {money(expensesPaid)} · Pendentes {money(pendingExpenses)}</span></article>
+    <article className={'result '+resultClass}><small>Resultado antes de impostos</small><strong>{money(studioResult)}</strong><span>{resultLabel} · despesas pendentes incluídas</span></article>
+   </div>
+  </section>
+
+  <div className="studioOverviewCharts">
+   <Card className="studioCompositionCard">
+    <header className="studioCardHeader"><div><h2>Origem das receitas</h2><p>Recebimentos efetivos no período</p></div></header>
+    <div className="studioCompositionBody">
+     <div className="studioDonut" role="img" aria-label={'Receitas: Pilates '+money(pilates)+' e outros rendimentos '+money(otherIncome)} style={{'--studio-donut-share':pilatesShare+'%'}}>
+      <div><strong>{money(received)}</strong><span>Total recebido</span></div>
+     </div>
+     <div className="studioCompositionLegend"><div><span><i className="pilatesDot"/> Pilates</span><strong>{money(pilates)}</strong></div><div><span><i className="otherDot"/> Outras receitas</span><strong>{money(otherIncome)}</strong></div></div>
+    </div>
+   </Card>
+   <Card className="studioBalanceCard">
+    <header className="studioCardHeader"><div><h2>Receitas vs despesas</h2><p>Comparação dos valores do período</p></div></header>
+    <FinanceComparison received={received} expenses={expenses} result={studioResult}/>
+   </Card>
+  </div>
+
+  <Card className="studioPartnerOverview">
+   <header className="studioCardHeader"><div><h2>Divisão entre sócios</h2><p>Resultado do estúdio distribuído segundo as percentagens definidas</p></div><span className="studioSplitBadge">{Number(partnerSettings.partner_a_percent??50)} / {100-Number(partnerSettings.partner_a_percent??50)}</span></header>
+   <div className="studioShareGrid">
+    {[{name:partnerSettings.partner_a_name||'Sócio 1',percent:Number(partnerSettings.partner_a_percent??50),share:partnerAShare,withdrawn:partnerAWithdrawn},{name:partnerSettings.partner_b_name||'Sócio 2',percent:100-Number(partnerSettings.partner_a_percent??50),share:partnerBShare,withdrawn:partnerBWithdrawn}].map((partner,index)=><article key={index} className={partner.share<0?'loss':''}>
+     <span>{partner.name} · {partner.percent}%</span><strong>{money(partner.share)}</strong>
+     <small>{partner.share<0?'Quota do prejuízo':partner.share>0?'Quota do resultado':'Equilíbrio'}</small>
+     <small>Levantado: {money(partner.withdrawn)}</small>
+    </article>)}
+   </div>
+   <p className="studioShareNote">O resultado não é somado ao rendimento pessoal até o valor ser efetivamente levantado.</p>
+  </Card>
+
+  <div className="studioOverviewLower">
+   <Card className="studioAlertsCard">
+    <header className="studioCardHeader"><div><h2>Alertas e pendências</h2><p>Valores em aberto no período</p></div></header>
+    <div className="studioAlertsList">
+     <div className={pendingIncome?'pending':''}><span className="studioAlertMark">{pendingIncome?'!':'✓'}</span><span>{pendingIncome?pendingIncomeCount+' cobrança(s) por receber':'Sem pagamentos pendentes'}</span><strong>{money(pendingIncome)}</strong></div>
+     <div className={pendingExpenses?'pending':''}><span className="studioAlertMark">{pendingExpenses?'!':'✓'}</span><span>{pendingExpenses?pendingExpenseCount+' despesa(s) por pagar':'Sem despesas pendentes'}</span><strong>{money(pendingExpenses)}</strong></div>
+    </div>
+   </Card>
+   <Card className="studioRecentCard">
+    <header className="studioCardHeader"><div><h2>Movimentos recentes</h2><p>{view==='month'?selectedMonthLabelText(month):'Movimentos deste ano'}</p></div><button type="button" onClick={()=>view==='month'&&onOpenTab('movements')}>Ver movimentos</button></header>
+    {view==='month'&&!recent.length?<div className="studioEmpty">Ainda não há movimentos neste período.</div>:view==='year'?<div className="studioEmpty">Abre Relatórios para consultar os movimentos mensais deste ano.</div>:<div className="studioRecentList">{recent.map(row=><article key={row.id}><span className={'studioRecentIcon '+row.direction}>{row.direction==='income'?'+':'−'}</span><div><strong>{row.label}</strong><small>{row.source} · {row.date?new Date(row.date+'T12:00:00').toLocaleDateString('pt-PT'):'Data não indicada'}</small></div><div><strong className={row.direction==='income'?'income':'expense'}>{row.direction==='income'?'+':'−'}{money(row.amount)}</strong><small>{row.status==='paid'?'Pago':row.status==='pending'?row.direction==='income'?'Por receber':'Por pagar':'Anulado'}</small></div></article>)}</div>}
+   </Card>
+  </div>
+
+  <FinanceTrend months={history} range={trendRange} onRangeChange={setTrendRange}/>
+ </div>;
+}
+
+function selectedMonthLabelText(month){return monthLabel(month);}
+function FinanceComparison({received,expenses,result}){
+ const max=Math.max(received,expenses,1);
+ const difference=Math.abs(result);
+ return <div className="studioComparison">
+  <div><span>Receitas</span><strong>{money(received)}</strong><div className="studioComparisonTrack"><i className="income" style={{width:(received/max*100)+'%'}}/></div></div>
+  <div><span>Despesas <small>(pagas + pendentes)</small></span><strong>{money(expenses)}</strong><div className="studioComparisonTrack"><i className="expense" style={{width:(expenses/max*100)+'%'}}/></div></div>
+  <p className={result<0?'negative':result>0?'positive':'neutral'}>{result<0?'Faltaram '+money(difference)+' para atingir o equilíbrio.':result>0?'Saldo operacional positivo de '+money(difference)+'.':'Receitas e despesas estão em equilíbrio.'}</p>
+ </div>;
+}
+
+function FinanceTrend({months,range,onRangeChange}){
+ const selected=(months||[]).slice(-range);
+ const values=selected.flatMap(row=>[Number(row.pilates||0)+Number(row.otherIncome||0),Number(row.expenses||0),Number(row.studioResult||0)]);
+ const max=Math.max(0,...values);
+ const min=Math.min(0,...values);
+ const span=Math.max(max-min,1);
+ const width=760,height=250,padLeft=42,padRight=12,padTop=16,padBottom=34;
+ const plotWidth=width-padLeft-padRight,plotHeight=height-padTop-padBottom;
+ const y=value=>padTop+(max-value)/span*plotHeight;
+ const baseline=y(0);
+ const step=selected.length?plotWidth/selected.length:plotWidth;
+ const barWidth=Math.min(15,Math.max(5,step*.22));
+ const points=selected.map((row,index)=>({x:padLeft+step*index+step/2,y:y(Number(row.studioResult||0)),row}));
+ const path=points.map((point,index)=>(index?'L':'M')+point.x+' '+point.y).join(' ');
+ return <Card className="studioTrendCard">
+  <header className="studioCardHeader"><div><h2>Evolução financeira</h2><p>Receitas, despesas e resultado por mês</p></div><div className="studioTrendRanges" role="group" aria-label="Intervalo do gráfico">{[3,6,12].map(value=><button key={value} type="button" className={range===value?'active':''} aria-pressed={range===value} onClick={()=>onRangeChange(value)}>{value}M</button>)}</div></header>
+  {!selected.length||!selected.some(row=>Number(row.pilates||0)||Number(row.otherIncome||0)||Number(row.expenses||0))?<div className="studioEmpty">Ainda não há histórico suficiente para apresentar um gráfico.</div>:<>
+   <div className="studioTrendLegend"><span><i className="income"/>Receitas</span><span><i className="expense"/>Despesas</span><span><i className="result"/>Resultado</span></div>
+   <div className="studioTrendViewport"><svg viewBox={'0 0 '+width+' '+height} role="img" aria-label="Gráfico da evolução financeira">
+    {[0,.33,.66,1].map((fraction,index)=>{const value=max-span*fraction;const lineY=y(value);return <g key={index}><line x1={padLeft} x2={width-padRight} y1={lineY} y2={lineY} className="studioChartGrid"/><text x={padLeft-7} y={lineY+4} textAnchor="end" className="studioChartTick">{Math.round(value/100)}</text></g>;})}
+    <line x1={padLeft} x2={width-padRight} y1={baseline} y2={baseline} className="studioChartZero"/>
+    {selected.map((row,index)=>{const receipts=(Number(row.pilates||0)+Number(row.otherIncome||0));const expense=Number(row.expenses||0);const x=padLeft+step*index+step/2;return <g key={row.key}><rect x={x-barWidth-2} y={Math.min(baseline,y(receipts))} width={barWidth} height={Math.max(1,Math.abs(baseline-y(receipts)))} rx="3" className="studioChartIncome"><title>{row.label}: receitas {money(receipts)}</title></rect><rect x={x+2} y={Math.min(baseline,y(expense))} width={barWidth} height={Math.max(1,Math.abs(baseline-y(expense)))} rx="3" className="studioChartExpense"><title>{row.label}: despesas {money(expense)}</title></rect><text x={x} y={height-8} textAnchor="middle" className="studioChartMonth">{row.label}</text></g>;})}
+    <path d={path} className="studioChartResult"/>
+    {points.map((point,index)=><circle key={index} cx={point.x} cy={point.y} r="3.5" className="studioChartResultDot"><title>{point.row.label}: resultado {money(point.row.studioResult||0)}</title></circle>)}
+   </svg></div>
+  </>}
+ </Card>;
+}
+
+function StudioMembersPanel({month,members,chargeByMember,busyId,onEdit,onAdd,onSetPaid}){
+ return <Card className="studioFullPanel">
+  <header className="studioCardHeader"><div><h2>Alunos de Pilates</h2><p>Inscrições e mensalidades de {monthLabel(month)}. Registos independentes dos alunos de treino pessoal.</p></div><button type="button" onClick={onAdd}><Plus size={16}/> Adicionar aluno</button></header>
+  {!members.length?<div className="studioEmpty">Ainda não há alunos de grupo. Adiciona apenas o primeiro e o último nome, valor e, se quiseres enviar lembretes, o WhatsApp.</div>:<div className="studioMemberList">{members.map(member=>{
+   const charge=chargeByMember.get(member.id);
+   const phone=phoneForWhatsApp(member.whatsapp_phone);
+   const statusText=charge?(charge.status==='paid'?'Pago':charge.status==='cancelled'?'Anulado':'Pendente'):member.active?'Sem cobrança neste mês':'Inscrição inativa';
+   const whatsappMessage='Olá '+member.first_name+', tudo bem? Ainda não tenho registado o pagamento da mensalidade de Pilates referente a '+monthLabel(month)+' ('+money(charge?.amount_cents||member.monthly_fee_cents)+'). Quando puderes, envia-me o comprovativo. Obrigado!';
+   return <article className="studioMemberRow" key={member.id}>
+    <div className="studioMemberMain"><span className="studioMemberAvatar">{(member.first_name[0]||'')+(member.last_name[0]||'')}</span><div><strong>{memberName(member)}</strong><small>{money(charge?.amount_cents||member.monthly_fee_cents)} / mês · vence dia {member.due_day}</small></div></div>
+    <div className="studioMemberStatus"><span className={'studioTextStatus '+(charge?.status==='paid'?'paid':member.active?'pending':'muted')}>{statusText}</span>{charge?.status==='paid'&&charge.paid_on&&<small>Pago em {new Date(charge.paid_on+'T12:00:00').toLocaleDateString('pt-PT')}</small>}</div>
+    <div className="studioRowActions"><button type="button" className="studioIconButton" aria-label={'Editar '+memberName(member)} onClick={()=>onEdit(member)}><Edit3 size={16}/></button>{member.active&&charge&&charge.status!=='cancelled'&&<button type="button" disabled={busyId===charge.id} className={charge.status==='paid'?'studioSmallButton secondary':'studioSmallButton primary'} onClick={()=>onSetPaid(charge,charge.status!=='paid')}>{charge.status==='paid'?<><X size={15}/> Desfazer</>:<><Check size={15}/> Marcar pago</>}</button>}{member.active&&charge?.status==='pending'&&phone&&<a className="studioWhatsapp" href={'https://wa.me/'+phone+'?text='+encodeURIComponent(whatsappMessage)} target="_blank" rel="noopener noreferrer" aria-label={'Abrir WhatsApp para '+memberName(member)}><MessageCircle size={17}/> Pedir pagamento</a>}</div>
+    {!phone&&member.active&&<small className="studioMemberHint">Sem WhatsApp registado · <button type="button" onClick={()=>onEdit(member)}>Adicionar número</button></small>}
+   </article>;
+  })}</div>}
+  <footer className="studioCardFooter"><span>{members.filter(member=>member.active).length} inscrições ativas</span><button type="button" onClick={onAdd}>+ Adicionar aluno de Pilates</button></footer>
+ </Card>;
+}
+
+function StudioMovementsPanel({month,records,recurringItems,profitSettings,busyId,onEditRecord,onAddRecord,onAddRecurring,onEditRecurring,onSetPaid,onToggleRecurring}){
+ return <>
+  <Card className="studioFullPanel">
+   <header className="studioCardHeader"><div><h2>Movimentos do estúdio</h2><p>Rendimentos adicionais e despesas de {monthLabel(month)}.</p></div><button type="button" onClick={onAddRecord}><Plus size={16}/> Adicionar movimento</button></header>
+   {!records.length?<div className="studioEmpty">Sem movimentos registados neste mês. Podes adicionar um rendimento, despesa ou regra mensal recorrente.</div>:<div className="studioRecordList">{records.map(record=><article className="studioRecordRow" key={record.id}>
+    <div className={'studioRecordIcon '+record.direction}>{record.direction==='income'?<Wallet size={18}/>:<Repeat size={18}/>}</div>
+    <div className="studioRecordDetails"><strong>{record.description}</strong><small>{categoryName(record.category)} · vence {new Date(record.due_on+'T12:00:00').toLocaleDateString('pt-PT')}{record.recurring_item_id?' · mensal':''}{record.direction==='expense'?' · '+(record.status==='paid'?'Pago por: ':'Previsto por: ')+expensePayerLabel(record,profitSettings):''}</small></div>
+    <div className="studioRecordAmount"><strong>{money(record.amount_cents)}</strong><Status status={record.status} direction={record.direction}/></div>
+    <div className="studioRowActions"><button className="studioIconButton" type="button" aria-label={'Editar '+record.description} onClick={()=>onEditRecord(record)}><Edit3 size={16}/></button>{record.status!=='cancelled'&&<button type="button" disabled={busyId===record.id} className="studioSmallButton secondary" onClick={()=>onSetPaid(record,record.status!=='paid')}>{record.status==='paid'?<><X size={15}/> Desfazer</>:<><Check size={15}/> Marcar pago</>}</button>}</div>
+   </article>)}</div>}
+   <footer className="studioCardFooter"><button type="button" onClick={onAddRecurring}><Repeat size={15}/> Adicionar rendimento/despesa mensal</button></footer>
+  </Card>
+  <Card className="studioRecurringCard"><header className="studioCardHeader"><div><h2>Registos mensais automáticos</h2><p>Gerados uma vez por mês, sem duplicações. Alterações futuras preservam o histórico.</p></div><button type="button" onClick={onAddRecurring}><Plus size={16}/> Criar registo mensal</button></header>
+   {!recurringItems.length?<p className="studioEmpty">Ainda não configuraste receitas ou despesas recorrentes.</p>:<div className="studioRecurringList">{recurringItems.map(item=><article key={item.id}><div className={'studioRecurringIcon '+item.direction}><Repeat size={17}/></div><div className="studioRecordDetails"><strong>{item.description}</strong><small>{categoryName(item.category)} · {money(item.amount_cents)} / mês · desde {new Date(item.starts_on+'T12:00:00').toLocaleDateString('pt-PT')}</small></div><span className={'studioTextStatus '+(item.active?'paid':'muted')}>{item.active?'Ativo':'Pausado'}</span><div className="studioRowActions"><button className="studioIconButton" type="button" aria-label={'Editar regra '+item.description} onClick={()=>onEditRecurring(item)}><Edit3 size={15}/></button><button type="button" disabled={busyId===item.id} className="studioSmallButton secondary" onClick={()=>onToggleRecurring(item)}>{item.active?<><Pause size={14}/> Pausar</>:<><Play size={14}/> Reativar</>}</button></div></article>)}</div>}
+  </Card>
+ </>;
+}
+
+function StudioPartnersPanel({month,summary,result,settings,partnerAPercent,partnerBPercent,partnerAShare,partnerBShare,partnerAWithdrawn,partnerBWithdrawn,monthlyWithdrawals,onEditSettings,onAddWithdrawal,onEditWithdrawal}){
+ return <Card className="studioProfitCard studioFullPanel">
+  <header className="studioCardHeader"><div><h2>Resultado e divisão entre sócios</h2><p>As quotas de {monthLabel(month)} seguem as percentagens ativas nesse período.</p></div><div className="studioProfitActions"><button type="button" onClick={onEditSettings}><Edit3 size={15}/> Definir divisão</button><button type="button" onClick={onAddWithdrawal}><Plus size={15}/> Registar levantamento</button></div></header>
+  <div className="studioFlow">
+   <div><small>Recebido no Pilates</small><strong>{money(summary?.pilatesReceived||0)}</strong></div><span aria-hidden="true">+</span>
+   <div><small>Outros rendimentos</small><strong>{money(summary?.otherIncomeReceived||0)}</strong></div><span aria-hidden="true">−</span>
+   <div><small>Despesas pagas + pendentes</small><strong>{money((summary?.expensesPaid||0)+(summary?.pendingExpenses||0))}</strong></div><span aria-hidden="true">=</span>
+   <div className="studioFlowResult"><small>Resultado antes de impostos</small><strong>{money(result)}</strong></div>
+  </div>
+  <div className="studioPartnerShares">
+   {[{name:settings.partner_a_name,percent:partnerAPercent,share:partnerAShare,withdrawn:partnerAWithdrawn},{name:settings.partner_b_name,percent:partnerBPercent,share:partnerBShare,withdrawn:partnerBWithdrawn}].map((partner,index)=><article key={index} className={partner.share<0?'loss':''}><small>{partner.name} · {partner.percent}%</small><strong>{money(partner.share)}</strong><span>{partner.share<0?'Quota do prejuízo':partner.share>0?'Quota do resultado':'Equilíbrio'} · Levantado: {money(partner.withdrawn)}</span></article>)}
+  </div>
+  <div className="studioWithdrawals">
+   <h3>Levantamentos registados em {monthLabel(month)}</h3>
+   {!monthlyWithdrawals.length?<p>Ainda não há levantamentos registados neste mês.</p>:monthlyWithdrawals.map(row=><article key={row.id}><div><strong>{row.partner_key==='partner_a'?settings.partner_a_name:settings.partner_b_name}</strong><small>{new Date(row.withdrawn_on+'T12:00:00').toLocaleDateString('pt-PT')}{row.description?' · '+row.description:''}</small></div><strong>{money(row.amount_cents)}</strong><button type="button" className="studioIconButton" aria-label={'Editar levantamento de '+money(row.amount_cents)} onClick={()=>onEditWithdrawal(row)}><Edit3 size={15}/></button></article>)}
+  </div>
+  <div className="studioProfitNote">Levantamentos não contam como despesa. Uma despesa marcada como paga por ambos continua a ser contabilizada apenas uma vez.</div>
+ </Card>;
+}
+
+function StudioReportsPanel({currentUser,view,month,year,payload,summary,history,trendRange,setTrendRange,records}){
+ if(view==='year')return <><FinanceTrend months={history} range={trendRange} onRangeChange={setTrendRange}/><YearView payload={payload} year={year} currentUser={currentUser}/></>;
+ const expenses=new Map();
+ records.filter(row=>row.direction==='expense'&&row.status!=='cancelled').forEach(row=>{const key=row.category||'other_expense';const entry=expenses.get(key)||{category:key,total:0,paid:0,pending:0};const amount=Number(row.amount_cents)||0;entry.total+=amount;if(row.status==='paid')entry.paid+=amount;else entry.pending+=amount;expenses.set(key,entry);});
+ const expenseRows=[...expenses.values()].sort((a,b)=>b.total-a.total);
+ return <>
+  <FinanceTrend months={history} range={trendRange} onRangeChange={setTrendRange}/>
+  <Card className="studioReportBreakdown">
+   <header className="studioCardHeader"><div><h2>Relatório de {monthLabel(month)}</h2><p>Receitas pelo dia em que foram recebidas; despesas pelo mês de referência.</p></div></header>
+   <div className="studioReportColumns">
+    <section><h3>Receitas recebidas</h3><div className="studioReportLine"><span>Pilates</span><strong>{money(summary?.pilatesReceived||0)}</strong></div><div className="studioReportLine"><span>Outros rendimentos</span><strong>{money(summary?.otherIncomeReceived||0)}</strong></div><div className="studioReportTotal"><span>Total recebido</span><strong>{money((summary?.pilatesReceived||0)+(summary?.otherIncomeReceived||0))}</strong></div></section>
+    <section><h3>Despesas por categoria</h3>{!expenseRows.length?<p className="studioEmpty">Sem despesas registadas no período.</p>:expenseRows.map(row=><div className="studioReportLine" key={row.category}><span>{categoryName(row.category)}<small>Pagas {money(row.paid)} · Pendentes {money(row.pending)}</small></span><strong>{money(row.total)}</strong></div>)}<div className="studioReportTotal"><span>Total de despesas</span><strong>{money((summary?.expensesPaid||0)+(summary?.pendingExpenses||0))}</strong></div></section>
+   </div>
+  </Card>
+ </>;
+}
 function YearView({payload,year,currentUser}){
  const rows=payload?.months||[];
  const totals=payload?.totals||{};
  const settings=payload?.profitSettings||{partner_a_name:'Rui Marques',partner_b_name:'Manuel Gonzalves',partner_a_percent:50};
- const currentName=normalizeName(currentUser.name);
- const currentPartner=currentName===normalizeName(settings.partner_a_name)?'partner_a':currentName===normalizeName(settings.partner_b_name)?'partner_b':null;
- const combinedLabel=currentUser.systemRole==='owner'?'Total do negócio antes da divisão':currentPartner?'Total pessoal + levantamentos do estúdio':null;
- const combinedTotal=currentUser.systemRole==='owner'?(totals.personal||0)+(totals.studioResult||0):currentPartner?(totals.personal||0)+(currentPartner==='partner_a'?(totals.partnerAWithdrawn||0):(totals.partnerBWithdrawn||0)):null;
- return <>
-  <div className="studioMetrics">
-   <div><small>{currentUser.systemRole==='owner'?'Treino pessoal · total global':'Treino pessoal recebido por ti'}</small><strong>{money(totals.personal||0)}</strong><span>Recebimentos pessoais no ano, separados das contas do estúdio</span></div>
-   <div><small>Pilates recebido</small><strong>{money(totals.pilates||0)}</strong><span>Mensalidades efetivamente recebidas</span></div>
-   <div><small>Outros rendimentos do estúdio</small><strong>{money(totals.otherIncome||0)}</strong><span>Inclui mensalidades dos professores</span></div>
-   <div><small>Despesas do estúdio</small><strong>{money(totals.expenses||0)}</strong><span>Pagas: {money(totals.expensesPaid||0)} · pendentes: {money(totals.pendingExpenses||0)}</span></div>
+ const personalLabel=currentUser.systemRole==='owner'?'Treino pessoal · total global':'Treino pessoal recebido por ti';
+ const resultClass=Number(totals.studioResult||0)>0?'positive':Number(totals.studioResult||0)<0?'negative':'neutral';
+ return <Card className="studioYearCard studioFullPanel">
+  <header className="studioCardHeader"><div><h2>Resumo financeiro de {year}</h2><p>Receitas pela data de recebimento; despesas pelo mês de referência. Resultado antes de impostos, com despesas pendentes incluídas.</p></div></header>
+  <div className="studioYearHighlights">
+   <article><small>{personalLabel}</small><strong>{money(totals.personal||0)}</strong><span>Separado das contas do estúdio</span></article>
+   <article className="revenue"><small>Receitas recebidas</small><strong>{money((totals.pilates||0)+(totals.otherIncome||0))}</strong><span>Pilates {money(totals.pilates||0)} · Outros {money(totals.otherIncome||0)}</span></article>
+   <article className="expenses"><small>Despesas totais</small><strong>{money(totals.expenses||0)}</strong><span>Pagas {money(totals.expensesPaid||0)} · Pendentes {money(totals.pendingExpenses||0)}</span></article>
+   <article className={'result '+resultClass}><small>Resultado antes de impostos</small><strong>{money(totals.studioResult||0)}</strong><span>{Number(totals.studioResult||0)<0?'Prejuízo':Number(totals.studioResult||0)>0?'Lucro':'Equilíbrio'}</span></article>
   </div>
-  <Card className="studioYearCard"><header className="studioCardHeader"><div><h2>Resumo financeiro de {year}</h2><p>Rendimentos por data de recebimento; despesas pelo mês de referência, incluindo as que ainda estão por pagar. Resultado antes de impostos; levantamentos não são despesas.</p></div></header>
-   <div className="studioYearResult">
-    <article><span>Resultado do estúdio</span><strong>{money(totals.studioResult||0)}</strong></article>
-    <article><span>Quota de {settings.partner_a_name}</span><strong>{money(totals.partnerAShare||0)}</strong><small>Levantado {money(totals.partnerAWithdrawn||0)} · por levantar {money(totals.partnerARemaining||0)}</small></article>
-    <article><span>Quota de {settings.partner_b_name}</span><strong>{money(totals.partnerBShare||0)}</strong><small>Levantado {money(totals.partnerBWithdrawn||0)} · por levantar {money(totals.partnerBRemaining||0)}</small></article>
-    {combinedLabel&&<article className="combined"><span>{combinedLabel}</span><strong>{money(combinedTotal||0)}</strong><small>{currentUser.systemRole==='owner'?'Treino pessoal global + resultado total do estúdio, antes da divisão.':'Recebimentos do teu treino pessoal + levantamentos efetivamente registados para ti.'}</small></article>}
-   </div>
-   <div className="studioYearTableWrap"><table className="studioYearTable"><thead><tr><th>Mês</th><th>{currentUser.systemRole==='owner'?'Treino pessoal · global':'Treino pessoal'}</th><th>Pilates</th><th>Outros rendimentos</th><th>Despesas pagas</th><th>Pendentes</th><th>Despesas totais</th><th>Resultado estúdio</th><th>Quota sócio A</th><th>Quota sócio B</th><th>Levantamentos A/B</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th>{row.label}</th><td>{money(row.personal)}</td><td>{money(row.pilates)}</td><td>{money(row.otherIncome)}</td><td>{money(row.expensesPaid)}</td><td>{money(row.pendingExpenses)}</td><td>{money(row.expenses)}</td><td>{money(row.studioResult)}</td><td>{money(row.partnerAShare)}</td><td>{money(row.partnerBShare)}</td><td>{money(row.partnerAWithdrawn)} / {money(row.partnerBWithdrawn)}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{money(totals.personal||0)}</td><td>{money(totals.pilates||0)}</td><td>{money(totals.otherIncome||0)}</td><td>{money(totals.expensesPaid||0)}</td><td>{money(totals.pendingExpenses||0)}</td><td>{money(totals.expenses||0)}</td><td>{money(totals.studioResult||0)}</td><td>{money(totals.partnerAShare||0)}</td><td>{money(totals.partnerBShare||0)}</td><td>{money(totals.partnerAWithdrawn||0)} / {money(totals.partnerBWithdrawn||0)}</td></tr></tfoot></table></div>
-   <p className="studioYearNote">Os dados de treino pessoal respeitam o perfil de acesso: cada administrador vê apenas os seus próprios recebimentos; a conta proprietária vê apenas o total global agregado, sem valores por aluno.</p>
-  </Card>
- </>;
+  <div className="studioYearShares">
+   <article><span>{settings.partner_a_name} · {Number(settings.partner_a_percent??50)}%</span><strong>{money(totals.partnerAShare||0)}</strong><small>{Number(totals.partnerAShare||0)<0?'Quota do prejuízo':'Quota do resultado'} · levantado {money(totals.partnerAWithdrawn||0)}</small></article>
+   <article><span>{settings.partner_b_name} · {100-Number(settings.partner_a_percent??50)}%</span><strong>{money(totals.partnerBShare||0)}</strong><small>{Number(totals.partnerBShare||0)<0?'Quota do prejuízo':'Quota do resultado'} · levantado {money(totals.partnerBWithdrawn||0)}</small></article>
+  </div>
+  <div className="studioYearTableWrap"><table className="studioYearTable"><thead><tr><th>Mês</th><th>{currentUser.systemRole==='owner'?'Treino pessoal · global':'Treino pessoal'}</th><th>Pilates</th><th>Outras receitas</th><th>Por receber</th><th>Despesas pagas</th><th>Por pagar</th><th>Despesas totais</th><th>Resultado</th><th>Quota A</th><th>Quota B</th><th>Levantamentos A/B</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th>{row.label}</th><td>{money(row.personal)}</td><td>{money(row.pilates)}</td><td>{money(row.otherIncome)}</td><td>{money(row.pendingIncome||0)}</td><td>{money(row.expensesPaid)}</td><td>{money(row.pendingExpenses)}</td><td>{money(row.expenses)}</td><td className={Number(row.studioResult)<0?'negative':Number(row.studioResult)>0?'positive':''}>{money(row.studioResult)}</td><td>{money(row.partnerAShare)}</td><td>{money(row.partnerBShare)}</td><td>{money(row.partnerAWithdrawn)} / {money(row.partnerBWithdrawn)}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{money(totals.personal||0)}</td><td>{money(totals.pilates||0)}</td><td>{money(totals.otherIncome||0)}</td><td>{money(totals.pendingIncome||0)}</td><td>{money(totals.expensesPaid||0)}</td><td>{money(totals.pendingExpenses||0)}</td><td>{money(totals.expenses||0)}</td><td className={resultClass}>{money(totals.studioResult||0)}</td><td>{money(totals.partnerAShare||0)}</td><td>{money(totals.partnerBShare||0)}</td><td>{money(totals.partnerAWithdrawn||0)} / {money(totals.partnerBWithdrawn||0)}</td></tr></tfoot></table></div>
+  <p className="studioYearNote">Os valores pessoais respeitam o perfil de acesso: cada administrador vê apenas os seus recebimentos; a conta proprietária vê um total global agregado, sem detalhe por aluno.</p>
+ </Card>;
 }
 
 function MemberDialog({member,onClose,onSave}){
