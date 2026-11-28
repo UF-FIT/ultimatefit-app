@@ -6,6 +6,8 @@ const firstOfYear=year=>String(year)+'-01-01';
 const nextYear=year=>String(Number(year)+1)+'-01-01';
 const sum=rows=>(rows||[]).reduce((total,row)=>total+(Number(row.amount_cents)||0),0);
 const normalizedExpensePayer=value=>value==='unknown'?null:(value||'studio');
+const isVercelPreview=()=>typeof window!=='undefined'&&window.location.hostname.toLowerCase().endsWith('.vercel.app');
+function assertStudioWritable(){if(isVercelPreview())throw new Error('A pré-visualização está em modo de consulta e não permite alterar dados.');}
 
 async function readAll(makeQuery){
  const result=[];
@@ -22,6 +24,7 @@ async function run(query){
  return data;
 }
 async function generateMonth(month){
+ if(isVercelPreview())return 0;
  return run(supabase.rpc('studio_generate_month',{p_month:periodDate(month)}));
 }
 async function studioWorkspaceId(){
@@ -77,6 +80,43 @@ export async function loadStudioMonth(profileId,month){
  const personalReceived=sum(personalRows);
  return {members,charges,records,recurringItems,summary,personalReceived,profitSettings,withdrawals};
 }
+export async function loadStudioHistory(_profileId,throughMonth,count=12){
+ const monthsToLoad=Math.max(1,Math.min(12,Number(count)||12));
+ const end=nextMonth(throughMonth);
+ const cursor=new Date(throughMonth+'-01T12:00:00Z');
+ cursor.setUTCMonth(cursor.getUTCMonth()-(monthsToLoad-1));
+ const start=cursor.toISOString().slice(0,10);
+ const owner=await studioWorkspaceId();
+ const [charges,incomeRecords,expenseRecords,pendingCharges,pendingIncomeRecords,personalRows]=await Promise.all([
+  readAll(()=>supabase.from('studio_group_charges').select('amount_cents,paid_on').eq('owner_id',owner).eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,paid_on,category').eq('owner_id',owner).eq('direction','income').eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,period,status,category').eq('owner_id',owner).eq('direction','expense').in('status',['paid','pending']).gte('period',start).lt('period',end)),
+  readAll(()=>supabase.from('studio_group_charges').select('amount_cents,period,due_on').eq('owner_id',owner).eq('status','pending').gte('period',start).lt('period',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,period,due_on').eq('owner_id',owner).eq('direction','income').eq('status','pending').gte('period',start).lt('period',end)),
+  personalTrainingTotals(start,end),
+ ]);
+ const personalByMonth=new Map(personalRows.map(row=>[String(row.month).slice(0,7),Number(row.amount_cents)||0]));
+ return Array.from({length:monthsToLoad},(_,index)=>{
+  const date=new Date(start+'T12:00:00Z');
+  date.setUTCMonth(date.getUTCMonth()+index);
+  const key=date.toISOString().slice(0,7);
+  const inMonth=row=>row.paid_on?.slice(0,7)===key;
+  const inPeriod=row=>row.period?.slice(0,7)===key;
+  const pilates=sum(charges.filter(inMonth));
+  const otherIncome=sum(incomeRecords.filter(inMonth));
+  const expensesPaid=sum(expenseRecords.filter(row=>row.status==='paid'&&inPeriod(row)));
+  const pendingExpenses=sum(expenseRecords.filter(row=>row.status==='pending'&&inPeriod(row)));
+  const monthPendingCharges=pendingCharges.filter(inPeriod);
+  const monthPendingIncomeRecords=pendingIncomeRecords.filter(inPeriod);
+  const monthPendingExpenses=expenseRecords.filter(row=>row.status==='pending'&&inPeriod(row));
+  const pendingIncome=sum(monthPendingCharges)+sum(monthPendingIncomeRecords);
+  const pendingIncomeCount=monthPendingCharges.length+monthPendingIncomeRecords.length;
+  const pendingExpensesCount=monthPendingExpenses.length;
+  const expenses=expensesPaid+pendingExpenses;
+  return {key,label:new Date(key+'-01T12:00:00').toLocaleDateString('pt-PT',{month:'short'}),personal:personalByMonth.get(key)||0,pilates,otherIncome,expensesPaid,pendingExpenses,pendingIncome,pendingIncomeCount,pendingExpensesCount,expenses,studioResult:pilates+otherIncome-expenses};
+ });
+}
+
 export async function loadStudioYearSummary(profileId,year){
  const current=new Date();
  const lastMonth=Number(year)===current.getFullYear()?current.getMonth()+1:(Number(year)<current.getFullYear()?12:0);
@@ -85,10 +125,12 @@ export async function loadStudioYearSummary(profileId,year){
  }
  const start=firstOfYear(year),end=nextYear(year);
  const owner=await studioWorkspaceId();
- const [charges,paidIncomeRecords,expenseRecords,personalRows,settings,withdrawals]=await Promise.all([
-  readAll(()=>supabase.from('studio_group_charges').select('amount_cents,paid_on,status').eq('owner_id',owner).eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
+ const [charges,paidIncomeRecords,expenseRecords,pendingCharges,pendingIncomeRecords,personalRows,settings,withdrawals]=await Promise.all([
+  readAll(()=>supabase.from('studio_group_charges').select('amount_cents,paid_on,period,status').eq('owner_id',owner).eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
   readAll(()=>supabase.from('studio_financial_records').select('amount_cents,paid_on').eq('owner_id',owner).eq('direction','income').eq('status','paid').gte('paid_on',start).lt('paid_on',end)),
   readAll(()=>supabase.from('studio_financial_records').select('amount_cents,period,status').eq('owner_id',owner).eq('direction','expense').in('status',['paid','pending']).gte('period',start).lt('period',end)),
+  readAll(()=>supabase.from('studio_group_charges').select('amount_cents,period,due_on').eq('owner_id',owner).eq('status','pending').gte('period',start).lt('period',end)),
+  readAll(()=>supabase.from('studio_financial_records').select('amount_cents,period,due_on').eq('owner_id',owner).eq('direction','income').eq('status','pending').gte('period',start).lt('period',end)),
   personalTrainingTotals(start,end),
   readAll(()=>supabase.from('studio_profit_settings').select('*').eq('owner_id',owner).lt('valid_from',end).order('valid_from')),
   readAll(()=>supabase.from('studio_owner_withdrawals').select('*').eq('owner_id',owner).gte('withdrawn_on',start).lt('withdrawn_on',end)),
@@ -107,6 +149,11 @@ export async function loadStudioYearSummary(profileId,year){
   const other=sum(paidIncomeRecords.filter(inMonth));
   const expensesPaid=sum(expenseRecords.filter(row=>row.status==='paid'&&inPeriod(row)));
   const pendingExpenses=sum(expenseRecords.filter(row=>row.status==='pending'&&inPeriod(row)));
+  const monthPendingCharges=pendingCharges.filter(inPeriod);
+  const monthPendingIncomeRecords=pendingIncomeRecords.filter(inPeriod);
+  const pendingIncome=sum(monthPendingCharges)+sum(monthPendingIncomeRecords);
+  const pendingIncomeCount=monthPendingCharges.length+monthPendingIncomeRecords.length;
+  const pendingExpensesCount=expenseRecords.filter(row=>row.status==='pending'&&inPeriod(row)).length;
   const expenses=expensesPaid+pendingExpenses;
   const studioResult=pilates+other-expenses;
   const setting=monthSettings(key);
@@ -115,17 +162,18 @@ export async function loadStudioYearSummary(profileId,year){
   const monthWithdrawals=withdrawals.filter(row=>row.withdrawn_on?.slice(0,7)===key);
   const partnerAWithdrawn=sum(monthWithdrawals.filter(row=>row.partner_key==='partner_a'));
   const partnerBWithdrawn=sum(monthWithdrawals.filter(row=>row.partner_key==='partner_b'));
-  return {key,label:new Date(Number(year),index,1).toLocaleDateString('pt-PT',{month:'short'}),personal:pt,pilates,otherIncome:other,expensesPaid,pendingExpenses,expenses,studioResult,partnerAName:setting.partner_a_name,partnerBName:setting.partner_b_name,partnerAPercent:Number(setting.partner_a_percent||0),partnerBPercent:100-Number(setting.partner_a_percent||0),partnerAShare,partnerBShare,partnerAWithdrawn,partnerBWithdrawn,partnerARemaining:partnerAShare-partnerAWithdrawn,partnerBRemaining:partnerBShare-partnerBWithdrawn};
+  return {key,label:new Date(Number(year),index,1).toLocaleDateString('pt-PT',{month:'short'}),personal:pt,pilates,otherIncome:other,pendingIncome,pendingIncomeCount,pendingExpensesCount,expensesPaid,pendingExpenses,expenses,studioResult,partnerAName:setting.partner_a_name,partnerBName:setting.partner_b_name,partnerAPercent:Number(setting.partner_a_percent||0),partnerBPercent:100-Number(setting.partner_a_percent||0),partnerAShare,partnerBShare,partnerAWithdrawn,partnerBWithdrawn,partnerARemaining:partnerAShare-partnerAWithdrawn,partnerBRemaining:partnerBShare-partnerBWithdrawn};
  });
  const totals=months.reduce((result,row)=>({
-  personal:result.personal+row.personal,pilates:result.pilates+row.pilates,otherIncome:result.otherIncome+row.otherIncome,expensesPaid:result.expensesPaid+row.expensesPaid,pendingExpenses:result.pendingExpenses+row.pendingExpenses,expenses:result.expenses+row.expenses,
+  personal:result.personal+row.personal,pilates:result.pilates+row.pilates,otherIncome:result.otherIncome+row.otherIncome,pendingIncome:result.pendingIncome+row.pendingIncome,pendingIncomeCount:result.pendingIncomeCount+row.pendingIncomeCount,pendingExpensesCount:result.pendingExpensesCount+row.pendingExpensesCount,expensesPaid:result.expensesPaid+row.expensesPaid,pendingExpenses:result.pendingExpenses+row.pendingExpenses,expenses:result.expenses+row.expenses,
   studioResult:result.studioResult+row.studioResult,partnerAShare:result.partnerAShare+row.partnerAShare,partnerBShare:result.partnerBShare+row.partnerBShare,
   partnerAWithdrawn:result.partnerAWithdrawn+row.partnerAWithdrawn,partnerBWithdrawn:result.partnerBWithdrawn+row.partnerBWithdrawn,
   partnerARemaining:result.partnerARemaining+row.partnerARemaining,partnerBRemaining:result.partnerBRemaining+row.partnerBRemaining,
- }),{personal:0,pilates:0,otherIncome:0,expensesPaid:0,pendingExpenses:0,expenses:0,studioResult:0,partnerAShare:0,partnerBShare:0,partnerAWithdrawn:0,partnerBWithdrawn:0,partnerARemaining:0,partnerBRemaining:0});
+ }),{personal:0,pilates:0,otherIncome:0,pendingIncome:0,pendingIncomeCount:0,pendingExpensesCount:0,expensesPaid:0,pendingExpenses:0,expenses:0,studioResult:0,partnerAShare:0,partnerBShare:0,partnerAWithdrawn:0,partnerBWithdrawn:0,partnerARemaining:0,partnerBRemaining:0});
  return {year:Number(year),months,totals,profitSettings:monthSettings(String(year)+'-'+String(lastMonth||1).padStart(2,'0'))};
 }
 export async function saveStudioProfitSettings(_profileId,row){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  const valid_from=periodDate(row.valid_from.slice(0,7));
  return run(supabase.from('studio_profit_settings').upsert({
@@ -134,6 +182,7 @@ export async function saveStudioProfitSettings(_profileId,row){
  },{onConflict:'owner_id,valid_from'}).select('*').single());
 }
 export async function saveStudioWithdrawal(_profileId,row){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  const values={
   partner_key:row.partner_key,amount_cents:row.amount_cents,withdrawn_on:row.withdrawn_on,
@@ -143,6 +192,7 @@ export async function saveStudioWithdrawal(_profileId,row){
  return run(supabase.from('studio_owner_withdrawals').insert({...values,owner_id:owner,request_id:row.request_id}).select('*').single());
 }
 export async function saveStudioMember(_profileId,row){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  const values={
   first_name:row.first_name.trim(),last_name:row.last_name.trim(),whatsapp_phone:row.whatsapp_phone.trim(),
@@ -153,12 +203,14 @@ export async function saveStudioMember(_profileId,row){
  return run(supabase.from('studio_group_members').insert({...values,owner_id:owner,request_id:row.request_id}).select('*').single());
 }
 export async function setStudioChargePaid(_profileId,id,paid){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  return run(supabase.from('studio_group_charges').update({
   status:paid?'paid':'pending',paid_on:paid?rowToday():null,method:null,updated_at:new Date().toISOString(),
  }).eq('owner_id',owner).eq('id',id).select('*').single());
 }
 export async function saveStudioFinancialRecord(_profileId,row){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  const values={
   direction:row.direction,category:row.category,description:row.description.trim(),amount_cents:row.amount_cents,
@@ -170,6 +222,7 @@ export async function saveStudioFinancialRecord(_profileId,row){
  return run(supabase.from('studio_financial_records').insert({...values,owner_id:owner,request_id:row.request_id}).select('*').single());
 }
 export async function saveStudioRecurringItem(_profileId,row){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  const values={
   direction:row.direction,category:row.category,description:row.description.trim(),amount_cents:row.amount_cents,
@@ -180,12 +233,14 @@ export async function saveStudioRecurringItem(_profileId,row){
  return run(supabase.from('studio_recurring_items').insert({...values,owner_id:owner,request_id:row.request_id}).select('*').single());
 }
 export async function setStudioRecurringActive(_profileId,id,active){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  const values={active,ends_on:active?null:rowToday(),updated_at:new Date().toISOString()};
  if(active)values.starts_on=rowToday();
  return run(supabase.from('studio_recurring_items').update(values).eq('owner_id',owner).eq('id',id).select('*').single());
 }
 export async function setStudioFinancialRecordPaid(_profileId,id,paid){
+ assertStudioWritable();
  const owner=await studioWorkspaceId();
  return run(supabase.from('studio_financial_records').update({
   status:paid?'paid':'pending',paid_on:paid?rowToday():null,method:null,updated_at:new Date().toISOString(),
