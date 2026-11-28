@@ -73,7 +73,7 @@ export default function StudioManagement(){
  }
  if(!canManageStudio)return <main className="studioManagement"><h1>Gestão do Estúdio</h1><Notice type="error">Esta secção está disponível apenas para administradores do estúdio.</Notice></main>;
  const summary=view==='month'?payload?.summary:null;
- const studioResult=(summary?.pilatesReceived||0)+(summary?.otherIncomeReceived||0)-(summary?.expensesPaid||0);
+ const studioResult=(summary?.pilatesReceived||0)+(summary?.otherIncomeReceived||0)-(summary?.expensesPaid||0)-(summary?.pendingExpenses||0);
  const profitSettings=payload?.profitSettings||{partner_a_name:'Rui Marques',partner_b_name:'Manuel Gonzalves',partner_a_percent:50};
  const partnerAPercent=Number(profitSettings.partner_a_percent??50);
  const partnerBPercent=100-partnerAPercent;
@@ -84,7 +84,7 @@ export default function StudioManagement(){
  const partnerBWithdrawn=sumCents(monthlyWithdrawals.filter(row=>row.partner_key==='partner_b'));
  const partnerARemaining=partnerAShare-partnerAWithdrawn;
  const partnerBRemaining=partnerBShare-partnerBWithdrawn;
- const forecastResult=studioResult+(summary?.pendingIncome||0)-(summary?.pendingExpenses||0);
+ const forecastResult=studioResult+(summary?.pendingIncome||0);
  const currentName=normalizeName(currentUser.name);
  const currentPartner=currentName===normalizeName(profitSettings.partner_a_name)?'partner_a':currentName===normalizeName(profitSettings.partner_b_name)?'partner_b':null;
  const ownStudioShare=currentPartner==='partner_a'?partnerAShare:currentPartner==='partner_b'?partnerBShare:null;
@@ -108,7 +108,7 @@ export default function StudioManagement(){
     <div><small>Pilates recebido</small><strong>{money(summary?.pilatesReceived||0)}</strong><span>Mensalidades efetivamente recebidas</span></div>
     <div><small>Outros rendimentos do estúdio</small><strong>{money(summary?.otherIncomeReceived||0)}</strong><span>Inclui as mensalidades pagas pelos professores</span></div>
     <div><small>Despesas pagas</small><strong>{money(summary?.expensesPaid||0)}</strong><span>Contadas uma única vez, mesmo quando pagas pelos dois sócios</span></div>
-    <div className="result"><small>Resultado do estúdio</small><strong>{money(studioResult)}</strong><span>Receitas recebidas menos despesas pagas · antes de impostos</span></div>
+    <div className="result"><small>Resultado do estúdio</small><strong>{money(studioResult)}</strong><span>Receitas recebidas menos despesas pagas e pendentes · antes de impostos</span></div>
    </div>
    <div className="studioMetrics studioSecondaryMetrics">
     <div><small>{currentUser.systemRole==='owner'?'Treino pessoal · total global':'Treino pessoal recebido por ti'}</small><strong>{money(payload?.personalReceived||0)}</strong><span>{currentUser.systemRole==='owner'?'Soma agregada dos pagamentos pessoais de todos os professores.':'Pagamentos dos teus alunos; separado das contas do estúdio.'}</span></div>
@@ -121,7 +121,7 @@ export default function StudioManagement(){
     <div className="studioFlow">
      <div><small>Recebido no Pilates</small><strong>{money(summary?.pilatesReceived||0)}</strong></div><span aria-hidden="true">+</span>
      <div><small>Outros rendimentos</small><strong>{money(summary?.otherIncomeReceived||0)}</strong></div><span aria-hidden="true">−</span>
-     <div><small>Despesas pagas</small><strong>{money(summary?.expensesPaid||0)}</strong></div><span aria-hidden="true">=</span>
+     <div><small>Despesas totais</small><strong>{money((summary?.expensesPaid||0)+(summary?.pendingExpenses||0))}</strong></div><span aria-hidden="true">=</span>
      <div className="studioFlowResult"><small>Resultado antes de impostos</small><strong>{money(studioResult)}</strong></div>
     </div>
     <div className="studioPartnerShares">
@@ -186,16 +186,16 @@ function YearView({payload,year,currentUser}){
    <div><small>{currentUser.systemRole==='owner'?'Treino pessoal · total global':'Treino pessoal recebido por ti'}</small><strong>{money(totals.personal||0)}</strong><span>Recebimentos pessoais no ano, separados das contas do estúdio</span></div>
    <div><small>Pilates recebido</small><strong>{money(totals.pilates||0)}</strong><span>Mensalidades efetivamente recebidas</span></div>
    <div><small>Outros rendimentos do estúdio</small><strong>{money(totals.otherIncome||0)}</strong><span>Inclui mensalidades dos professores</span></div>
-   <div><small>Despesas do estúdio</small><strong>{money(totals.expenses||0)}</strong><span>Despesas pagas no ano</span></div>
+   <div><small>Despesas do estúdio</small><strong>{money(totals.expenses||0)}</strong><span>Pagas: {money(totals.expensesPaid||0)} · pendentes: {money(totals.pendingExpenses||0)}</span></div>
   </div>
-  <Card className="studioYearCard"><header className="studioCardHeader"><div><h2>Resumo financeiro de {year}</h2><p>Valores por data efetiva de recebimento ou pagamento. Resultado apresentado antes de impostos; levantamentos não são despesas.</p></div></header>
+  <Card className="studioYearCard"><header className="studioCardHeader"><div><h2>Resumo financeiro de {year}</h2><p>Rendimentos por data de recebimento; despesas pelo mês de referência, incluindo as que ainda estão por pagar. Resultado antes de impostos; levantamentos não são despesas.</p></div></header>
    <div className="studioYearResult">
     <article><span>Resultado do estúdio</span><strong>{money(totals.studioResult||0)}</strong></article>
     <article><span>Quota de {settings.partner_a_name}</span><strong>{money(totals.partnerAShare||0)}</strong><small>Levantado {money(totals.partnerAWithdrawn||0)} · por levantar {money(totals.partnerARemaining||0)}</small></article>
     <article><span>Quota de {settings.partner_b_name}</span><strong>{money(totals.partnerBShare||0)}</strong><small>Levantado {money(totals.partnerBWithdrawn||0)} · por levantar {money(totals.partnerBRemaining||0)}</small></article>
     {combinedLabel&&<article className="combined"><span>{combinedLabel}</span><strong>{money(combinedTotal||0)}</strong><small>{currentUser.systemRole==='owner'?'Treino pessoal global + resultado total do estúdio, antes da divisão.':'Recebimentos do teu treino pessoal + levantamentos efetivamente registados para ti.'}</small></article>}
    </div>
-   <div className="studioYearTableWrap"><table className="studioYearTable"><thead><tr><th>Mês</th><th>{currentUser.systemRole==='owner'?'Treino pessoal · global':'Treino pessoal'}</th><th>Pilates</th><th>Outros rendimentos</th><th>Despesas pagas</th><th>Resultado estúdio</th><th>Quota sócio A</th><th>Quota sócio B</th><th>Levantamentos A/B</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th>{row.label}</th><td>{money(row.personal)}</td><td>{money(row.pilates)}</td><td>{money(row.otherIncome)}</td><td>{money(row.expenses)}</td><td>{money(row.studioResult)}</td><td>{money(row.partnerAShare)}</td><td>{money(row.partnerBShare)}</td><td>{money(row.partnerAWithdrawn)} / {money(row.partnerBWithdrawn)}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{money(totals.personal||0)}</td><td>{money(totals.pilates||0)}</td><td>{money(totals.otherIncome||0)}</td><td>{money(totals.expenses||0)}</td><td>{money(totals.studioResult||0)}</td><td>{money(totals.partnerAShare||0)}</td><td>{money(totals.partnerBShare||0)}</td><td>{money(totals.partnerAWithdrawn||0)} / {money(totals.partnerBWithdrawn||0)}</td></tr></tfoot></table></div>
+   <div className="studioYearTableWrap"><table className="studioYearTable"><thead><tr><th>Mês</th><th>{currentUser.systemRole==='owner'?'Treino pessoal · global':'Treino pessoal'}</th><th>Pilates</th><th>Outros rendimentos</th><th>Despesas pagas</th><th>Pendentes</th><th>Despesas totais</th><th>Resultado estúdio</th><th>Quota sócio A</th><th>Quota sócio B</th><th>Levantamentos A/B</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th>{row.label}</th><td>{money(row.personal)}</td><td>{money(row.pilates)}</td><td>{money(row.otherIncome)}</td><td>{money(row.expensesPaid)}</td><td>{money(row.pendingExpenses)}</td><td>{money(row.expenses)}</td><td>{money(row.studioResult)}</td><td>{money(row.partnerAShare)}</td><td>{money(row.partnerBShare)}</td><td>{money(row.partnerAWithdrawn)} / {money(row.partnerBWithdrawn)}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{money(totals.personal||0)}</td><td>{money(totals.pilates||0)}</td><td>{money(totals.otherIncome||0)}</td><td>{money(totals.expensesPaid||0)}</td><td>{money(totals.pendingExpenses||0)}</td><td>{money(totals.expenses||0)}</td><td>{money(totals.studioResult||0)}</td><td>{money(totals.partnerAShare||0)}</td><td>{money(totals.partnerBShare||0)}</td><td>{money(totals.partnerAWithdrawn||0)} / {money(totals.partnerBWithdrawn||0)}</td></tr></tfoot></table></div>
    <p className="studioYearNote">Os dados de treino pessoal respeitam o perfil de acesso: cada administrador vê apenas os seus próprios recebimentos; a conta proprietária vê apenas o total global agregado, sem valores por aluno.</p>
   </Card>
  </>;
