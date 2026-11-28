@@ -90,7 +90,7 @@ function parseCompleteWeight(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function GuidedWeightInput({ value, onChange }) {
+function GuidedWeightInput({ value, onChange, readOnly = false }) {
   const inputRef = useRef(null);
   const [draft, setDraft] = useState(() => weightDraftFrom(value));
 
@@ -99,6 +99,7 @@ function GuidedWeightInput({ value, onChange }) {
   }, [value]);
 
   function commitDraft() {
+    if (readOnly) return;
     const raw = draft.trim();
     if (!raw) {
       onChange(null);
@@ -120,6 +121,7 @@ function GuidedWeightInput({ value, onChange }) {
     type="text"
     inputMode="decimal"
     value={draft}
+    readOnly={readOnly}
     onChange={event => {
       const next = sanitizeWeightDraft(event.target.value);
       setDraft(next);
@@ -504,15 +506,15 @@ function SummaryScreen({ run, state, elapsed, onBackToRun, onFinish, busy, error
   </div>;
 }
 
-function GuidedActivity({ activity, historyRows, onChangeSet, onToggleSet, onVideo, onHistory }) {
+function GuidedActivity({ activity, historyRows, onChangeSet, onToggleSet, onVideo, onHistory, onBrowsePrevious, onBrowseNext, activityPosition, activityCount, preview = false, readOnly = false, onTouchStart, onTouchEnd }) {
   if (!activity) return null;
   const manual = activity.type === 'manual';
   const cardio = activity.type === 'cardio';
   const timed = activity.type === 'timed';
 
-  return <div className="ufGuidedActivityWrap">
+  return <div className="ufGuidedActivityWrap" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}>
     <span className="ufGuidedActivityNumber">ATIVIDADE {activity.activityIndex + 1}</span>
-    <section className={cx('ufGuidedActivityCard', manual && 'manual')}>
+    <section className={cx('ufGuidedActivityCard', manual && 'manual', preview && 'preview')}>
       {manual ? <>
         <h2>Texto livre</h2>
         <p className="ufGuidedManualText">{activity.manualName || activity.name}{activity.notes ? `\n\n${activity.notes}` : ''}</p>
@@ -528,13 +530,13 @@ function GuidedActivity({ activity, historyRows, onChangeSet, onToggleSet, onVid
           <label><span>Minutos</span><input inputMode="numeric" value={activity.cardio?.minutes || ''} readOnly/></label>
           <label><span>Carga (%)</span><input inputMode="decimal" value={activity.cardio?.intensity ?? ''} readOnly/></label>
           <div><span>Último treino</span><b>—</b></div>
-          <button type="button" className={cx('ufGuidedSetDone', activity.sets?.[0]?.completed && 'done')} onClick={()=>onToggleSet(0)}>{activity.sets?.[0]?.completed?<Check/>:<Circle/>}</button>
+          <button type="button" className={cx('ufGuidedSetDone', activity.sets?.[0]?.completed && 'done')} onClick={()=>onToggleSet(0)} disabled={readOnly}>{activity.sets?.[0]?.completed?<Check/>:<Circle/>}</button>
         </div> : timed && activity.sets?.length ? <div className="ufGuidedTimedSets">
           <div className="ufGuidedTimedLabels"><span></span><span>Tempo</span><span></span></div>
           {activity.sets.map((set,index)=><div className={cx('ufGuidedTimedRow',set.completed&&'done')} key={set.index}>
             <b>{set.index}</b>
             <span>{set.durationSeconds || activity.durationSeconds}s</span>
-            <button type="button" className={cx('ufGuidedSetDone', set.completed && 'done')} onClick={()=>onToggleSet(index)}>{set.completed?<Check/>:<Circle/>}</button>
+            <button type="button" className={cx('ufGuidedSetDone', set.completed && 'done')} onClick={()=>onToggleSet(index)} disabled={readOnly}>{set.completed?<Check/>:<Circle/>}</button>
           </div>)}
         </div> : activity.sets?.length ? <div className="ufGuidedSets">
           <div className="ufGuidedSetLabels"><span></span><span>Reps</span><span>Carga (kg)</span><span>Último treino</span><span></span></div>
@@ -542,16 +544,22 @@ function GuidedActivity({ activity, historyRows, onChangeSet, onToggleSet, onVid
             const latest = latestSetFor(historyRows, set.index);
             return <div className={cx('ufGuidedSetRow', set.completed && 'done')} key={set.index}>
               <b>{set.index}</b>
-              <input inputMode="numeric" value={set.reps} onChange={event=>onChangeSet(index,{reps:Math.max(1,Number(event.target.value)||1)})}/>
-              <GuidedWeightInput key={`${activity.activityIndex}:${set.index}`} value={set.weightKg} onChange={weightKg=>onChangeSet(index,{weightKg})}/>
+              <input inputMode="numeric" value={set.reps} readOnly={readOnly} onChange={event=>onChangeSet(index,{reps:Math.max(1,Number(event.target.value)||1)})}/>
+              <GuidedWeightInput key={`${activity.activityIndex}:${set.index}`} value={set.weightKg} readOnly={readOnly} onChange={weightKg=>onChangeSet(index,{weightKg})}/>
               <span>{latest ? (latest.weight == null ? `${latest.reps} reps` : `${latest.reps} × ${formatKg(latest.weight)} kg`) : '—'}</span>
-              <button type="button" className={cx('ufGuidedSetDone', set.completed && 'done')} onClick={()=>onToggleSet(index)}>{set.completed?<Check/>:<Circle/>}</button>
+              <button type="button" className={cx('ufGuidedSetDone', set.completed && 'done')} onClick={()=>onToggleSet(index)} disabled={readOnly}>{set.completed?<Check/>:<Circle/>}</button>
             </div>;
           })}
         </div> : null}
         <button type="button" className="ufActivityHistoryButton" onClick={onHistory}><History size={19}/>HISTÓRICO DA ATIVIDADE</button>
       </>}
     </section>
+    <nav className="ufGuidedExerciseNav" aria-label="Navegar pelos exercícios">
+      <button type="button" onClick={onBrowsePrevious} disabled={activityPosition <= 0} aria-label="Ver exercício anterior"><ChevronLeft/><span>Anterior</span></button>
+      <span className="ufGuidedExercisePosition">{activityPosition + 1} / {activityCount}</span>
+      <button type="button" onClick={onBrowseNext} disabled={activityPosition >= activityCount - 1} aria-label="Ver exercício seguinte"><span>Seguinte</span><ChevronRight/></button>
+    </nav>
+    {preview && <p className="ufGuidedPreviewNotice" role="status">Pré-visualização — o teu progresso continua no exercício atual.</p>}
   </div>;
 }
 
@@ -626,6 +634,8 @@ function WorkoutRunner({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [completionError, setCompletionError] = useState('');
+  const [previewIndex, setPreviewIndex] = useState(null);
+  const browseTouchRef = useRef(null);
   const finalising = useRef(false);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(()=>elapsedRunSeconds(run));
@@ -765,13 +775,45 @@ function WorkoutRunner({
 
   const activities = state.activities || [];
   const current = activities[state.currentIndex] || activities.find(item => !['completed','skipped'].includes(item.status)) || activities[activities.length - 1];
-  const historyRows = current ? groupHistoryRows(historySets, legacyLoads, current) : [];
+  const actualIndex = Math.max(0, activities.indexOf(current));
+  useEffect(() => {
+    setPreviewIndex(null);
+    browseTouchRef.current = null;
+  }, [actualIndex, mode]);
+  const displayedIndex = previewIndex == null ? actualIndex : Math.max(0, Math.min(activities.length - 1, previewIndex));
+  const displayActivity = activities[displayedIndex] || current;
+  const isPreviewing = Boolean(displayActivity && displayedIndex !== actualIndex);
+  const historyRows = displayActivity ? groupHistoryRows(historySets, legacyLoads, displayActivity) : [];
   const completedCount = activities.filter(item=>item.status==='completed').length;
   const progressPercent = activities.length ? (completedCount / activities.length) * 100 : 0;
   const currentSets = current?.sets || [];
   const currentRequiresSets = currentSets.length > 0;
   const currentSetsComplete = !currentRequiresSets || currentSets.every(set => set.completed);
   const canCompleteCurrent = Boolean(current) && currentSetsComplete;
+
+  function moveExercisePreview(offset) {
+    if (!activities.length) return;
+    const from = previewIndex == null ? actualIndex : previewIndex;
+    const target = Math.max(0, Math.min(activities.length - 1, from + offset));
+    setPreviewIndex(target === actualIndex ? null : target);
+  }
+
+  function handleExerciseTouchStart(event) {
+    const touch = event.touches?.[0];
+    if (!touch || event.target.closest?.('button,input,textarea,select,a,[contenteditable="true"]')) return;
+    browseTouchRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleExerciseTouchEnd(event) {
+    const start = browseTouchRef.current;
+    browseTouchRef.current = null;
+    const touch = event.changedTouches?.[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+    moveExercisePreview(deltaX < 0 ? 1 : -1);
+  }
 
   function patchState(mutator) {
     if (finalising.current) return;
@@ -963,22 +1005,32 @@ function WorkoutRunner({
     </div>
     {mode === 'guided' ? <>
       <GuidedActivity
-        activity={current}
+        activity={displayActivity}
         historyRows={historyRows}
-        onChangeSet={(setIndex,patch)=>patchSet(current.activityIndex,setIndex,patch)}
-        onToggleSet={setIndex=>toggleSet(current.activityIndex,setIndex)}
-        onVideo={()=>setVideo(current)}
-        onHistory={()=>setHistoryActivity(current)}
+        preview={isPreviewing}
+        readOnly={isPreviewing}
+        activityPosition={displayedIndex}
+        activityCount={activities.length}
+        onBrowsePrevious={()=>moveExercisePreview(-1)}
+        onBrowseNext={()=>moveExercisePreview(1)}
+        onTouchStart={handleExerciseTouchStart}
+        onTouchEnd={handleExerciseTouchEnd}
+        onChangeSet={(setIndex,patch)=>!isPreviewing && patchSet(displayActivity.activityIndex,setIndex,patch)}
+        onToggleSet={setIndex=>!isPreviewing && toggleSet(displayActivity.activityIndex,setIndex)}
+        onVideo={()=>setVideo(displayActivity)}
+        onHistory={()=>setHistoryActivity(displayActivity)}
       />
       <div className="ufGuidedBottomBar">
         <div className="ufGuidedBottomMeta"><b>{run.planTitle || state.planTitle}</b><strong>{formatDuration(elapsed)}</strong></div>
         <div className="ufGuidedProgressSegments">{activities.map((item,index)=><span key={item.key||index} className={cx(item.status==='completed'&&'done',item.status==='skipped'&&'skipped',index===state.currentIndex&&'current')}/>)}</div>
-        <div className="ufGuidedBottomActions">
-          <button type="button" className="ufSkipButton" onClick={()=>skipActivity(current.activityIndex)} disabled={busy}><X/>Pular</button>
-          <button type="button" className="ufCompleteActivityButton" onClick={()=>requestComplete(current.activityIndex, false)} disabled={busy || !canCompleteCurrent} aria-disabled={busy || !canCompleteCurrent} title={!canCompleteCurrent ? 'Conclui primeiro todas as séries desta atividade.' : undefined}><CheckCircle2/>Completar atividade</button>
+        <div className={cx('ufGuidedBottomActions', isPreviewing && 'previewing')}>
+          {isPreviewing ? <button type="button" className="ufReturnToCurrentButton" onClick={()=>setPreviewIndex(null)}><ArrowLeft/>Voltar ao exercício atual</button> : <>
+            <button type="button" className="ufSkipButton" onClick={()=>skipActivity(current.activityIndex)} disabled={busy}><X/>Pular</button>
+            <button type="button" className="ufCompleteActivityButton" onClick={()=>requestComplete(current.activityIndex, false)} disabled={busy || !canCompleteCurrent} aria-disabled={busy || !canCompleteCurrent} title={!canCompleteCurrent ? 'Conclui primeiro todas as séries desta atividade.' : undefined}><CheckCircle2/>Completar atividade</button>
+          </>}
         </div>
       </div>
-      <RestView rest={state.rest} activity={activities[state.rest?.afterActivityIndex]} nextActivity={current} onSkip={skipRest}/>
+      {!isPreviewing && <RestView rest={state.rest} activity={activities[state.rest?.afterActivityIndex]} nextActivity={current} onSkip={skipRest}/>}
     </> : <>
       <div className="ufSimplifiedList">
         {state.blocks?.map((block, blockIndex) => {
